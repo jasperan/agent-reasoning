@@ -162,13 +162,14 @@ Majority Logic: [Aggregated Best Answer from Votes]
 ```text
 [ToTAgent]: Thinking via Tree of Thoughts (Depth=3, Width=2)...
 [Step 1/3 - Exploring branches]
-  Path Score: 0.1
-  Path Score: 0.0
+  Path Score: 1.0
+  Path Score: 1.0
 [Step 2/3 - Exploring branches]
-  Path Score: 1.0 (Found promising state: 3gal=0, 5gal=5)
+  Path Score: 1.0
+  Path Score: 0.1
 [Step 3/3 - Exploring branches]
   Path Score: 1.0 (Found solution state)
-Final Answer: Fill the 5-gallon jug, pour into the 3-gallon jug (leaving 2), empty 3-gallon, pour 2 gallons in...
+Final Answer: The Final Answer is: Fill 5, pour to 3...
 ```
 
 ### 3. Planning (Decomposed Agent)
@@ -178,17 +179,17 @@ Final Answer: Fill the 5-gallon jug, pour into the 3-gallon jug (leaving 2), emp
 ```text
 [DecomposedAgent]: Decomposing the problem...
 Sub-tasks Plan:
-1.  Define the Scope (Edo period, samurai culture)
-2.  Identify Key Locations (Edo-Tokyo Museum, Imperial Palace)
-3.  Determine Transportation
+1.  Define the Scope (samurai, tea, history)
+2.  Identify Interests (samurai, tea, history of Japan)
+3.  Determine Duration (3 days)
 ...
 [DecomposedAgent]: Solving sub-task: 1. Define the Scope...
-[DecomposedAgent]: Solving sub-task: 2. Identify Key Locations...
-Final Answer: Here (is your detailed itinerary)...
+[DecomposedAgent]: Solving sub-task: 2. Identify Interests...
+Final Answer: Okay, I'm ready...
 ```
 
 ### 4. Tool Use (ReAct Agent)
-*Interleaves thought, action, and observation to solve problems.*
+*Interleaves thought, action, and observation to solve problems. **Optimized to 3 steps**.*
 
 **Query:** "Who is the current CEO of Google? Calculate the square root of 144."
 ```text
