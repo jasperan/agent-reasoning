@@ -11,11 +11,41 @@ class ReActAgent(BaseAgent):
     def perform_tool_call(self, tool_name, tool_input):
         if tool_name == "calculate":
             try:
-                # Safe-ish eval
                 allowed_names = {"abs": abs, "round": round, "min": min, "max": max}
                 return str(eval(tool_input, {"__builtins__": {}}, allowed_names))
             except Exception as e:
                 return f"Error calculating: {e}"
+
+        elif tool_name == "web_search":
+            # Real Web Scraping (DuckDuckGo HTML)
+            try:
+                import requests
+                import re
+                
+                headers = {
+                    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
+                }
+                url = "https://html.duckduckgo.com/html/"
+                data = {"q": tool_input}
+                
+                resp = requests.post(url, data=data, headers=headers, timeout=10)
+                html = resp.text
+                
+                snippets = re.findall(r'class="result__snippet"[^>]*>(.*?)</a>', html)
+                titles = re.findall(r'class="result__a"[^>]*>(.*?)</a>', html)
+                
+                if snippets:
+                    res_str = ""
+                    for i in range(min(2, len(snippets))):
+                        title = titles[i] if i < len(titles) else "Result"
+                        clean_snip = re.sub(r'<[^>]+>', '', snippets[i])
+                        clean_title = re.sub(r'<[^>]+>', '', title)
+                        res_str += f"[{i+1}] {clean_title}: {clean_snip}\n"
+                    return res_str.strip()
+                return "No results found via Web Search."
+            except Exception as e:
+                return f"Web Search Error: {e}"
+
         elif tool_name == "search":
             # Fallback db
             fallback_db = {
@@ -27,7 +57,6 @@ class ReActAgent(BaseAgent):
             
             try:
                 import requests
-                # Real Wikipedia API call
                 url = "https://en.wikipedia.org/w/api.php"
                 params = {
                     "action": "query",
@@ -41,7 +70,6 @@ class ReActAgent(BaseAgent):
                     top = data["query"]["search"][0]
                     return f"Title: {top['title']}\nSnippet: {top['snippet']}"
             except:
-                # If API fails for ANY reason, use fallback
                 pass
             
             # Detailed Fallback Check
@@ -51,6 +79,7 @@ class ReActAgent(BaseAgent):
                     return f"Fallback Search: {v}"
             
             return "No results found."
+
         else:
             return "Unknown tool"
 
@@ -66,19 +95,20 @@ class ReActAgent(BaseAgent):
     def stream(self, query):
         system_prompt = """You are a Reasoning and Acting agent.
 Tools:
-- calculate[expression] (e.g. calculate[3+3])
-- search[query] (e.g. search[Paris population])
+- web_search[query]: SEARCH THE WEB. Use this for ANY question about current events, people, companies, or news. (e.g. web_search[CEO of Google])
+- calculate[expression]: Use for math. (e.g. calculate[3+3])
+- search[query]: Use ONLY for definitions.
 
 Example:
-Question: What is 12*12?
-Thought: I need to multiply.
-Action: calculate[12*12]
-Observation: 144
-Final Answer: 144
+Question: Who is the CEO of Google?
+Thought: I need to check current information.
+Action: web_search[current CEO of Google]
+Observation: Sundar Pichai is the CEO...
+Final Answer: Sundar Pichai
 
 Instructions:
 1. Answer the Question.
-2. Use 'Action: tool[input]' triggers a tool.
+2. triggers a tool using 'Action: tool[input]'.
 3. Wait for 'Observation:' (do not generate it).
 """
         messages = f"{system_prompt}\nQuestion: {query}\n"

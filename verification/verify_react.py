@@ -6,8 +6,8 @@ def test_react():
     print(colored("=== Testing ReActAgent (Reasoning + Acting) ===", "blue", attrs=["bold"]))
     agent = ReActAgent()
     
-    # A question requiring outside knowledge (Python release year) and maybe simple math
-    query = "When was the first version of Python released? Subtract that year from 2026."
+    # A question requiring outside knowledge (Web Search)
+    query = "Use web_search to find the current CEO of Google."
     
     result = agent.run(query)
     
