@@ -7,13 +7,18 @@ class OllamaClient:
         self.model = model
         self.base_url = base_url
 
-    def generate(self, prompt, system=None, stream=True):
+    def generate(self, prompt, system=None, stream=True, temperature=0.7, top_k=40, top_p=0.9, stop=None):
         url = f"{self.base_url}/api/generate"
         data = {
             "model": self.model,
             "prompt": prompt,
-            "stream": stream
+            "stream": stream,
+            "temperature": temperature,
+            "top_k": top_k,
+            "top_p": top_p
         }
+        if stop:
+            data["stop"] = stop
         if system:
             data["system"] = system
 

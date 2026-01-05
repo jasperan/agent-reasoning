@@ -9,14 +9,33 @@ class ReActAgent(BaseAgent):
         self.color = "magenta"
     
     def perform_tool_call(self, tool_name, tool_input):
-        # Mock tools
         if tool_name == "calculate":
             try:
-                return str(eval(tool_input))
-            except:
-                return "Error calculating"
+                # Safe-ish eval
+                allowed_names = {"abs": abs, "round": round, "min": min, "max": max}
+                return str(eval(tool_input, {"__builtins__": {}}, allowed_names))
+            except Exception as e:
+                return f"Error calculating: {e}"
         elif tool_name == "search":
-            return f"Simulated search results for: {tool_input}"
+            try:
+                import requests
+                # Real Wikipedia API call
+                url = "https://en.wikipedia.org/w/api.php"
+                params = {
+                    "action": "query",
+                    "list": "search",
+                    "srsearch": tool_input,
+                    "format": "json"
+                }
+                resp = requests.get(url, params=params).json()
+                if "query" in resp and "search" in resp["query"] and resp["query"]["search"]:
+                    # Return title and snippet of top result
+                    top = resp["query"]["search"][0]
+                    return f"Title: {top['title']}\nSnippet: {top['snippet']}"
+                else:
+                    return "No results found."
+            except Exception as e:
+                return f"Search Error: {e}"
         else:
             return "Unknown tool"
 
@@ -33,44 +52,52 @@ class ReActAgent(BaseAgent):
         system_prompt = """You are a Reasoning and Acting agent.
 Your goal is to answer the user question using tools if necessary.
 Available tools:
-- calculate: evaluates a mathematical expression (e.g., "3+3")
-- search: simulates a web search (e.g., "population of france")
+- calculate[expression]: evaluates a mathematical expression (e.g., calculate[3+3])
+- search[query]: searches Wikipedia for facts (e.g., search[population of france])
 
-Format your response as:
+Format your response exactly as:
 Thought: <reasoning>
 Action: <tool_name>[<input>]
 Observation: <result>
-... (repeat)
+... (repeat as needed)
 Thought: <reasoning>
 Final Answer: <the final result>
 
-Stop when you have the Final Answer.
+IMPORTANT: 
+- AFTER triggering an Action, STOP generating and wait for the Observation.
+- Do NOT generate the Observation yourself.
 """
         messages = f"{system_prompt}\nQuestion: {query}\n"
-        max_steps = 5
+        max_steps = 7
         
         for i in range(max_steps):
             yield f"\n--- Step {i+1} ---\nAgent: "
             
+            # Stop generation at Observation: to prevent hallucinating tools output
             response_chunk = ""
-            for chunk in self.client.generate(messages, stream=True):
+            for chunk in self.client.generate(messages, stream=True, stop=["Observation:"]):
                  yield chunk
                  response_chunk += chunk
             
-            messages += response_chunk + "\n"
+            messages += response_chunk
             
             if "Final Answer:" in response_chunk:
                 return 
             
-            match = re.search(r"Action:\s*(\w+)\[(.*?)\]", response_chunk)
+            # Regex to find Action
+            match = re.search(r"Action:\s*(\w+)\[(.*?)\]", response_chunk, re.IGNORECASE)
             if match:
-                tool_name = match.group(1)
+                tool_name = match.group(1).lower()
                 tool_input = match.group(2)
                 
+                yield f"\nRunning {tool_name}..."
                 observation = self.perform_tool_call(tool_name, tool_input)
-                yield f"\nObservation: {observation}\n"
+                obs_str = f"\nObservation: {observation}\n"
+                yield colored(obs_str, "blue")
                 
-                messages += f"Observation: {observation}\n"
+                messages += obs_str
             else:
+                # If no action found but also no final answer, the model might be rambling or confused.
+                # Use a hint to nudge it.
                 if "Action:" not in response_chunk:
-                     pass
+                     pass # It might be mid-thought if we didn't stop it, but we used stop token.

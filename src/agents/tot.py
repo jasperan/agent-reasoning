@@ -57,10 +57,15 @@ class ToTAgent(BaseAgent):
                 
                 try:
                     import re
-                    match = re.search(r"0\.\d+|1\.0|0|1", score_str)
-                    score = float(match.group(0)) if match else 0.5
+                    # Match floating point numbers 0-1, or integers 0-1.
+                    # Look for explicit "Score: X" first, then fallback to just finding a number.
+                    match = re.search(r"Score:\s*(0\.\d+|1\.0|0|1)", score_str, re.IGNORECASE)
+                    if not match:
+                        match = re.search(r"\b(0\.\d+|1\.0|0|1)\b", score_str)
+                    
+                    score = float(match.group(1)) if match else 0.1 # Penalize unclear scores
                 except:
-                    score = 0.5
+                    score = 0.1
                 
                 yield f"  Path Score: {score}\n"
                 scored_candidates.append((score, cand))

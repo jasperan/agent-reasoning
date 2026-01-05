@@ -20,32 +20,45 @@ class SelfReflectionAgent(BaseAgent):
         return full_response
 
     def stream(self, query):
+        max_turns = 3
+        current_answer = ""
+        
         # 1. Initial Attempt
         yield "[Drafting initial response...]\n"
         initial_prompt = f"Answer the following question: {query}"
-        initial_response = ""
         
         yield "Initial Draft: "
         for chunk in self.client.generate(initial_prompt):
-             initial_response += chunk
+             current_answer += chunk
              yield chunk
         yield "\n\n"
 
-        # 2. Critique/Reflection
-        yield "[Reflecting on the draft...]\n"
-        critique_prompt = f"Review the following answer to the question: '{query}'.\nAnswer: '{initial_response}'.\nCheck for errors, logical inconsistencies, or missing information. Provide a critique of the logic."
-        critique = ""
+        # 2. Reflection Loop
+        for turn in range(max_turns):
+            yield f"\n[Reflection Turn {turn+1}/{max_turns}]\n"
+            
+            # Critique
+            critique_prompt = f"Review the following answer to the question: '{query}'.\nAnswer: '{current_answer}'.\nIf the answer is correct and complete, output ONLY 'CORRECT'. Otherwise, list the errors."
+            critique = ""
+            yield "Critique: "
+            for chunk in self.client.generate(critique_prompt):
+                critique += chunk
+                yield chunk
+            yield "\n"
+            
+            if "CORRECT" in critique.upper() and len(critique) < 20:
+                yield colored("\n[Critique passed. Answer is correct.]\n", "green")
+                break
+            
+            # Improvement
+            yield "Refining Answer...\n"
+            improvement_prompt = f"Original Question: {query}\nCurrent Answer: {current_answer}\nCritique: {critique}\n\nProvide the corrected final answer."
+            
+            new_answer = ""
+            for chunk in self.client.generate(improvement_prompt):
+                new_answer += chunk
+                yield chunk
+            yield "\n"
+            current_answer = new_answer
         
-        yield "Critique: "
-        for chunk in self.client.generate(critique_prompt):
-            critique += chunk
-            yield chunk
-        yield "\n\n"
-
-        # 3. Final Answer
-        yield "[Generating final improved answer...]\n"
-        final_prompt = f"Original Question: {query}\nInitial Draft: {initial_response}\nCritique: {critique}\n\nBased on the critique, provide a corrected and improved final answer."
-        
-        yield "Final Answer: "
-        for chunk in self.client.generate(final_prompt):
-            yield chunk
+        yield f"\nFinal Result: {current_answer}\n"
