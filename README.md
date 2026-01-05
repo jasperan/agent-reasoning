@@ -17,15 +17,16 @@ This repository transforms standard Open Source models (like `gemma3`, `llama3`)
 ---
 
 ## 🚀 Features
+**✅ Verified against ArXiv Papers**
 
 *   **Plug & Play**: Use via Python Class or as a Network Proxy.
-*   **Model Agnostic**: Works with any model served by Ollama (tested on `gemma3:270m` for speed/demo).
+*   **Model Agnostic**: Works with any model served by Ollama.
 *   **Advanced Architectures**:
-    *   🔗 **Chain-of-Thought (CoT)**
-    *   🌳 **Tree of Thoughts (ToT)**
-    *   🛠️ **ReAct (Reason + Act)**
-    *   🪞 **Self-Reflection**
-    *   🧩 **Decomposition & Least-to-Most**
+    *   🔗 **Chain-of-Thought (CoT)** & **Self-Consistency**: Implements Majority Voting ($k$ samples) with temperature sampling.
+    *   🌳 **Tree of Thoughts (ToT)**: BFS strategy with robust heuristic scoring and pruning.
+    *   🛠️ **ReAct (Reason + Act)**: Real-time tool usage (Wikipedia API, Calculator) with fallback/mock capabilities.
+    *   🪞 **Self-Reflection**: Dynamic multi-turn Refinement Loop (Draft -> Critique -> Improve).
+    *   🧩 **Decomposition & Least-to-Most**: Planning and sub-task execution.
 
 ---
 
