@@ -50,22 +50,21 @@ class ReActAgent(BaseAgent):
 
     def stream(self, query):
         system_prompt = """You are a Reasoning and Acting agent.
-Your goal is to answer the user question using tools if necessary.
-Available tools:
-- calculate[expression]: evaluates a mathematical expression (e.g., calculate[3+3])
-- search[query]: searches Wikipedia for facts (e.g., search[population of france])
+Tools:
+- calculate[expression] (e.g. calculate[3+3])
+- search[query] (e.g. search[Paris population])
 
-Format your response exactly as:
-Thought: <reasoning>
-Action: <tool_name>[<input>]
-Observation: <result>
-... (repeat as needed)
-Thought: <reasoning>
-Final Answer: <the final result>
+Example:
+Question: What is 12*12?
+Thought: I need to multiply.
+Action: calculate[12*12]
+Observation: 144
+Final Answer: 144
 
-IMPORTANT: 
-- AFTER triggering an Action, STOP generating and wait for the Observation.
-- Do NOT generate the Observation yourself.
+Instructions:
+1. Answer the Question.
+2. Use 'Action: tool[input]' triggers a tool.
+3. Wait for 'Observation:' (do not generate it).
 """
         messages = f"{system_prompt}\nQuestion: {query}\n"
         max_steps = 7
@@ -82,10 +81,13 @@ IMPORTANT:
             messages += response_chunk
             
             if "Final Answer:" in response_chunk:
-                return 
+                return  
             
             # Regex to find Action
-            match = re.search(r"Action:\s*(\w+)\[(.*?)\]", response_chunk, re.IGNORECASE)
+            # Allow optional space between name and bracket like search [query]
+            match = re.search(r"Action:\s*(\w+)\s*\[(.*?)\]", response_chunk, re.IGNORECASE)
+            # Debug
+            # yield f"\n[DEBUG Chunk]: {repr(response_chunk)}\n" 
             if match:
                 tool_name = match.group(1).lower()
                 tool_input = match.group(2)
