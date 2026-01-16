@@ -6,6 +6,8 @@
 ![Reasoning](https://img.shields.io/badge/reasoning-CoT%20|%20ToT%20|%20ReAct-purple)
 ![Status](https://img.shields.io/badge/status-experimental-orange)
 
+![](./gif/arena_mode.gif)
+
 ## Vision & Purpose
 
 The **Reasoning Layer** is the cognitive engine of the AI stack. While traditional LLMs excel at token generation, they often struggle with complex planning, logical deduction, and self-correction.
