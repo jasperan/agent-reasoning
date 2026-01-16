@@ -70,11 +70,10 @@ class ToTAgent(BaseAgent):
                 yield f"  Path Score: {score}\n"
                 scored_candidates.append((score, cand))
                 
-                # Show the candidate content briefly for user visibility
+                # Show the candidate content fully for user visibility
                 # Extract just the new part
                 new_part = cand.replace(thought_path, "").strip()
-                preview = new_part.replace("\n", " ")[:100]
-                yield f"    > Option: {preview}...\n"
+                yield f"    > Option: {new_part}\n"
             
             scored_candidates.sort(key=lambda x: x[0], reverse=True)
             current_thoughts = [x[1] for x in scored_candidates[:self.width]]

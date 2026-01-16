@@ -8,52 +8,55 @@ class DecomposedAgent(BaseAgent):
         self.color = "red"
 
     def run(self, query):
-        self.log_thought(f"Processing query by decomposing: {query}")
+        # Default run implementation accumulating stream
+        response = ""
+        for chunk in self.stream(query):
+            response += chunk
+        return response
+
+    def stream(self, query):
+        yield f"Processing query by decomposing: {query}\n"
         
         # 1. Decompose
-        self.log_thought("Decomposing the problem...")
+        yield "\n**Decomposing the problem...**\n"
         decomposition_prompt = f"Break down the following complex problem into a numbered list of simple sub-tasks.\nProblem: {query}\nProvide only the list."
         
         sub_tasks_text = ""
         for chunk in self.client.generate(decomposition_prompt):
             sub_tasks_text += chunk
         
-        print(colored(f"\nSub-tasks Plan:\n{sub_tasks_text}", "light_grey"))
+        yield f"\n### Sub-tasks Plan:\n{sub_tasks_text}\n"
         
         # 2. Execute Sub-tasks
         context = ""
         lines = sub_tasks_text.split('\n')
-        answers = []
         
         for line in lines:
             line = line.strip()
             if not line: continue
-            # Basic cleanup to get the task
             task = line
             
-            self.log_thought(f"Solving sub-task: {task}")
+            yield f"\n**Solving sub-task:** `{task}`\n"
+            yield f"Result: "
+            
             # Solve with context
             solve_prompt = f"Context so far:\n{context}\n\nCurrent Task: {task}\nSolve this task efficiently."
             
             task_solution = ""
-            print(colored(f"Result for '{task}': ", self.color), end="", flush=True)
             for chunk in self.client.generate(solve_prompt):
-                print(colored(chunk, self.color), end="", flush=True)
+                yield chunk
                 task_solution += chunk
-            print()
+            yield "\n"
             
             context += f"Task: {task}\nResult: {task_solution}\n"
-            answers.append(task_solution)
             
         # 3. Synthesize
-        self.log_thought("Synthesizing final answer...")
+        yield "\n**Synthesizing final answer...**\n"
         synthesis_prompt = f"Original Query: {query}\n\nCompleted Sub-tasks results:\n{context}\n\nProvide the final comprehensive answer."
         
         final_response = ""
-        print(colored("Final Answer: ", self.color), end="", flush=True)
+        yield "### Final Answer:\n"
         for chunk in self.client.generate(synthesis_prompt):
-            print(colored(chunk, self.color), end="", flush=True)
+            yield chunk
             final_response += chunk
-        print()
-            
-        return final_response
+        yield "\n"

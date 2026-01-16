@@ -12,7 +12,14 @@ class ConsistencyAgent(BaseAgent):
         self.samples = samples
 
     def run(self, query):
-        self.log_thought(f"Processing query via Self-Consistency (k={self.samples}): {query}")
+        # Default run implementation accumulating stream
+        response = ""
+        for chunk in self.stream(query):
+            response += chunk
+        return response
+
+    def stream(self, query):
+        yield f"Processing query via Self-Consistency (k={self.samples}): {query}\n"
         
         # 1. Generate Multiple Paths (Stochastic)
         answers = []
@@ -20,38 +27,31 @@ class ConsistencyAgent(BaseAgent):
         
         for i in range(self.samples):
             # Using higher temperature for diversity
-            trace = f"\n[Path {i+1}/{self.samples}]\n"
+            trace = f"\n**[Path {i+1}/{self.samples}]**\n"
+            yield trace
             trace_content = ""
             
-            # Streaming ONLY to internal buffer/UI, not returning yet
             prompt = f"Question: {query}\nThink step-by-step to answer this question. End your answer with 'Final Answer: <answer>'."
             
             for chunk in self.client.generate(prompt, temperature=0.7, stream=True):
+                # We yield the chunk so it appears in real-time
+                yield chunk
                 trace_content += chunk
             
-            trace += trace_content
             # Extract Final Answer
             match = re.search(r"Final Answer:\s*(.*)", trace_content, re.IGNORECASE)
             final_ans = match.group(1).strip() if match else "Unknown"
             answers.append(final_ans)
             
-            full_reasoning_trace += trace + f"\n-> Extracted: {final_ans}\n"
-            print(colored(f"  Sample {i+1}: {final_ans}", "dark_grey"))
+            full_reasoning_trace += trace + trace_content + f"\n-> Extracted: {final_ans}\n"
+            yield f"\n   -> *Extracted Answer: {final_ans}*\n"
 
         # 2. Majority Voting
         counter = Counter(answers)
         best_answer, count = counter.most_common(1)[0]
         
-        full_reasoning_trace += f"\n[Aggregation]\nVotes: {dict(counter)}\nSelected: {best_answer}"
-        
-        print(colored(f"Majority Logic: {best_answer} ({count}/{self.samples} votes)", self.color))
-        
-        # For the final return, we can return the best answer or the full trace. 
-        # Usually users want the answer, but for debugging/demo we return trace + answer.
-        return f"{full_reasoning_trace}\n\nFinal Consolidated Answer: {best_answer}"
-
-    def stream(self, query):
-        # Allow streaming the full decision process
-        yield f"Starting Self-Consistency with {self.samples} samples...\n"
-        result = self.run(query)
-        yield result
+        yield "\n---\n"
+        yield f"**Majority Logic:** {best_answer} ({count}/{self.samples} votes)\n"
+        yield "\n**Final Consolidated Answer:**\n"
+        yield best_answer
+        yield "\n"

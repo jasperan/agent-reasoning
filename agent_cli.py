@@ -164,33 +164,34 @@ def main_menu():
     while True:
         clear_screen()
         print_header()
-        console.print("[bold]Select an Activity:[/bold]")
         
-        table = Table(show_header=False, box=None)
-        table.add_column("Option", style="bold cyan")
-        table.add_column("Description")
+        choices = [
+            questionary.Choice("Chat with Standard Agent", value="1"),
+            questionary.Choice("Chain of Thought (CoT)", value="2"),
+            questionary.Choice("Tree of Thoughts (ToT)", value="3"),
+            questionary.Choice("ReAct (Tools + Web)", value="4"),
+            questionary.Choice("Recursive (RLM) [NEW]", value="5"),
+            questionary.Choice("Self-Reflection", value="6"),
+            questionary.Choice("Decomposed Prompting", value="7"),
+            questionary.Choice("Least-to-Most", value="8"),
+            questionary.Choice("Self-Consistency", value="9"),
+            questionary.Separator(),
+            questionary.Choice("⚔️  ARENA: Run All Compare", value="a"),
+            questionary.Choice(f"Select AI Model (Current: {MODEL_NAME})", value="m"),
+            questionary.Choice("Run Logic Benchmark", value="t"),
+            questionary.Separator(),
+            questionary.Choice("Exit", value="0")
+        ]
         
-        table.add_row("[1]", "Chat with Standard Agent", style="cyan")
-        table.add_row("[2]", "Chain of Thought (CoT)", style="magenta")
-        table.add_row("[3]", "Tree of Thoughts (ToT)", style="magenta")
-        table.add_row("[4]", "ReAct (Tools + Web)", style="blue")
-        table.add_row("[5]", "Recursive (RLM) [NEW]", style="yellow")
-        table.add_row("[6]", "Self-Reflection", style="blue")
-        table.add_row("[7]", "Decomposed Prompting", style="green")
-        table.add_row("[8]", "Least-to-Most", style="green")
-        table.add_row("[9]", "Self-Consistency", style="green")
-        table.add_row("[a]", "⚔️  ARENA: Run All Compare", style="red bold")
-        table.add_row("[m]", "Select AI Model (Current: " + MODEL_NAME + ")", style="white")
-        table.add_row("[t]", "Run Logic Benchmark", style="green")
-        table.add_row("[0]", "Exit", style="dim")
+        choice = questionary.select(
+            "Select an Activity:",
+            choices=choices,
+            use_arrow_keys=True
+        ).ask()
         
-        console.print(table)
-        
-        choice = Prompt.ask("\nEnter choice")
-        
-        if choice == "0":
+        if not choice or choice == "0":
             sys.exit(0)
-        elif choice.lower() == "m":
+        elif choice == "m":
             select_model_panel()
         elif choice == "1":
             run_agent_chat("standard")
@@ -210,15 +211,12 @@ def main_menu():
             run_agent_chat("least_to_most")
         elif choice == "9":
             run_agent_chat("consistency")
-        elif choice.lower() == "a":
+        elif choice == "a":
             run_arena_mode()
-        elif choice.lower() == "t":
-             # Run existing main.py logic
-             subprocess.run(["python", "main.py"], check=False)
-             input("\nPress Enter to return...")
-        else:
-            console.print("[red]Invalid choice[/red]")
-            time.sleep(1)
+        elif choice == "t":
+            # Run existing main.py logic
+            subprocess.run(["python", "main.py"], check=False)
+            input("\nPress Enter to return...")
 
 if __name__ == "__main__":
     try:
