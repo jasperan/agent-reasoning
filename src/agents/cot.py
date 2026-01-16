@@ -19,7 +19,7 @@ class CoTAgent(BaseAgent):
 
     def stream(self, query):
         # Injecting CoT instruction
-        prompt = f"Answer the following question. Think step-by-step. Break down the reasoning process before giving the final answer.\n\nQuestion: {query}"
+        prompt = f"Question: {query}\n\nInstruction: Think step-by-step to answer the question. Break down the reasoning process clearly. Provide a detailed final answer."
         
         # Stream the thought process
         for chunk in self.client.generate(prompt):

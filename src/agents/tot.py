@@ -69,6 +69,12 @@ class ToTAgent(BaseAgent):
                 
                 yield f"  Path Score: {score}\n"
                 scored_candidates.append((score, cand))
+                
+                # Show the candidate content briefly for user visibility
+                # Extract just the new part
+                new_part = cand.replace(thought_path, "").strip()
+                preview = new_part.replace("\n", " ")[:100]
+                yield f"    > Option: {preview}...\n"
             
             scored_candidates.sort(key=lambda x: x[0], reverse=True)
             current_thoughts = [x[1] for x in scored_candidates[:self.width]]
@@ -76,7 +82,9 @@ class ToTAgent(BaseAgent):
         best_thought = current_thoughts[0] if current_thoughts else "No valid path found."
         
         yield "\n[Best Logic Trace selected. Generating Final Answer]\n"
-        final_prompt = f"Problem: {query}\nBest Reasoning Path:\n{best_thought}\n\nBased on this path, what is the Final Answer?"
+        final_prompt = f"Problem: {query}\n\nReasoning Trace:\n{best_thought}\n\nInstruction: Based on the reasoning above, provide a comprehensive and detailed final answer to the problem."
         
-        for chunk in self.client.generate(final_prompt):
+        system_msg = "You are a logic engine. You provide detailed, academic answers based on reasoning traces. Do not use conversational fillers like 'Okay' or 'Sure'."
+        
+        for chunk in self.client.generate(final_prompt, system=system_msg):
             yield chunk

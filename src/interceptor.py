@@ -4,6 +4,10 @@ from src.agents.cot import CoTAgent
 from src.agents.self_reflection import SelfReflectionAgent
 from src.agents.react import ReActAgent
 from src.agents.tot import ToTAgent
+from src.agents.recursive import RecursiveAgent
+from src.agents.consistency import ConsistencyAgent
+from src.agents.decomposed import DecomposedAgent
+from src.agents.least_to_most import LeastToMostAgent
 
 # Configure basic logging
 logging.basicConfig(level=logging.INFO)
@@ -18,6 +22,13 @@ AGENT_MAP = {
     "react": ReActAgent,
     "tot": ToTAgent,
     "tree_of_thoughts": ToTAgent,
+    "recursive": RecursiveAgent,
+    "rlm": RecursiveAgent,
+    "consistency": ConsistencyAgent,
+    "self_consistency": ConsistencyAgent,
+    "decomposed": DecomposedAgent,
+    "least_to_most": LeastToMostAgent,
+    "ltm": LeastToMostAgent,
 }
 
 class ReasoningInterceptor:

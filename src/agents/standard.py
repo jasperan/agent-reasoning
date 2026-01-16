@@ -20,5 +20,7 @@ class StandardAgent(BaseAgent):
 
     def stream(self, query):
         # Yields chunks directly from client
-        for chunk in self.client.generate(query):
+        # Wrap in basic instruction to ensure responsiveness
+        prompt = f"Question: {query}\n\nAnswer:"
+        for chunk in self.client.generate(prompt):
             yield chunk

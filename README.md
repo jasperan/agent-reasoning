@@ -55,8 +55,15 @@ ollama pull gemma3:270m
 
 ## 💻 Usage
 
-### 1. The Benchmark (Quick Start)
-Run the built-in benchmark to see the agents reason through Logic, Philosophy, and Planning tasks.
+### 1. Interactive CLI (Recommended)
+Access all agents, comparisons, and benchmarks via the rich CLI.
+
+```bash
+python agent_cli.py
+```
+
+### 2. The Benchmark (Legacy)
+Run the built-in benchmark directly.
 
 ```bash
 python main.py
@@ -109,6 +116,7 @@ curl http://localhost:8080/api/generate -d '{
 | **ReAct** | Interleaves Reasoning and Tool Usage. | Fact-checking, Calculations | [Yao et al. (2022)](https://arxiv.org/abs/2210.03629) |
 | **Tree of Thoughts** | Explores multiple reasoning branches (BFS/DFS). | Complex Riddles, Strategy | [Yao et al. (2023)](https://arxiv.org/abs/2305.10601) |
 | **Decomposed** | Breaks complex queries into sub-tasks. | Planning, Long-form answers | [Khot et al. (2022)](https://arxiv.org/abs/2210.02406) |
+| **Recursive (RLM)** | Uses Python REPL to recursively process prompt variables. | Long-context processing | [Author et al. (2025)](https://arxiv.org/abs/2512.24601) |
 
 ---
 
