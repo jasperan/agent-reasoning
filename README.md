@@ -2,11 +2,12 @@
 
 ![License](https://img.shields.io/badge/license-MIT-green)
 ![Python](https://img.shields.io/badge/python-3.10%2B-blue)
+![PyPI](https://img.shields.io/pypi/v/agent-reasoning)
 ![Ollama](https://img.shields.io/badge/backend-Ollama-black)
 ![Reasoning](https://img.shields.io/badge/reasoning-CoT%20|%20ToT%20|%20ReAct-purple)
 ![Status](https://img.shields.io/badge/status-experimental-orange)
 
-![](./gif/arena_mode.gif)
+![](https://raw.githubusercontent.com/jasperan/agent-reasoning/main/gif/arena_mode.gif)
 
 ## Vision & Purpose
 
@@ -18,13 +19,44 @@ This repository transforms standard Open Source models (like `gemma3`, `llama3`)
 
 ---
 
+## 📦 Installation
+
+### From PyPI (Recommended)
+
+```bash
+pip install agent-reasoning
+
+# With server dependencies (for the reasoning gateway):
+pip install "agent-reasoning[server]"
+```
+
+### From Source
+
+```bash
+# Clone the repo
+git clone https://github.com/jasperan/agent-reasoning.git
+cd agent-reasoning
+
+# Install dependencies
+python3 -m venv venv
+source venv/bin/activate
+pip install -e .
+```
+
+**Prerequisite**: [Ollama](https://ollama.com/) must be running.
+```bash
+ollama pull gemma3:270m
+```
+
+---
+
 ## 📓 Notebooks
 
 Interactive Jupyter notebooks demonstrating agent reasoning capabilities:
 
 | Name | Description | Stack | Link |
 | ---- | ----------- | ----- | ---- |
-| agent_reasoning_demo | Comprehensive demo of all reasoning strategies (CoT, ToT, ReAct, Self-Reflection) with benchmarks and comparisons | Ollama, Gemma3/Llama3, FastAPI | [![Open Notebook](https://img.shields.io/badge/Open%20Notebook-orange?style=flat-square)](./notebooks/agent_reasoning_demo.ipynb) |
+| agent_reasoning_demo | Comprehensive demo of all reasoning strategies (CoT, ToT, ReAct, Self-Reflection) with benchmarks and comparisons | Ollama, Gemma3/Llama3, FastAPI | [![Open Notebook](https://img.shields.io/badge/Open%20Notebook-orange?style=flat-square)](https://github.com/jasperan/agent-reasoning/blob/main/notebooks/agent_reasoning_demo.ipynb) |
 
 ---
 
@@ -42,35 +74,16 @@ Interactive Jupyter notebooks demonstrating agent reasoning capabilities:
 
 ---
 
-## 📦 Installation
-
-```bash
-# Clone the repo
-git clone https://github.com/your-username/agent-reasoning.git
-cd agent-reasoning
-
-# Install dependencies
-python3 -m venv venv
-source venv/bin/activate
-pip install -r requirements.txt
-
-# (Optional) Install as editable package
-pip install -e .
-```
-
-**Prerequisite**: [Ollama](https://ollama.com/) must be running.
-```bash
-ollama pull gemma3:270m
-```
-
----
-
 ## 💻 Usage
 
 ### 1. Interactive CLI (Recommended)
 Access all agents, comparisons, and benchmarks via the rich CLI.
 
 ```bash
+# If installed via pip:
+agent-reasoning
+
+# Or from source:
 python agent_cli.py
 ```
 
@@ -91,34 +104,43 @@ python agent_cli.py
   Exit
 ```
 
-### 2. The Benchmark (Legacy)
-Run the built-in benchmark directly.
-
-```bash
-python main.py
-```
-
-### 2. Python Interceptor (For Developers)
+### 2. Python API (For Developers)
 Use the `ReasoningInterceptor` as a drop-in replacement for your LLM client.
 
 ```python
-from src.interceptor import ReasoningInterceptor
+from agent_reasoning import ReasoningInterceptor
 
 client = ReasoningInterceptor()
 
 # Append the strategy to the model name with a '+'
 response = client.generate(
-    model="gemma3:270m+tot", 
+    model="gemma3:270m+tot",
     prompt="I have a 3-gallon and 5-gallon jug. How do I measure 4 gallons?"
 )
 print(response["response"])
 ```
 
-### 3. Reasoning Gateway (For Any App)
+**Using agents directly:**
+
+```python
+from agent_reasoning.agents import CoTAgent, ToTAgent, ReActAgent
+
+# Create an agent
+agent = CoTAgent(model="gemma3:270m")
+
+# Stream responses
+for chunk in agent.stream("Explain quantum entanglement step by step"):
+    print(chunk, end="")
+```
+
+### 3. Reasoning Gateway Server
 Run a proxy server that impersonates Ollama. This allows **any** Ollama-compatible app (LangChain, Web UIs) to gain reasoning capabilities without code changes.
 
 ```bash
-# Start the Gateway on port 8080
+# If installed via pip:
+agent-reasoning-server --port 8080
+
+# Or from source:
 python server.py
 ```
 
@@ -153,11 +175,13 @@ curl http://localhost:8080/api/generate -d '{
 
 To add a new reasoning strategy (e.g., "Reviewer-Critic"), simply:
 
-1.  Create a class in `src/agents/` inheriting from `BaseAgent`.
+1.  Create a class in `src/agent_reasoning/agents/` inheriting from `BaseAgent`.
 2.  Implement the `stream(self, query)` method.
-3.  Register it in `AGENT_MAP` in `src/interceptor.py` and `server.py`.
+3.  Register it in `AGENT_MAP` in `src/agent_reasoning/interceptor.py`.
 
 ```python
+from agent_reasoning.agents.base import BaseAgent
+
 class MyNewAgent(BaseAgent):
     def stream(self, query):
         yield "Thinking differently...\n"
@@ -170,9 +194,6 @@ class MyNewAgent(BaseAgent):
 *   **Model Not Found**: Ensure you have pulled the base model (`ollama pull gemma3:270m`).
 *   **Timeout / Slow**: ToT and Self-Reflection make multiple calls to the LLM. With larger models (Llama3 70b), this can take time.
 *   **Hallucinations**: The default demo uses `gemma3:270m` which is extremely small and prone to logic errors. Switch to `gemma2:9b` or `llama3` for robust results.
-
----
-
 
 ---
 
@@ -259,3 +280,8 @@ Running web_search...
 Observation: [1] Sundar Pichai - Wikipedia: ... He is the chief executive officer (CEO) of Alphabet Inc. and its subsidiary Google.
 ```
 
+---
+
+## 📄 License
+
+MIT License - see [LICENSE](LICENSE) for details.
