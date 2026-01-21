@@ -65,7 +65,7 @@ agent-reasoning-server --ollama-host http://192.168.1.100:11434
 
 **Option 3: Direct Config File**
 
-Create or edit `~/.agent-reasoning/config.yaml`:
+Create or edit `config.yaml` in the project root:
 ```yaml
 ollama:
   host: http://192.168.1.100:11434
