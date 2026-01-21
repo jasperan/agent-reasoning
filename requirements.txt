@@ -2,3 +2,4 @@ requests
 termcolor
 fastapi
 uvicorn
+rich>=13.0.0
