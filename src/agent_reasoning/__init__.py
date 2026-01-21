@@ -11,5 +11,5 @@ from agent_reasoning.interceptor import ReasoningInterceptor, AGENT_MAP
 from agent_reasoning.client import OllamaClient
 from agent_reasoning.ensemble import ReasoningEnsemble
 
-__version__ = "1.0.1"
+__version__ = "1.0.2"
 __all__ = ["ReasoningInterceptor", "ReasoningEnsemble", "OllamaClient", "AGENT_MAP"]
