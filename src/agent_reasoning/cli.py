@@ -15,11 +15,14 @@ from rich.markdown import Markdown
 
 from agent_reasoning.interceptor import ReasoningInterceptor, AGENT_MAP
 from agent_reasoning.visualization import get_visualizer
+from agent_reasoning.config import get_ollama_host, set_ollama_host, get_config_file
 
 console = Console()
-client = ReasoningInterceptor()
 
 MODEL_NAME = "gemma3:latest"
+
+# Initialize client (uses config file automatically)
+client = ReasoningInterceptor()
 
 
 def get_ollama_models():
@@ -47,6 +50,33 @@ def select_model_panel():
     if selected:
         MODEL_NAME = selected
         console.print(f"[green]Model set to: {MODEL_NAME}[/green]")
+
+
+def configure_endpoint():
+    """Configure the Ollama API endpoint."""
+    global client
+    
+    current_host = get_ollama_host()
+    
+    console.print(f"\n[dim]Current endpoint: {current_host}[/dim]")
+    console.print(f"[dim]Config file: {get_config_file()}[/dim]")
+    console.print("[dim]Enter a new endpoint URL (e.g., http://192.168.1.100:11434)[/dim]")
+    console.print("[dim]Press Enter to keep current, or type 'reset' for localhost[/dim]\n")
+    
+    new_endpoint = Prompt.ask("Ollama API Endpoint", default=current_host)
+    
+    if new_endpoint.lower() == 'reset':
+        new_endpoint = "http://localhost:11434"
+    
+    if new_endpoint and new_endpoint != current_host:
+        # Save to config file
+        set_ollama_host(new_endpoint)
+        # Recreate client with new endpoint
+        client = ReasoningInterceptor(host=new_endpoint)
+        console.print(f"[green]Endpoint set to: {new_endpoint}[/green]")
+        console.print(f"[dim]Saved to: {get_config_file()}[/dim]")
+    else:
+        console.print(f"[yellow]Endpoint unchanged: {current_host}[/yellow]")
 
 
 def clear_screen():
@@ -205,6 +235,7 @@ def main_menu():
             questionary.Separator(),
             questionary.Choice("ARENA: Run All Compare", value="a"),
             questionary.Choice(f"Select AI Model (Current: {MODEL_NAME})", value="m"),
+            questionary.Choice(f"Configure Endpoint ({get_ollama_host()})", value="e"),
             questionary.Separator(),
             questionary.Choice("Exit", value="0")
         ]
@@ -219,6 +250,8 @@ def main_menu():
             sys.exit(0)
         elif choice == "m":
             select_model_panel()
+        elif choice == "e":
+            configure_endpoint()
         elif choice == "1":
             run_agent_chat("standard")
         elif choice == "2":

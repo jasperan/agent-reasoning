@@ -3,7 +3,10 @@ import requests
 import sys
 
 class OllamaClient:
-    def __init__(self, model="gemma3:270m", base_url="http://localhost:11434"):
+    def __init__(self, model="gemma3:270m", base_url=None):
+        if base_url is None:
+            from agent_reasoning.config import get_ollama_host
+            base_url = get_ollama_host()
         self.model = model
         self.base_url = base_url
 

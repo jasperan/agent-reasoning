@@ -43,9 +43,46 @@ source venv/bin/activate
 pip install -e .
 ```
 
-**Prerequisite**: [Ollama](https://ollama.com/) must be running.
+**Prerequisite**: [Ollama](https://ollama.com/) must be running locally, or you can connect to a remote Ollama instance.
 ```bash
 ollama pull gemma3:270m
+```
+
+### Configuring Remote Ollama Endpoint
+
+If you don't have Ollama installed locally, you can connect to a remote Ollama instance. Configuration is stored in `~/.agent-reasoning/config.yaml`.
+
+**Option 1: Interactive CLI Configuration**
+```bash
+agent-reasoning
+# Select "Configure Endpoint" from the menu
+```
+
+**Option 2: Server CLI Argument**
+```bash
+agent-reasoning-server --ollama-host http://192.168.1.100:11434
+```
+
+**Option 3: Direct Config File**
+
+Create or edit `~/.agent-reasoning/config.yaml`:
+```yaml
+ollama:
+  host: http://192.168.1.100:11434
+```
+
+**Option 4: Python API**
+```python
+from agent_reasoning import ReasoningInterceptor, set_ollama_host, get_ollama_host
+
+# Check current endpoint
+print(get_ollama_host())  # http://localhost:11434
+
+# Set a new endpoint (persists to config file)
+set_ollama_host("http://192.168.1.100:11434")
+
+# Or specify directly without saving to config
+client = ReasoningInterceptor(host="http://192.168.1.100:11434")
 ```
 
 ---

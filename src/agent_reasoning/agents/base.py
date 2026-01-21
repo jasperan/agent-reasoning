@@ -3,8 +3,8 @@ from agent_reasoning.client import OllamaClient
 from termcolor import colored
 
 class BaseAgent(ABC):
-    def __init__(self, model="gemma3:270m"):
-        self.client = OllamaClient(model=model)
+    def __init__(self, model="gemma3:270m", base_url=None):
+        self.client = OllamaClient(model=model, base_url=base_url)
         self.name = "BaseAgent"
         self.color = "white"
 

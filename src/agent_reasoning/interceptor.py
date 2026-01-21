@@ -37,7 +37,10 @@ class ReasoningInterceptor:
     It intercepts 'generate' and 'chat' calls, checks for reasoning strategies 
     in the model name (e.g. 'gemma+cot'), and routes to the appropriate Agent.
     """
-    def __init__(self, host="http://localhost:11434"):
+    def __init__(self, host=None):
+        if host is None:
+            from agent_reasoning.config import get_ollama_host
+            host = get_ollama_host()
         self.host = host
 
     def generate(self, model, prompt, system=None, stream=False, **kwargs):

@@ -106,10 +106,22 @@ async def tags():
 
 def main():
     """Server entry point."""
+    from agent_reasoning.config import get_ollama_host, set_ollama_host
+    
     parser = argparse.ArgumentParser(description="Agent Reasoning Server")
     parser.add_argument("--host", default="0.0.0.0", help="Host to bind to")
     parser.add_argument("--port", type=int, default=8080, help="Port to bind to")
+    parser.add_argument("--ollama-host", default=None, 
+                        help="Ollama API endpoint (overrides config file)")
     args = parser.parse_args()
+    
+    # Set Ollama endpoint from CLI arg or use config
+    if args.ollama_host:
+        set_ollama_host(args.ollama_host)
+        print(f"Using Ollama endpoint: {args.ollama_host} (saved to config)")
+    else:
+        ollama_host = get_ollama_host()
+        print(f"Using Ollama endpoint: {ollama_host}")
 
     import uvicorn
     uvicorn.run(app, host=args.host, port=args.port)
