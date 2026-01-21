@@ -13,7 +13,7 @@ from agent_reasoning.client import OllamaClient
 from agent_reasoning.ensemble import ReasoningEnsemble
 from agent_reasoning.config import get_ollama_host, set_ollama_host, load_config, save_config
 
-__version__ = "1.0.5"
+__version__ = "1.0.7"
 __all__ = [
     "ReasoningInterceptor", 
     "ReasoningEnsemble", 

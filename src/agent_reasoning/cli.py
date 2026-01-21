@@ -13,9 +13,11 @@ from rich.table import Table
 from rich.live import Live
 from rich.markdown import Markdown
 
+import requests
+
 from agent_reasoning.interceptor import ReasoningInterceptor, AGENT_MAP
 from agent_reasoning.visualization import get_visualizer
-from agent_reasoning.config import get_ollama_host, set_ollama_host, get_config_file
+from agent_reasoning.config import get_ollama_host, set_ollama_host, get_config_file, load_config
 
 console = Console()
 
@@ -274,9 +276,72 @@ def main_menu():
             run_arena_mode()
 
 
+
+def check_ollama_config():
+    """Check if Ollama host is configured and reachable."""
+    config_file = get_config_file()
+    ollama_host = get_ollama_host()
+    
+    # Check if config file exists
+    if not config_file.exists():
+        console.print(Panel(
+            f"[yellow]Config file not found at:[/yellow]\n{config_file}\n\n"
+            f"[dim]Using default: {ollama_host}[/dim]\n\n"
+            "You can configure the endpoint from the main menu.",
+            title="[yellow]Configuration[/yellow]",
+            border_style="yellow"
+        ))
+    else:
+        console.print(f"[dim]Config: {config_file}[/dim]")
+    
+    # Check connectivity to Ollama
+    console.print(f"[dim]Checking Ollama at {ollama_host}...[/dim]")
+    
+    try:
+        response = requests.get(f"{ollama_host}/api/tags", timeout=5)
+        if response.status_code == 200:
+            data = response.json()
+            model_count = len(data.get("models", []))
+            console.print(f"[green]Connected to Ollama ({model_count} models available)[/green]\n")
+            return True
+        else:
+            raise requests.RequestException(f"Status {response.status_code}")
+    except requests.exceptions.ConnectionError:
+        console.print(Panel(
+            f"[red]Cannot connect to Ollama at:[/red]\n{ollama_host}\n\n"
+            "[yellow]Possible solutions:[/yellow]\n"
+            "1. Start Ollama locally: [cyan]ollama serve[/cyan]\n"
+            "2. Configure a remote endpoint from the menu\n"
+            "3. Edit config.yaml with a valid host",
+            title="[red]Connection Failed[/red]",
+            border_style="red"
+        ))
+        
+        if Confirm.ask("Continue anyway?", default=False):
+            return True
+        return False
+    except requests.exceptions.Timeout:
+        console.print(Panel(
+            f"[red]Connection timeout to:[/red]\n{ollama_host}\n\n"
+            "The server is not responding. Check if the host is correct.",
+            title="[red]Timeout[/red]",
+            border_style="red"
+        ))
+        
+        if Confirm.ask("Continue anyway?", default=False):
+            return True
+        return False
+    except Exception as e:
+        console.print(f"[yellow]Warning: Could not verify Ollama connection: {e}[/yellow]\n")
+        return True
+
+
 def main():
     """CLI entry point."""
     try:
+        if not check_ollama_config():
+            console.print("[dim]Exiting...[/dim]")
+            sys.exit(1)
         main_menu()
     except KeyboardInterrupt:
         sys.exit(0)
