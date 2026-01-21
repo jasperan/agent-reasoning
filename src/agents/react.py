@@ -112,7 +112,7 @@ Instructions:
 3. Wait for 'Observation:' (do not generate it).
 """
         messages = f"{system_prompt}\nQuestion: {query}\n"
-        max_steps = 3
+        max_steps = 5
         
         for i in range(max_steps):
             yield f"\n--- Step {i+1} ---\nAgent: "

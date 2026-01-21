@@ -20,7 +20,7 @@ class SelfReflectionAgent(BaseAgent):
         return full_response
 
     def stream(self, query):
-        max_turns = 3
+        max_turns = 5
         current_answer = ""
         
         # 1. Initial Attempt

@@ -5,7 +5,7 @@ from collections import Counter
 import re
 
 class ConsistencyAgent(BaseAgent):
-    def __init__(self, model="gemma3:270m", samples=3):
+    def __init__(self, model="gemma3:270m", samples=5):
         super().__init__(model)
         self.name = "ConsistencyAgent"
         self.color = "cyan"
