@@ -12,7 +12,8 @@ DEFAULT_CONFIG = {
 }
 
 # Config directory and file path
-CONFIG_DIR = Path.home() / ".agent-reasoning"
+# Config directory and file path
+CONFIG_DIR = Path(__file__).resolve().parent.parent.parent
 CONFIG_FILE = CONFIG_DIR / "config.yaml"
 
 
@@ -28,7 +29,8 @@ def get_config_file() -> Path:
 
 def ensure_config_dir() -> None:
     """Ensure the configuration directory exists."""
-    CONFIG_DIR.mkdir(parents=True, exist_ok=True)
+    # Config is in repo root, so directory should always exist
+    pass
 
 
 def load_config() -> dict:

@@ -211,3 +211,4 @@ CLAUDE.md
 docs/plans/*
 .serena/.gitignore
 .serena/project.yml
+config.yaml

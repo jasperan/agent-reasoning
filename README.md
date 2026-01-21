@@ -50,7 +50,7 @@ ollama pull gemma3:270m
 
 ### Configuring Remote Ollama Endpoint
 
-If you don't have Ollama installed locally, you can connect to a remote Ollama instance. Configuration is stored in `~/.agent-reasoning/config.yaml`.
+If you don't have Ollama installed locally, you can connect to a remote Ollama instance. Configuration is stored in `config.yaml` in the root directory of the repository.
 
 **Option 1: Interactive CLI Configuration**
 ```bash
