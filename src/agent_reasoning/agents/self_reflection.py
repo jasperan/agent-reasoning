@@ -1,5 +1,5 @@
-from src.agents.base import BaseAgent
-from src.visualization.models import ReflectionIteration, StreamEvent
+from agent_reasoning.agents.base import BaseAgent
+from agent_reasoning.visualization.models import ReflectionIteration, StreamEvent
 from termcolor import colored
 
 class SelfReflectionAgent(BaseAgent):

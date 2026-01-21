@@ -1,6 +1,6 @@
 import re
-from src.agents.base import BaseAgent
-from src.visualization.models import ChainStep, StreamEvent
+from agent_reasoning.agents.base import BaseAgent
+from agent_reasoning.visualization.models import ChainStep, StreamEvent
 from termcolor import colored
 
 class CoTAgent(BaseAgent):

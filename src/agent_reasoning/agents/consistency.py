@@ -1,5 +1,5 @@
-from src.agents.base import BaseAgent
-from src.visualization.models import VotingSample, StreamEvent, TaskStatus
+from agent_reasoning.agents.base import BaseAgent
+from agent_reasoning.visualization.models import VotingSample, StreamEvent, TaskStatus
 from termcolor import colored
 from collections import Counter
 import re

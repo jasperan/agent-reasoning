@@ -15,6 +15,7 @@ from termcolor import colored
 # Import Interceptor and Map
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 from src.interceptor import ReasoningInterceptor, AGENT_MAP
+from src.visualization import get_visualizer
 
 console = Console()
 client = ReasoningInterceptor()
@@ -63,35 +64,65 @@ def run_agent_chat(strategy):
     print_header()
     console.print(f"[bold yellow]Chat Mode: {strategy.upper()}[/bold yellow]")
     console.print("Type 'exit' or '0' to return.")
-    
+
     while True:
         query = Prompt.ask("\n[bold green]Query[/bold green]")
         if query.lower() in ['exit', 'quit', '0']:
             break
-            
+
         full_model_name = f"{MODEL_NAME}+{strategy}"
         console.print(f"[dim]Using model: {full_model_name}[/dim]")
         console.print(f"[bold cyan]--- {strategy.upper()} Thinking ---[/bold cyan]")
-        
-        full_response = ""
-        
-        # Use Live to update the output in place or just print stream
-        # Since agents behave differently (ToT yields newlines, CoT yields tokens),
-        # a simple print end="" is safest for raw text, 
-        # but rich Live is nicer if we can accumulate Markdown.
-        # Let's use a dynamic Text object or Markdown.
-        
-        with Live("", refresh_per_second=10, vertical_overflow="visible") as live:
-            try:
-                for chunk_dict in client.generate(model=full_model_name, prompt=query, stream=True):
-                     chunk = chunk_dict.get("response", "")
-                     full_response += chunk
-                     # Update live display. 
-                     # Using Markdown(full_response) might be heavy if very long, 
-                     # but good for rendering formatting.
-                     live.update(Markdown(full_response))
-            except Exception as e:
-                console.print(f"[bold red]Error:[/bold red] {e}")
+
+        # Check if visualizer exists for this strategy
+        visualizer = get_visualizer(strategy)
+
+        if visualizer:
+            # Use structured event streaming with visualizer
+            run_with_visualizer(strategy, query, visualizer)
+        else:
+            # Fallback to legacy text streaming
+            run_with_markdown(strategy, query)
+
+
+def run_with_visualizer(strategy, query, visualizer):
+    """Run agent with rich visualization using structured events."""
+    # Get agent directly from map
+    agent_class = AGENT_MAP.get(strategy)
+    if not agent_class:
+        console.print(f"[red]Unknown strategy: {strategy}[/red]")
+        return
+
+    agent = agent_class(model=MODEL_NAME)
+
+    # Check if agent has stream_structured method
+    if not hasattr(agent, 'stream_structured'):
+        console.print("[dim]Agent does not support structured streaming, falling back to text mode.[/dim]")
+        run_with_markdown(strategy, query)
+        return
+
+    try:
+        with Live(visualizer.render(), refresh_per_second=10, vertical_overflow="visible") as live:
+            for event in agent.stream_structured(query):
+                visualizer.update(event)
+                live.update(visualizer.render())
+    except Exception as e:
+        console.print(f"[bold red]Error:[/bold red] {e}")
+
+
+def run_with_markdown(strategy, query):
+    """Fallback: Run agent with simple markdown rendering."""
+    full_model_name = f"{MODEL_NAME}+{strategy}"
+    full_response = ""
+
+    with Live("", refresh_per_second=10, vertical_overflow="visible") as live:
+        try:
+            for chunk_dict in client.generate(model=full_model_name, prompt=query, stream=True):
+                chunk = chunk_dict.get("response", "")
+                full_response += chunk
+                live.update(Markdown(full_response))
+        except Exception as e:
+            console.print(f"[bold red]Error:[/bold red] {e}")
 
 
 def run_arena_mode():

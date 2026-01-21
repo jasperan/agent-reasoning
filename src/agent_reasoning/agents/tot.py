@@ -1,5 +1,5 @@
-from src.agents.base import BaseAgent
-from src.visualization.models import TreeNode, StreamEvent
+from agent_reasoning.agents.base import BaseAgent
+from agent_reasoning.visualization.models import TreeNode, StreamEvent
 from termcolor import colored
 import re
 
