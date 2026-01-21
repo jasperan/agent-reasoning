@@ -18,6 +18,16 @@ This repository transforms standard Open Source models (like `gemma3`, `llama3`)
 
 ---
 
+## 📓 Notebooks
+
+Interactive Jupyter notebooks demonstrating agent reasoning capabilities:
+
+| Name | Description | Stack | Link |
+| ---- | ----------- | ----- | ---- |
+| agent_reasoning_demo | Comprehensive demo of all reasoning strategies (CoT, ToT, ReAct, Self-Reflection) with benchmarks and comparisons | Ollama, Gemma3/Llama3, FastAPI | [![Open Notebook](https://img.shields.io/badge/Open%20Notebook-orange?style=flat-square)](./notebooks/agent_reasoning_demo.ipynb) |
+
+---
+
 ## 🚀 Features
 **✅ Verified against ArXiv Papers**
 
@@ -62,6 +72,23 @@ Access all agents, comparisons, and benchmarks via the rich CLI.
 
 ```bash
 python agent_cli.py
+```
+
+**Interactive Experience:**
+```text
+╭────────────────────────────────────────────╮
+│ AGENT REASONING CLI                        │
+│ Advanced Cognitive Architectures (Gemma 3) │
+╰────────────────────────────────────────────╯
+
+? Select an Activity:
+  Chat with Standard Agent
+  Chain of Thought (CoT)
+  Tree of Thoughts (ToT)
+  ReAct (Tools + Web)
+  ⚔️  ARENA: Run All Compare
+  Select AI Model
+  Exit
 ```
 
 ### 2. The Benchmark (Legacy)

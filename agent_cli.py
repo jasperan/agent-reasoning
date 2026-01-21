@@ -50,13 +50,10 @@ def clear_screen():
 
 def print_header():
     clear_screen()
-    title = """
-    ╔════════════════════════════════════════════════════════════════╗
-    ║                 AGENT REASONING CLI                            ║
-    ║         Advanced Cognitive Architectures (Gemma 3)             ║
-    ╚════════════════════════════════════════════════════════════════╝
-    """
-    console.print(Panel(title, style="bold purple", subtitle="Reasoning Layer"))
+    console.print(Panel.fit(
+        "[bold cyan]AGENT REASONING CLI[/bold cyan]\n[dim]Advanced Cognitive Architectures (Gemma 3)[/dim]",
+        border_style="cyan"
+    ))
     console.print(f"[dim]Working Directory: {os.getcwd()}[/dim]\n")
 
 from rich.live import Live
