@@ -209,6 +209,5 @@ __marimo__/
 CLAUDE.md
 
 docs/plans/*
-.serena/.gitignore
-.serena/project.yml
+.serena/
 config.yaml
