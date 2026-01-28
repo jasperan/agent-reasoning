@@ -10,8 +10,10 @@ from src.agents.cot import CoTAgent
 from src.agents.self_reflection import SelfReflectionAgent
 from src.agents.react import ReActAgent
 from src.agents.tot import ToTAgent
-# from src.agents.decomposed import DecomposedAgent # TODO: Refactor needed
-# from src.agents.least_to_most import LeastToMostAgent # TODO: Refactor needed
+from src.agents.recursive import RecursiveAgent
+from src.agents.consistency import ConsistencyAgent
+from src.agents.decomposed import DecomposedAgent
+from src.agents.least_to_most import LeastToMostAgent
 
 app = FastAPI(title="Agent Reasoning Gateway")
 
@@ -21,6 +23,10 @@ AGENT_MAP = {
     "reflection": SelfReflectionAgent,
     "react": ReActAgent,
     "tot": ToTAgent,
+    "recursive": RecursiveAgent,
+    "consistency": ConsistencyAgent,
+    "decomposed": DecomposedAgent,
+    "least_to_most": LeastToMostAgent,
 }
 
 class GenerateRequest(BaseModel):

@@ -146,7 +146,33 @@ python agent_cli.py
   Exit
 ```
 
-### 2. Python API (For Developers)
+### 2. Terminal UI (TUI)
+A Go-based terminal interface with split-panel layout and arena grid view.
+
+```bash
+# Build and run
+cd tui
+go build -o agent-tui .
+./agent-tui
+```
+
+The TUI automatically starts the reasoning server on launch.
+
+**Features:**
+- Split layout: agent sidebar + chat panel
+- Arena mode: 3x3 grid showing all agents running in parallel
+- Real-time streaming with cancellation support
+
+**Keybindings:**
+| Key | Action |
+|-----|--------|
+| `↑/↓` or `j/k` | Navigate sidebar |
+| `Tab` | Switch focus (sidebar ↔ input) |
+| `Enter` | Select agent / submit query |
+| `Esc` | Cancel streaming / exit arena |
+| `q` | Quit |
+
+### 3. Python API (For Developers)
 Use the `ReasoningInterceptor` as a drop-in replacement for your LLM client.
 
 ```python
@@ -175,7 +201,7 @@ for chunk in agent.stream("Explain quantum entanglement step by step"):
     print(chunk, end="")
 ```
 
-### 3. Reasoning Gateway Server
+### 4. Reasoning Gateway Server
 Run a proxy server that impersonates Ollama. This allows **any** Ollama-compatible app (LangChain, Web UIs) to gain reasoning capabilities without code changes.
 
 ```bash

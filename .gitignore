@@ -211,3 +211,4 @@ CLAUDE.md
 docs/plans/*
 .serena/
 config.yaml
+tui/agent-tui
