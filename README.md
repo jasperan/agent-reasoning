@@ -4,7 +4,7 @@
 ![Python](https://img.shields.io/badge/python-3.10%2B-blue)
 ![PyPI](https://img.shields.io/pypi/v/agent-reasoning)
 ![Ollama](https://img.shields.io/badge/backend-Ollama-black)
-![Reasoning](https://img.shields.io/badge/reasoning-CoT%20|%20ToT%20|%20ReAct-purple)
+![Reasoning](https://img.shields.io/badge/reasoning-CoT%20|%20ToT%20|%20ReAct%20|%20Refinement-purple)
 ![Status](https://img.shields.io/badge/status-experimental-orange)
 
 ![](https://raw.githubusercontent.com/jasperan/agent-reasoning/main/gif/arena_mode.gif)
@@ -113,6 +113,8 @@ Interactive Jupyter notebooks demonstrating agent reasoning capabilities:
     *   🛠️ **ReAct (Reason + Act)**: Real-time tool usage (**Web Search** via scraping, Wikipedia API, Calculator) with fallback/mock capabilities. External grounding implemented.
     *   🪞 **Self-Reflection**: Dynamic multi-turn Refinement Loop (Draft -> Critique -> Improve).
     *   🧩 **Decomposition & Least-to-Most**: Planning and sub-task execution.
+    *   🔄 **Refinement Loop**: Score-based iterative improvement (Generator → Critic → Refiner) until quality threshold met.
+    *   📊 **Complex Refinement Pipeline**: 5-stage optimization (Technical Accuracy → Structure → Depth → Examples → Polish).
 
 ---
 
@@ -141,8 +143,18 @@ python agent_cli.py
   Chain of Thought (CoT)
   Tree of Thoughts (ToT)
   ReAct (Tools + Web)
+  Recursive (RLM)
+  Self-Reflection
+  Decomposed Prompting
+  Least-to-Most
+  Self-Consistency
+  ──────────────────
+  🔄 Refinement Loop [Auto Demo]
+  🔄 Complex Pipeline [5 Stages]
+  ──────────────────
   ⚔️  ARENA: Run All Compare
-  Select AI Model
+  📊 BENCHMARKS: Performance Testing
+  ⚙️  Select AI Model
   Exit
 ```
 
@@ -201,6 +213,22 @@ for chunk in agent.stream("Explain quantum entanglement step by step"):
     print(chunk, end="")
 ```
 
+**Using refinement agents for quality content:**
+
+```python
+from agent_reasoning.agents import RefinementLoopAgent, ComplexRefinementLoopAgent
+
+# Refinement Loop: iteratively improves until score threshold met
+agent = RefinementLoopAgent(model="gemma3:270m", score_threshold=0.9, max_iterations=5)
+for chunk in agent.stream("Write a technical explanation of neural networks"):
+    print(chunk, end="")
+
+# Complex Pipeline: 5-stage optimization for production-quality content
+agent = ComplexRefinementLoopAgent(model="gemma3:270m", score_threshold=0.85)
+for chunk in agent.stream("Write a blog post about machine learning"):
+    print(chunk, end="")
+```
+
 ### 4. Reasoning Gateway Server
 Run a proxy server that impersonates Ollama. This allows **any** Ollama-compatible app (LangChain, Web UIs) to gain reasoning capabilities without code changes.
 
@@ -236,6 +264,8 @@ curl http://localhost:8080/api/generate -d '{
 | **Tree of Thoughts** | Explores multiple reasoning branches (BFS/DFS). | Complex Riddles, Strategy | [Yao et al. (2023)](https://arxiv.org/abs/2305.10601) |
 | **Decomposed** | Breaks complex queries into sub-tasks. | Planning, Long-form answers | [Khot et al. (2022)](https://arxiv.org/abs/2210.02406) |
 | **Recursive (RLM)** | Uses Python REPL to recursively process prompt variables. | Long-context processing | [Author et al. (2025)](https://arxiv.org/abs/2512.24601) |
+| **Refinement Loop** | Generator → Critic (0.0-1.0 score) → Refiner iterative loop. | Technical Writing, Quality Content | Inspired by [Madaan et al. (2023)](https://arxiv.org/abs/2303.17651) |
+| **Complex Refinement** | 5-stage pipeline: Accuracy → Clarity → Depth → Examples → Polish. | Long-form Articles, Documentation | Multi-stage refinement architecture |
 
 ---
 
