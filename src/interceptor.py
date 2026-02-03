@@ -8,6 +8,8 @@ from src.agents.recursive import RecursiveAgent
 from src.agents.consistency import ConsistencyAgent
 from src.agents.decomposed import DecomposedAgent
 from src.agents.least_to_most import LeastToMostAgent
+from src.agents.refinement_loop import RefinementLoopAgent
+from src.agents.complex_refinement import ComplexRefinementLoopAgent
 
 # Configure basic logging
 logging.basicConfig(level=logging.INFO)
@@ -29,6 +31,12 @@ AGENT_MAP = {
     "decomposed": DecomposedAgent,
     "least_to_most": LeastToMostAgent,
     "ltm": LeastToMostAgent,
+    "refinement": RefinementLoopAgent,
+    "refinement_loop": RefinementLoopAgent,
+    "iterative_refinement": RefinementLoopAgent,
+    "complex_refinement": ComplexRefinementLoopAgent,
+    "pipeline": ComplexRefinementLoopAgent,
+    "pipeline_refinement": ComplexRefinementLoopAgent,
 }
 
 class ReasoningInterceptor:

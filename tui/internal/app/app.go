@@ -3,6 +3,7 @@ package app
 import (
 	"context"
 	"fmt"
+	"os/exec"
 	"strings"
 	"time"
 
@@ -40,7 +41,8 @@ type (
 		agentID string
 		err     error
 	}
-	arenaCompleteMsg struct{}
+	arenaCompleteMsg     struct{}
+	benchmarkCompleteMsg struct{ err error }
 )
 
 // KeyMap defines the keybindings
@@ -274,6 +276,10 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.chat.AppendStreaming(fmt.Sprintf("\n\n[Error: %v]", msg.err))
 			m.chat.FinishStreaming()
 		}
+
+	case benchmarkCompleteMsg:
+		// Returned from benchmark CLI - just continue
+		// Errors would have been displayed by the CLI itself
 	}
 
 	return m, tea.Batch(cmds...)
@@ -352,6 +358,10 @@ func (m *Model) handleSidebarSelect() (tea.Model, tea.Cmd) {
 		// Mark that we want arena mode when query is submitted
 		m.currentAgent = "arena"
 		return m, nil
+
+	case "benchmark":
+		// Launch benchmark CLI
+		return m, m.runBenchmarkCLI()
 
 	case "model":
 		// Show model selector
@@ -599,6 +609,14 @@ func (m *Model) startArenaRun(query string) tea.Cmd {
 
 		return arenaCompleteMsg{}
 	}
+}
+
+// runBenchmarkCLI launches the Python benchmark CLI
+func (m *Model) runBenchmarkCLI() tea.Cmd {
+	c := exec.Command("python", "agent_cli.py", "--benchmark")
+	return tea.ExecProcess(c, func(err error) tea.Msg {
+		return benchmarkCompleteMsg{err: err}
+	})
 }
 
 // View renders the application

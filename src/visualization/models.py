@@ -49,6 +49,32 @@ class ReflectionIteration:
     improvement: Optional[str] = None
     is_correct: bool = False
 
+
+@dataclass
+class RefinementIteration:
+    """Refinement Loop iteration with score-based feedback."""
+    iteration: int
+    draft: str = ""
+    critique: Optional[str] = None
+    feedback: Optional[str] = None
+    score: float = 0.0
+    is_accepted: bool = False
+
+
+@dataclass
+class PipelineIteration:
+    """Complex Refinement Pipeline iteration tracking."""
+    stage_index: int
+    stage_name: str
+    iteration_in_stage: int
+    draft: str = ""
+    critique: Optional[str] = None
+    feedback: Optional[str] = None
+    score: float = 0.0
+    is_stage_complete: bool = False
+    is_pipeline_complete: bool = False
+
+
 @dataclass
 class ReActStep:
     """ReAct reasoning step."""
@@ -71,6 +97,6 @@ class ChainStep:
 @dataclass
 class StreamEvent:
     """Wrapper for streaming events."""
-    event_type: str  # "node", "task", "sample", "iteration", "react_step", "chain_step", "text", "final"
-    data: Union[TreeNode, SubTask, VotingSample, ReflectionIteration, ReActStep, ChainStep, str]
+    event_type: str  # "node", "task", "sample", "iteration", "refinement", "pipeline", "react_step", "chain_step", "text", "final"
+    data: Union[TreeNode, SubTask, VotingSample, ReflectionIteration, RefinementIteration, PipelineIteration, ReActStep, ChainStep, str]
     is_update: bool = False  # True if updating existing item

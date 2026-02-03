@@ -23,6 +23,8 @@ func DefaultAgents() []Agent {
 		{ID: "react", Name: "ReAct", Description: "Reason + Act"},
 		{ID: "recursive", Name: "Recursive", Description: "Recursive LM"},
 		{ID: "reflection", Name: "Reflection", Description: "Self-Reflection"},
+		{ID: "refinement", Name: "Refinement", Description: "Score-based refinement"},
+		{ID: "complex_refinement", Name: "Pipeline", Description: "5-stage optimization"},
 		{ID: "decomposed", Name: "Decomposed", Description: "Problem decomposition"},
 		{ID: "least_to_most", Name: "Least-to-Most", Description: "Incremental solving"},
 		{ID: "consistency", Name: "Consistency", Description: "Self-Consistency"},
@@ -61,6 +63,7 @@ func NewSidebar() *Sidebar {
 	// Add separator and special items
 	items = append(items, SidebarItem{IsSeparator: true})
 	items = append(items, SidebarItem{Label: "Arena Mode", Value: "arena"})
+	items = append(items, SidebarItem{Label: "Benchmarks", Value: "benchmark"})
 	items = append(items, SidebarItem{IsSeparator: true})
 	items = append(items, SidebarItem{Label: "Select Model", Value: "model"})
 
@@ -158,6 +161,8 @@ func (s *Sidebar) View() string {
 		// Special styling for non-agent items
 		if !item.IsAgent && item.Value == "arena" {
 			prefix = "⚔ "
+		} else if !item.IsAgent && item.Value == "benchmark" {
+			prefix = "📊 "
 		} else if !item.IsAgent && item.Value == "model" {
 			prefix = "⚙ "
 		}

@@ -1,28 +1,34 @@
 # src/visualization/diff_viz.py
 import difflib
-from typing import Dict, List
+from typing import Dict, List, Union
 from rich.console import RenderableType
 from rich.panel import Panel
 from rich.text import Text
 from rich.console import Group
 
 from .base import BaseVisualizer
-from .models import StreamEvent, ReflectionIteration
+from .models import StreamEvent, ReflectionIteration, RefinementIteration
 
 class DiffVisualizer(BaseVisualizer):
-    """Visualizer for Self-Reflection - iterations with diff highlighting."""
+    """Visualizer for Self-Reflection and Refinement Loop - iterations with diff highlighting."""
 
-    def __init__(self, query: str = "", max_iterations: int = 5, **kwargs):
+    def __init__(self, query: str = "", max_iterations: int = 10, **kwargs):
         super().__init__(**kwargs)
         self.query = query
         self.max_iterations = max_iterations
-        self.iterations: Dict[int, ReflectionIteration] = {}
+        self.iterations: Dict[int, Union[ReflectionIteration, RefinementIteration]] = {}
         self.current_phase = "draft"  # draft, critique, improvement
+        self.mode = "reflection"  # reflection or refinement
 
     def update(self, event: StreamEvent) -> None:
         if event.event_type == "iteration" and isinstance(event.data, ReflectionIteration):
             iteration = event.data
             self.iterations[iteration.iteration] = iteration
+            self.mode = "reflection"
+        elif event.event_type == "refinement" and isinstance(event.data, RefinementIteration):
+            iteration = event.data
+            self.iterations[iteration.iteration] = iteration
+            self.mode = "refinement"
         elif event.event_type == "query" and isinstance(event.data, str):
             self.query = event.data
         elif event.event_type == "phase" and isinstance(event.data, str):
@@ -50,17 +56,35 @@ class DiffVisualizer(BaseVisualizer):
         return result
 
     def _make_iteration_progress(self) -> str:
-        completed = len([i for i in self.iterations.values() if i.is_correct or i.improvement])
-        dots = ["●" if i <= completed else "○" for i in range(1, self.max_iterations + 1)]
-        return "───".join(dots) + f" {completed}/{self.max_iterations}"
+        if self.mode == "refinement":
+            completed = len([i for i in self.iterations.values()
+                           if isinstance(i, RefinementIteration) and i.is_accepted])
+        else:
+            completed = len([i for i in self.iterations.values()
+                           if isinstance(i, ReflectionIteration) and (i.is_correct or i.improvement)])
+        dots = ["●" if i <= len(self.iterations) else "○" for i in range(1, self.max_iterations + 1)]
+        return "───".join(dots) + f" {len(self.iterations)}/{self.max_iterations}"
+
+    def _is_iteration_complete(self, iteration) -> bool:
+        """Check if an iteration is complete (accepted or correct)."""
+        if isinstance(iteration, RefinementIteration):
+            return iteration.is_accepted
+        elif isinstance(iteration, ReflectionIteration):
+            return iteration.is_correct
+        return False
 
     def render(self) -> RenderableType:
         elements = []
 
         # Header
+        if self.mode == "refinement":
+            title = f"[bold cyan]Refinement Loop (score-based)[/bold cyan]"
+        else:
+            title = f"[bold cyan]Self-Reflection (max {self.max_iterations} iterations)[/bold cyan]"
+
         elements.append(Panel(
             f"Query: {self.query}",
-            title=f"[bold cyan]Self-Reflection (max {self.max_iterations} iterations)[/bold cyan]",
+            title=title,
             border_style="cyan"
         ))
 
@@ -83,17 +107,25 @@ class DiffVisualizer(BaseVisualizer):
                     border_style="blue"
                 ))
 
-            # Critique
+            # Critique/Feedback
             if iteration.critique:
                 critique_text = iteration.critique[:200] + "..." if len(iteration.critique) > 200 else iteration.critique
+
+                # For refinement, show score
+                if isinstance(iteration, RefinementIteration):
+                    score_bar = "█" * int(iteration.score * 10) + "░" * (10 - int(iteration.score * 10))
+                    critique_title = f"[bold]🔍 Critique (Score: {iteration.score:.2f}) [{score_bar}][/bold]"
+                else:
+                    critique_title = "[bold]🔍 Critique[/bold]"
+
                 iter_elements.append(Panel(
                     critique_text,
-                    title="[bold]🔍 Critique[/bold]",
+                    title=critique_title,
                     border_style="yellow"
                 ))
 
-            # Improvement with diff
-            if iteration.improvement:
+            # Improvement with diff (for ReflectionIteration)
+            if isinstance(iteration, ReflectionIteration) and iteration.improvement:
                 if i > 1 and (i - 1) in self.iterations:
                     prev = self.iterations[i - 1]
                     prev_text = prev.improvement or prev.draft
@@ -109,21 +141,32 @@ class DiffVisualizer(BaseVisualizer):
 
             # Wrap iteration
             iter_title = f"📝 Iteration {i}"
-            if iteration.is_correct:
+            is_complete = self._is_iteration_complete(iteration)
+
+            if isinstance(iteration, RefinementIteration):
+                if iteration.is_accepted:
+                    iter_title += f" ✅ ACCEPTED (score: {iteration.score:.2f})"
+                else:
+                    iter_title += f" (score: {iteration.score:.2f})"
+            elif isinstance(iteration, ReflectionIteration) and iteration.is_correct:
                 iter_title += " ✅ CORRECT"
 
             elements.append(Panel(
                 Group(*iter_elements),
                 title=f"[bold]{iter_title}[/bold]",
-                border_style="green" if iteration.is_correct else "white"
+                border_style="green" if is_complete else "white"
             ))
 
         # Summary
-        last_iter = self.iterations.get(max(self.iterations.keys()))
-        if last_iter and last_iter.is_correct:
+        last_iter = self.iterations.get(max(self.iterations.keys())) if self.iterations else None
+        if last_iter and self._is_iteration_complete(last_iter):
+            if isinstance(last_iter, RefinementIteration):
+                summary = f"Iterations: {self._make_iteration_progress()}\nFinal Score: {last_iter.score:.2f} ✅ ACCEPTED"
+            else:
+                summary = f"Iterations: {self._make_iteration_progress()}\nConvergence: ✅ CORRECT"
             elements.append(Panel(
-                f"Iterations: {self._make_iteration_progress()}\nConvergence: ✅ CORRECT",
-                title="[bold]📊 Reflection Summary[/bold]",
+                summary,
+                title="[bold]📊 Summary[/bold]",
                 border_style="green"
             ))
 
