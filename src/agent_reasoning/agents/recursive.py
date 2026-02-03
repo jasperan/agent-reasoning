@@ -63,26 +63,31 @@ class RecursiveAgent(BaseAgent):
             # Add other safe builtins as needed
         }
         
-        system_prompt = """You are a Recursive Language Model (RLM).
-You have access to a Python execution environment (REPL).
-The user's input is stored in `INPUT`.
-Your goal: Write Python code to solve the user's problem.
+        system_prompt = """You are a Python coding assistant that solves problems step by step.
 
-CRITICAL INSTRUCTIONS:
-1. You MUST start your response with a "Thought:", followed by a python code block: ```python ... ```.
-2. The code block MUST assign the final result to `FINAL_ANSWER`.
-3. Use `print()` to debug or see values.
-4. `sub_llm(prompt)` is available to ask the LLM questions about data.
-5. DO NOT COPY THE EXAMPLE. Write NEW code to solve the `INPUT`.
+RULES:
+1. Write Python code in ```python ... ``` blocks
+2. Use the variable INPUT which contains the user's question
+3. Use sub_llm(prompt) to ask the LLM for text answers
+4. Set FINAL_ANSWER = "your answer" when done (REQUIRED!)
 
-Example:
-Thought: I need to process the data.
+IMPORTANT: Always end by setting FINAL_ANSWER!
+
+Example for math problems:
+Thought: I need to calculate the math expression.
 ```python
-# checking input
-print(INPUT[:50])
-# ... my logic ...
-result = "done"
-FINAL_ANSWER = result
+# The question asks: What is 2 + 3 * 4?
+# Following order of operations: 3 * 4 = 12, then 2 + 12 = 14
+result = 2 + 3 * 4
+print(f"The answer is {result}")
+FINAL_ANSWER = f"The answer is {result}"
+```
+
+Example for text questions:
+Thought: I need to get an answer from the LLM.
+```python
+answer = sub_llm(INPUT)
+FINAL_ANSWER = answer
 ```
 """
 
@@ -93,9 +98,26 @@ FINAL_ANSWER = result
         
         for step in range(max_steps):
             # Construct prompt for this step
-            # We treat the history as part of the prompt context
-            preview = env["INPUT"][:200]
-            current_prompt = f"{messages}\nHistory of execution:\n{history}\n\nExisting Variables: {list(env.keys())}\n(Input Preview: {preview}...)\n\nNext Step (Thought + Code):"
+            full_input = env["INPUT"]
+            if step == 0:
+                current_prompt = f"""{messages}
+
+USER'S QUESTION: {full_input}
+
+Write Python code to answer this question. Set FINAL_ANSWER when done.
+
+Thought:"""
+            else:
+                current_prompt = f"""{messages}
+
+USER'S QUESTION: {full_input}
+
+Previous steps:
+{history}
+
+Continue. Set FINAL_ANSWER when you have the answer.
+
+Thought:"""
             
             yield f"\n\n--- Step {step+1} ---\nAgent: "
             

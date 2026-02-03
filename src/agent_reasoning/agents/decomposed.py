@@ -16,15 +16,29 @@ class DecomposedAgent(BaseAgent):
 
     def stream(self, query):
         """Legacy text streaming for backward compatibility."""
+        last_task_result_length = {}  # Track result length per task to yield only new content
+
         for event in self.stream_structured(query):
             if event.event_type == "text":
+                yield event.data
+            elif event.event_type == "chunk":
+                # Direct chunk streaming from sub-task processing
                 yield event.data
             elif event.event_type == "task":
                 task = event.data
                 if task.status == TaskStatus.RUNNING and not event.is_update:
-                    yield f"\n**Solving sub-task:** `{task.description}`\nResult: "
-                elif task.status == TaskStatus.COMPLETED and task.result and not event.is_update:
-                    yield task.result + "\n"
+                    yield f"\n**Solving sub-task {task.id}:** `{task.description}`\n"
+                    last_task_result_length[task.id] = 0
+                elif task.status == TaskStatus.RUNNING and event.is_update:
+                    # Stream incremental result updates
+                    if task.result:
+                        prev_len = last_task_result_length.get(task.id, 0)
+                        new_content = task.result[prev_len:]
+                        if new_content:
+                            yield new_content
+                            last_task_result_length[task.id] = len(task.result)
+                elif task.status == TaskStatus.COMPLETED and not event.is_update:
+                    yield f"\n✅ Sub-task {task.id} completed.\n"
 
     def stream_structured(self, query):
         """Structured event streaming for visualization."""
@@ -35,11 +49,13 @@ class DecomposedAgent(BaseAgent):
         yield StreamEvent(event_type="text", data="\n**Decomposing the problem...**\n")
         decomposition_prompt = f"Break down the following complex problem into a numbered list of simple sub-tasks.\nProblem: {query}\nProvide only the list."
 
+        yield StreamEvent(event_type="text", data="\n### Sub-tasks Plan:\n")
         sub_tasks_text = ""
         for chunk in self.client.generate(decomposition_prompt):
             sub_tasks_text += chunk
+            yield StreamEvent(event_type="text", data=chunk)  # Stream decomposition in real-time
 
-        yield StreamEvent(event_type="text", data=f"\n### Sub-tasks Plan:\n{sub_tasks_text}\n")
+        yield StreamEvent(event_type="text", data="\n")
 
         # Parse sub-tasks
         lines = sub_tasks_text.split('\n')
