@@ -817,13 +817,15 @@ def run_oci_comparison_benchmark():
                 "avg_tps": sum(r.tps for r in success) / len(success),
                 "avg_tokens": sum(r.token_count for r in success) / len(success),
                 "total_tokens": sum(r.token_count for r in success),
+                "avg_cost": sum(r.cost_estimate for r in success) / len(success),
                 "success_count": len(success),
                 "total_count": len(total),
             }
         else:
             model_stats[model] = {
                 "avg_latency": 0, "avg_ttft": 0, "avg_tps": 0,
-                "avg_tokens": 0, "total_tokens": 0, "success_count": 0, "total_count": len(total)
+                "avg_tokens": 0, "total_tokens": 0, "avg_cost": 0,
+                "success_count": 0, "total_count": len(total)
             }
 
     oci_success = [r for r in oci_results if r.success]
@@ -900,10 +902,10 @@ def run_oci_comparison_benchmark():
     row.append(str(model_stats.get("oci", {}).get("total_tokens", 0)))
     summary_table.add_row(*row)
 
-    # Cost row
-    row = ["Cost"]
+    # Cost row (Ollama cost based on A10 GPU hourly rental: $1.28/hr)
+    row = ["Avg Cost (A10)"]
     for model in ollama_models:
-        row.append("Local")
+        row.append(get_val(model, "avg_cost", ":.6f"))
     row.append(get_val("oci", "avg_cost", ":.6f"))
     summary_table.add_row(*row)
 
@@ -917,6 +919,7 @@ def run_oci_comparison_benchmark():
     summary_table.add_row(*row)
 
     console.print(summary_table)
+    console.print("[dim]* Ollama cost based on OCI A10 GPU rental: $1.28/hr ÷ processing seconds[/dim]")
 
     # Winner announcement (three-way)
     if comparisons:

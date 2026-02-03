@@ -16,6 +16,12 @@ from typing import List, Dict, Optional, Callable, Generator
 from enum import Enum
 
 
+# OCI A10 GPU pricing (VM.GPU.A10.1 shape)
+# Price per hour in USD - used to calculate cost for local Ollama inference
+# Source: https://www.oracle.com/cloud/compute/pricing/
+OCI_A10_HOURLY_PRICE = 1.28  # USD per hour
+
+
 class BenchmarkType(Enum):
     AGENT_REASONING = "agent_reasoning"
     INFERENCE = "inference"
@@ -736,6 +742,11 @@ class BenchmarkRunner:
                         total_ms = (end_time - start_time) * 1000
                         tps = token_count / (total_ms / 1000) if total_ms > 0 else 0
 
+                        # Calculate cost based on A10 GPU hourly rental
+                        # cost = (hourly_price / 3600 seconds) * processing_time_seconds
+                        processing_seconds = total_ms / 1000
+                        cost = (OCI_A10_HOURLY_PRICE / 3600) * processing_seconds
+
                         result = InferenceResult(
                             source="ollama",
                             model=model_name,
@@ -746,7 +757,7 @@ class BenchmarkRunner:
                             ttft_ms=round(ttft, 2),
                             tps=round(tps, 2),
                             token_count=token_count,
-                            cost_estimate=0.0,
+                            cost_estimate=round(cost, 8),
                         )
                         result_queue.put({"type": "ollama", "model": model_name, "result": result})
 
