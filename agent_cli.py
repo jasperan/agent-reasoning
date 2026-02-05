@@ -105,7 +105,7 @@ def run_with_visualizer(strategy, query, visualizer):
         return
 
     try:
-        with Live(visualizer.render(), refresh_per_second=10, vertical_overflow="visible") as live:
+        with Live(visualizer.render(), refresh_per_second=10) as live:
             for event in agent.stream_structured(query):
                 visualizer.update(event)
                 live.update(visualizer.render())
@@ -118,7 +118,7 @@ def run_with_markdown(strategy, query):
     full_model_name = f"{MODEL_NAME}+{strategy}"
     full_response = ""
 
-    with Live("", refresh_per_second=10, vertical_overflow="visible") as live:
+    with Live("", refresh_per_second=10) as live:
         try:
             for chunk_dict in client.generate(model=full_model_name, prompt=query, stream=True):
                 chunk = chunk_dict.get("response", "")
@@ -153,7 +153,7 @@ def run_arena_mode():
         
         try:
              # Streaming with Live Display
-             with Live("", refresh_per_second=10, vertical_overflow="visible") as live:
+             with Live("", refresh_per_second=10) as live:
                 for chunk_dict in client.generate(model=full_model_name, prompt=query, stream=True):
                      chunk = chunk_dict.get("response", "")
                      response_text += chunk
@@ -238,7 +238,7 @@ Make it technically accurate and precise."""
 
     if visualizer and hasattr(agent, 'stream_structured'):
         try:
-            with Live(visualizer.render(), refresh_per_second=10, vertical_overflow="visible") as live:
+            with Live(visualizer.render(), refresh_per_second=10) as live:
                 for event in agent.stream_structured(query):
                     visualizer.update(event)
                     live.update(visualizer.render())
@@ -247,7 +247,7 @@ Make it technically accurate and precise."""
     else:
         # Fallback to text streaming
         full_response = ""
-        with Live("", refresh_per_second=10, vertical_overflow="visible") as live:
+        with Live("", refresh_per_second=10) as live:
             try:
                 for chunk in agent.stream(query):
                     full_response += chunk
@@ -305,7 +305,7 @@ Make it technically accurate and precise."""
 
     # Text streaming (complex refinement uses rich text output)
     full_response = ""
-    with Live("", refresh_per_second=10, vertical_overflow="visible") as live:
+    with Live("", refresh_per_second=10) as live:
         try:
             for chunk in agent.stream(query):
                 full_response += chunk
@@ -417,7 +417,7 @@ def run_agent_benchmark(select_tasks=False):
     runner = BenchmarkRunner(model=MODEL_NAME)
 
     # Run benchmarks with live updates
-    with Live(render_task_table(), refresh_per_second=4, vertical_overflow="visible") as live:
+    with Live(render_task_table(), refresh_per_second=4) as live:
         def on_task_start(task, strategy):
             task_status[task.id] = "🔄 Running..."
             live.update(render_task_table())
@@ -553,7 +553,7 @@ def run_oci_comparison_benchmark():
 
     print_header()
     console.print("[bold cyan]☁️  MULTI-MODEL COMPARISON BENCHMARK[/bold cyan]\n")
-    console.print("Compare inference performance: Ollama (7B) vs OCI GenAI vs Ollama (370M).\n")
+    console.print("Compare inference performance: Ollama (7B) vs OCI GenAI vs Ollama (270M).\n")
 
     # Configuration
     iterations = int(Prompt.ask("Iterations per prompt", default="3"))
@@ -661,7 +661,7 @@ def run_oci_comparison_benchmark():
     )
 
     # Default Ollama models for three-way comparison
-    ollama_models = ["gemma3:latest", "gemma3:370m"]
+    ollama_models = ["gemma3:latest", "gemma3:270m"]
 
     console.print(f"\n[dim]Ollama Models: {', '.join(ollama_models)}[/dim]")
     console.print(f"[dim]OCI Model: {oci_model}[/dim]")
@@ -685,7 +685,7 @@ def run_oci_comparison_benchmark():
         model_tables = []
         for model in ollama_models:
             short_name = model.split(":")[0] if ":" in model else model
-            size_hint = "(7B)" if model == "gemma3:latest" else "(370M)" if "370m" in model.lower() else ""
+            size_hint = "(7B)" if model == "gemma3:latest" else "(270M)" if "270m" in model.lower() else ""
 
             table = Table(title=f"🦙 {short_name} {size_hint}", show_lines=False, expand=True)
             table.add_column("Prompt", style="cyan", width=18)
@@ -725,12 +725,12 @@ def run_oci_comparison_benchmark():
         comparison_table = Table(title="⚔️ Three-Way Comparison", show_lines=True, expand=True)
         comparison_table.add_column("Prompt", style="cyan", width=18)
         for model in ollama_models:
-            short = "(7B)" if model == "gemma3:latest" else "(370M)" if "370m" in model.lower() else model
+            short = "(7B)" if model == "gemma3:latest" else "(270M)" if "270m" in model.lower() else model
             comparison_table.add_column(short, style="yellow", justify="right")
         comparison_table.add_column("OCI", style="blue", justify="right")
         comparison_table.add_column("Winner", justify="center")
 
-        for item in comparisons:
+        for item in comparisons[-4:]:
             row = [f"{item['prompt'][:15]}..."]
             all_models = item.get("all_models", {})
 
@@ -751,7 +751,7 @@ def run_oci_comparison_benchmark():
             winner = item.get("winner", "")
             if winner == "oci":
                 row.append("☁️")
-            elif "370m" in winner.lower():
+            elif "270m" in winner.lower():
                 row.append("🦙S")
             elif winner.startswith("gemma"):
                 row.append("🦙L")
@@ -776,7 +776,7 @@ def run_oci_comparison_benchmark():
         return layout
 
     # Run the comparison benchmark
-    with Live(render_live_display(), console=console, refresh_per_second=4) as live:
+    with Live(render_live_display(), console=console, refresh_per_second=4, vertical_overflow="crop") as live:
         for item in runner.run_comparison_benchmark(
             prompts=INFERENCE_BENCHMARK_PROMPTS,
             iterations=iterations,
@@ -798,7 +798,6 @@ def run_oci_comparison_benchmark():
                 comparisons.append(item)
 
             live.update(render_live_display())
-            time.sleep(0.05)  # Small delay for visual feedback
 
     # Final Summary
     console.print("\n" + "=" * 70)
@@ -852,7 +851,7 @@ def run_oci_comparison_benchmark():
 
     # Add column headers for each model
     for model in ollama_models:
-        short = "(7B)" if model == "gemma3:latest" else "(370M)" if "370m" in model.lower() else model
+        short = "(7B)" if model == "gemma3:latest" else "(270M)" if "270m" in model.lower() else model
         summary_table.add_column(f"🦙 {short}", style="yellow", justify="right")
     summary_table.add_column("☁️ OCI", style="blue", justify="right")
 
@@ -936,7 +935,7 @@ def run_oci_comparison_benchmark():
 
         console.print(f"\n[bold]Head-to-Head Results:[/bold]")
         for model in ollama_models:
-            short = "(7B)" if model == "gemma3:latest" else "(370M)" if "370m" in model.lower() else model
+            short = "(7B)" if model == "gemma3:latest" else "(270M)" if "270m" in model.lower() else model
             console.print(f"  🦙 {short} wins: {win_counts[model]}")
         console.print(f"  ☁️  OCI wins: {win_counts['oci']}")
 
@@ -953,7 +952,7 @@ def run_oci_comparison_benchmark():
         elif overall_winner == "oci":
             console.print(f"\n[bold blue]🏆 WINNER: OCI GenAI ({oci_model})[/bold blue]")
         else:
-            short = "(7B)" if overall_winner == "gemma3:latest" else "(370M)" if "370m" in overall_winner.lower() else overall_winner
+            short = "(7B)" if overall_winner == "gemma3:latest" else "(270M)" if "270m" in overall_winner.lower() else overall_winner
             console.print(f"\n[bold green]🏆 WINNER: Ollama {short} ({overall_winner})[/bold green]")
 
     if dry_run:
