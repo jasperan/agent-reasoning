@@ -214,7 +214,5 @@ config.yaml
 tui/agent-tui
 
 # Benchmark outputs and result files
-/benchmarks/
-*_results.json
 arena_report.md
 simulation_demo.py
