@@ -1,8 +1,12 @@
 import json
+import time
 import requests
 import sys
 
 class OllamaClient:
+    MAX_RETRIES = 3
+    RETRY_BACKOFF = [2, 5, 10]  # seconds between retries
+
     def __init__(self, model="gemma3:270m", base_url="http://localhost:11434"):
         self.model = model
         self.base_url = base_url
@@ -23,25 +27,34 @@ class OllamaClient:
         if system:
             data["system"] = system
 
-        try:
-            response = requests.post(url, json=data, stream=stream)
-            response.raise_for_status()
+        last_error = None
+        for attempt in range(self.MAX_RETRIES):
+            try:
+                response = requests.post(url, json=data, stream=stream, timeout=300)
+                response.raise_for_status()
 
-            full_response = ""
-            if stream:
-                for line in response.iter_lines():
-                    if line:
-                        body = json.loads(line)
-                        if "response" in body:
-                            content = body["response"]
-                            yield content
-                            full_response += content
-                        if body.get("done", False):
-                            break
-            else:
-                body = response.json()
-                yield body.get("response", "")
+                full_response = ""
+                if stream:
+                    for line in response.iter_lines():
+                        if line:
+                            body = json.loads(line)
+                            if "response" in body:
+                                content = body["response"]
+                                yield content
+                                full_response += content
+                            if body.get("done", False):
+                                break
+                else:
+                    body = response.json()
+                    yield body.get("response", "")
+                return  # Success - exit retry loop
 
-        except requests.exceptions.RequestException as e:
-            print(f"Error communicating with Ollama: {e}", file=sys.stderr)
-            yield ""
+            except requests.exceptions.RequestException as e:
+                last_error = e
+                if attempt < self.MAX_RETRIES - 1:
+                    wait = self.RETRY_BACKOFF[attempt]
+                    print(f"Ollama request failed (attempt {attempt + 1}/{self.MAX_RETRIES}), retrying in {wait}s: {e}", file=sys.stderr)
+                    time.sleep(wait)
+                else:
+                    print(f"Ollama request failed after {self.MAX_RETRIES} attempts: {e}", file=sys.stderr)
+                    yield ""
