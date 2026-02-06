@@ -19,6 +19,12 @@ This repository transforms standard Open Source models (like `gemma3`, `llama3`)
 
 ---
 
+## Quick Start (3 commands)
+
+```bash
+pip install agent-reasoning && ollama pull gemma3:270m && agent-reasoning
+```
+
 ## 📦 Installation
 
 ### From PyPI (Recommended)
@@ -33,19 +39,15 @@ pip install "agent-reasoning[server]"
 ### From Source
 
 ```bash
-# Clone the repo
 git clone https://github.com/jasperan/agent-reasoning.git
 cd agent-reasoning
-
-# Install dependencies
-python3 -m venv venv
-source venv/bin/activate
-pip install -e .
+pip install -e ".[server,dev]"
 ```
 
 **Prerequisite**: [Ollama](https://ollama.com/) must be running locally, or you can connect to a remote Ollama instance.
 ```bash
-ollama pull gemma3:270m
+ollama pull gemma3:270m    # Tiny model for quick testing
+ollama pull gemma3:latest  # Full model for quality results
 ```
 
 ### Configuring Remote Ollama Endpoint
@@ -131,6 +133,15 @@ agent-reasoning
 python agent_cli.py
 ```
 
+**CLI Shortcuts:**
+```bash
+python agent_cli.py                  # Full interactive menu
+python agent_cli.py --arena          # Jump to arena mode
+python agent_cli.py --benchmark      # Jump to benchmarks
+python agent_cli.py --head-to-head   # Compare two agents
+python agent_cli.py --agents         # Show strategy guide
+```
+
 **Interactive Experience:**
 ```text
 ╭────────────────────────────────────────────╮
@@ -139,24 +150,35 @@ python agent_cli.py
 ╰────────────────────────────────────────────╯
 
 ? Select an Activity:
-  Chat with Standard Agent
-  Chain of Thought (CoT)
-  Tree of Thoughts (ToT)
-  ReAct (Tools + Web)
-  Recursive (RLM)
-  Self-Reflection
-  Decomposed Prompting
-  Least-to-Most
-  Self-Consistency
+  Standard Agent - Direct generation
+  Chain of Thought (CoT) - Step-by-step reasoning
+  Tree of Thoughts (ToT) - Branching exploration
+  ReAct (Tools + Web) - Reason + Act
+  Recursive (RLM) - Code REPL agent
+  Self-Reflection - Draft/critique/refine
+  Decomposed - Sub-task breakdown
+  Least-to-Most - Easy to hard
+  Self-Consistency - Majority voting
   ──────────────────
   🔄 Refinement Loop [Auto Demo]
   🔄 Complex Pipeline [5 Stages]
   ──────────────────
+  🔀 HEAD-TO-HEAD: Compare Two Agents
   ⚔️  ARENA: Run All Compare
   📊 BENCHMARKS: Performance Testing
+  ──────────────────
+  ℹ️  About Agents (Strategy Guide)
+  📂 Session History
   ⚙️  Select AI Model
   Exit
 ```
+
+**New Features:**
+- **Timing Metrics**: Every response shows TTFT, total time, tokens/sec
+- **Session History**: All chats auto-saved to `data/sessions/` with export to markdown
+- **Head-to-Head**: Compare any two strategies side-by-side in parallel
+- **Agent Info**: Built-in strategy guide with descriptions and use cases
+- **Benchmark Charts**: Auto-generate PNG visualizations of benchmark results
 
 ### 2. Terminal UI (TUI)
 A Go-based terminal interface with split-panel layout and arena grid view.
@@ -244,12 +266,19 @@ Then configure your app:
 *   **Base URL**: `http://localhost:8080`
 *   **Model**: `gemma3:270m+cot` (or `+tot`, `+react`, etc.)
 
-**Example:**
+**API Endpoints:**
 ```bash
+# Generate with reasoning strategy
 curl http://localhost:8080/api/generate -d '{
   "model": "gemma3:270m+cot",
   "prompt": "Why is the sky blue?"
 }'
+
+# List available agents with descriptions
+curl http://localhost:8080/api/agents
+
+# List available model+strategy combinations
+curl http://localhost:8080/api/tags
 ```
 
 ---
@@ -266,6 +295,80 @@ curl http://localhost:8080/api/generate -d '{
 | **Recursive (RLM)** | Uses Python REPL to recursively process prompt variables. | Long-context processing | [Author et al. (2025)](https://arxiv.org/abs/2512.24601) |
 | **Refinement Loop** | Generator → Critic (0.0-1.0 score) → Refiner iterative loop. | Technical Writing, Quality Content | Inspired by [Madaan et al. (2023)](https://arxiv.org/abs/2303.17651) |
 | **Complex Refinement** | 5-stage pipeline: Accuracy → Clarity → Depth → Examples → Polish. | Long-form Articles, Documentation | Multi-stage refinement architecture |
+
+---
+
+## 🎯 Accuracy Benchmarks
+
+Evaluate reasoning strategies against standard NLP datasets to measure accuracy improvements from cognitive architectures. The benchmark system includes embedded question sets from 4 standard datasets.
+
+| Dataset | Category | Questions | Format | Reference |
+|---------|----------|-----------|--------|-----------|
+| **GSM8K** | Math Reasoning | 30 | Open-ended number | Cobbe et al. (2021) |
+| **MMLU** | Knowledge (57 subjects) | 30 | Multiple choice (A-D) | Hendrycks et al. (2021) |
+| **ARC-Challenge** | Science Reasoning | 25 | Multiple choice (A-D) | Clark et al. (2018) |
+| **HellaSwag** | Commonsense | 20 | Multiple choice (A-D) | Zellers et al. (2019) |
+
+### Results: `gemma3:latest` (4.3B Q4_K_M)
+
+Full eval across all 11 strategies (1,155 evaluations):
+
+| Strategy | GSM8K | MMLU | ARC-C | HellaSwag | **Avg** |
+|----------|-------|------|-------|-----------|---------|
+| **Standard** (baseline) | 66.7% | 90.0% | 92.0% | 90.0% | **84.7%** |
+| **Chain of Thought** | 73.3% | 96.7% | 88.0% | 90.0% | **87.0%** |
+| **Tree of Thoughts** | 76.7% | 63.3% | 76.0% | 90.0% | **76.5%** |
+| **ReAct** | 63.3% | 86.7% | 96.0% | 90.0% | **84.0%** |
+| **Self-Reflection** | 66.7% | 90.0% | 88.0% | 90.0% | **83.7%** |
+| **Self-Consistency** | 76.7% | 96.7% | 92.0% | — | **66.3%** |
+| **Decomposed** | 10.0% | 60.0% | 84.0% | — | **38.5%** |
+
+**Key findings:**
+- **CoT** achieves the highest average accuracy (87.0%), outperforming Standard on GSM8K (+6.6%) and MMLU (+6.7%)
+- **Self-Consistency** ties CoT on MMLU (96.7%) and GSM8K (76.7%) through majority voting
+- **ToT** excels on GSM8K math (76.7%, +10% over Standard) through branch exploration
+- **ReAct** achieves the highest ARC-Challenge score (96.0%) via tool-augmented reasoning
+
+### Accuracy Heatmap
+
+![Accuracy Heatmap](benchmarks/charts/accuracy_heatmap.png)
+
+### Average Accuracy by Strategy
+
+![Accuracy by Strategy](benchmarks/charts/accuracy_by_strategy.png)
+
+### Running Accuracy Benchmarks
+
+```bash
+# Interactive (select datasets and strategies):
+python agent_cli.py --accuracy
+
+# Or from the benchmark menu:
+python agent_cli.py --benchmark
+# → Select "Accuracy Benchmark"
+```
+
+Charts are auto-generated after each run to `benchmarks/charts/`.
+
+### Python API
+
+```python
+from src.benchmarks.accuracy import AccuracyBenchmarkRunner, DATASET_REGISTRY
+
+runner = AccuracyBenchmarkRunner(model="gemma3:latest")
+
+# Run all datasets with specific strategies
+for result in runner.run_all_datasets(
+    strategies=["standard", "cot", "tot", "decomposed"],
+    max_questions_per_dataset=10,  # Quick eval
+):
+    print(f"{result.strategy}: {'✓' if result.correct else '✗'}")
+
+# Generate reports
+reports = runner.generate_reports()
+for r in reports:
+    print(f"{r.dataset} | {r.strategy} | {r.accuracy_pct:.1f}%")
+```
 
 ---
 
@@ -377,6 +480,44 @@ Final Answer: Sundar Pichai
 Running web_search...
 Observation: [1] Sundar Pichai - Wikipedia: ... He is the chief executive officer (CEO) of Alphabet Inc. and its subsidiary Google.
 ```
+
+---
+
+## 📊 Appendix C: Benchmark Charts
+
+Benchmark charts are auto-generated after every benchmark run. Below are sample outputs using `gemma3:latest`.
+
+### Response Latency by Strategy
+
+Each reasoning strategy has different latency characteristics based on its internal architecture (multi-call agents like Refinement and Decomposed take longer; single-pass agents like CoT are faster).
+
+![Latency](benchmarks/charts/benchmark_latency.png)
+
+### Throughput (Tokens/Second)
+
+Raw throughput comparison showing how many tokens each strategy produces per second of wall-clock time.
+
+![Throughput](benchmarks/charts/benchmark_tps.png)
+
+### TTFT vs Total Latency
+
+Scatter plot showing the relationship between time-to-first-token and total response time. Points closer to the bottom-left are faster overall.
+
+![Scatter](benchmarks/charts/benchmark_scatter.png)
+
+### Strategy Comparison Summary
+
+Side-by-side comparison of average latency, throughput, and TTFT across all tested strategies.
+
+![Summary](benchmarks/charts/benchmark_summary.png)
+
+### Performance Heatmap
+
+Normalized heatmap where green = better performance. Latency and TTFT are inverted (lower is better). Useful for quick strategy selection.
+
+![Heatmap](benchmarks/charts/benchmark_heatmap.png)
+
+> Charts generated with `python agent_cli.py --benchmark`. Output saved to `benchmarks/charts/`.
 
 ---
 

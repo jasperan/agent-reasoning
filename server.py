@@ -1,33 +1,14 @@
 import json
 import asyncio
+import time
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
-# Import agents
-from src.agents.standard import StandardAgent
-from src.agents.cot import CoTAgent
-from src.agents.self_reflection import SelfReflectionAgent
-from src.agents.react import ReActAgent
-from src.agents.tot import ToTAgent
-from src.agents.recursive import RecursiveAgent
-from src.agents.consistency import ConsistencyAgent
-from src.agents.decomposed import DecomposedAgent
-from src.agents.least_to_most import LeastToMostAgent
+# Import unified AGENT_MAP from interceptor (single source of truth)
+from src.interceptor import AGENT_MAP
 
 app = FastAPI(title="Agent Reasoning Gateway")
-
-AGENT_MAP = {
-    "standard": StandardAgent,
-    "cot": CoTAgent,
-    "reflection": SelfReflectionAgent,
-    "react": ReActAgent,
-    "tot": ToTAgent,
-    "recursive": RecursiveAgent,
-    "consistency": ConsistencyAgent,
-    "decomposed": DecomposedAgent,
-    "least_to_most": LeastToMostAgent,
-}
 
 class GenerateRequest(BaseModel):
     model: str
@@ -58,33 +39,38 @@ async def generate(request: GenerateRequest):
     # We pass the base model requested by user to the agent
     agent = agent_class(model=base_model)
     
-    # 3. Stream Response
+    # 3. Stream Response with timing
     async def response_generator():
+        start_time = time.time()
+        first_token_time = None
+        chunk_count = 0
         try:
-            # We treat the entire agent output (thoughts + answer) as the "response"
-            # for the user to see what is happening.
             for chunk in agent.stream(request.prompt):
-                # Format as Ollama JSON line
+                if first_token_time is None:
+                    first_token_time = time.time()
+                chunk_count += 1
                 data = {
                     "model": request.model,
-                    "created_at": "2023-01-01T00:00:00.000000Z", # Dummy
+                    "created_at": "2023-01-01T00:00:00.000000Z",
                     "response": chunk,
                     "done": False
                 }
                 yield json.dumps(data) + "\n"
-                # Small yield to allow async loop
                 await asyncio.sleep(0)
-            
-            # Final done message
+
+            end_time = time.time()
+            total_duration = int((end_time - start_time) * 1e9)
+            ttft_ns = int((first_token_time - start_time) * 1e9) if first_token_time else 0
+
             data = {
                     "model": request.model,
                     "created_at": "2023-01-01T00:00:00.000000Z",
                     "response": "",
                     "done": True,
-                    "total_duration": 0,
-                    "load_duration": 0,
+                    "total_duration": total_duration,
+                    "load_duration": ttft_ns,
                     "prompt_eval_count": 0,
-                    "eval_count": 0
+                    "eval_count": chunk_count
             }
             yield json.dumps(data) + "\n"
         except Exception as e:
@@ -96,18 +82,48 @@ async def generate(request: GenerateRequest):
 
     return StreamingResponse(response_generator(), media_type="application/x-ndjson")
 
+
+# Agent descriptions for API consumers
+AGENT_INFO = {
+    "standard": {"name": "Standard", "description": "Direct generation without reasoning enhancement", "ref": "N/A"},
+    "cot": {"name": "Chain of Thought", "description": "Step-by-step reasoning decomposition", "ref": "Wei et al. (2022)"},
+    "tot": {"name": "Tree of Thoughts", "description": "Branching exploration with scoring and pruning", "ref": "Yao et al. (2023)"},
+    "react": {"name": "ReAct", "description": "Interleaved reasoning and tool-use actions", "ref": "Yao et al. (2022)"},
+    "recursive": {"name": "Recursive LM", "description": "Code-generation REPL with recursive LLM calls", "ref": "Author et al. (2025)"},
+    "reflection": {"name": "Self-Reflection", "description": "Draft-critique-refine loop until correct", "ref": "Shinn et al. (2023)"},
+    "consistency": {"name": "Self-Consistency", "description": "Multiple samples with majority voting", "ref": "Wang et al. (2022)"},
+    "decomposed": {"name": "Decomposed Prompting", "description": "Break problem into sub-tasks, solve sequentially", "ref": "Khot et al. (2022)"},
+    "least_to_most": {"name": "Least-to-Most", "description": "Solve from easiest sub-question to hardest", "ref": "Zhou et al. (2022)"},
+    "refinement": {"name": "Refinement Loop", "description": "Iterative score-based generation and refinement", "ref": "Iterative Refinement"},
+    "complex_refinement": {"name": "Complex Pipeline", "description": "5-stage refinement pipeline with specialized critics", "ref": "Multi-Stage Refinement"},
+}
+
+
 @app.get("/api/tags")
 async def tags():
-    # Proxy /api/tags or just return our "virtual" models
-    # For now, let's just return a list of capabilities
+    """Return available model+strategy combinations (Ollama-compatible)."""
+    strategies = sorted(set(
+        k for k in AGENT_MAP.keys()
+        if k in AGENT_INFO  # Only primary names, not aliases
+    ))
     return {
-        "models": [
-            {"name": "gemma3:270m+cot"},
-            {"name": "gemma3:270m+tot"},
-            {"name": "gemma3:270m+react"},
-            {"name": "gemma3:270m+reflection"},
-        ]
+        "models": [{"name": f"gemma3:270m+{s}"} for s in strategies]
     }
+
+
+@app.get("/api/agents")
+async def list_agents():
+    """List available reasoning agents with descriptions."""
+    agents = []
+    for strategy_id, info in AGENT_INFO.items():
+        agents.append({
+            "id": strategy_id,
+            "name": info["name"],
+            "description": info["description"],
+            "reference": info["ref"],
+            "has_visualizer": strategy_id in ("cot", "tot", "react", "consistency", "decomposed", "least_to_most", "reflection", "refinement"),
+        })
+    return {"agents": agents, "count": len(agents)}
 
 if __name__ == "__main__":
     import uvicorn

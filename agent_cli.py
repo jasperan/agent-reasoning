@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
 import argparse
+import json
 import os
 import sys
 import time
 import subprocess
+import threading
 import questionary
 from datetime import datetime
 from rich.console import Console
@@ -12,6 +14,7 @@ from rich.prompt import Prompt, Confirm
 from rich.table import Table
 from rich.progress import Progress, SpinnerColumn, TextColumn
 from rich.live import Live
+from rich.columns import Columns
 from rich import print as rprint
 from termcolor import colored
 
@@ -24,6 +27,25 @@ console = Console()
 client = ReasoningInterceptor()
 
 MODEL_NAME = "gemma3:latest"
+
+# Agent descriptions for display
+AGENT_DESCRIPTIONS = {
+    "standard": ("Standard", "Direct generation", "N/A", "Baseline responses"),
+    "cot": ("Chain of Thought", "Step-by-step reasoning", "Wei et al. 2022", "Math, logic, analysis"),
+    "tot": ("Tree of Thoughts", "Branching exploration with pruning", "Yao et al. 2023", "Complex puzzles, riddles"),
+    "react": ("ReAct", "Reasoning + tool actions", "Yao et al. 2022", "Fact-checking, calculations"),
+    "recursive": ("Recursive LM", "Code REPL with sub_llm()", "Author et al. 2025", "Data processing, long-context"),
+    "reflection": ("Self-Reflection", "Draft → critique → refine loop", "Shinn et al. 2023", "Creative writing, code"),
+    "decomposed": ("Decomposed", "Break into sub-tasks, solve each", "Khot et al. 2022", "Planning, complex queries"),
+    "least_to_most": ("Least-to-Most", "Easiest to hardest sub-questions", "Zhou et al. 2022", "Multi-step reasoning"),
+    "consistency": ("Self-Consistency", "k samples + majority vote", "Wang et al. 2022", "Diverse problems"),
+    "refinement": ("Refinement Loop", "Score-based iterative improvement", "Iterative Refinement", "Technical writing"),
+    "complex_refinement": ("Complex Pipeline", "5-stage optimization pipeline", "Multi-Stage Refinement", "High-quality content"),
+}
+
+# Session directory
+SESSION_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data", "sessions")
+os.makedirs(SESSION_DIR, exist_ok=True)
 
 def get_ollama_models():
     try:
@@ -63,10 +85,44 @@ def print_header():
 from rich.live import Live
 from rich.markdown import Markdown
 
+def save_session(strategy, query, response, metrics):
+    """Save a chat interaction to session history."""
+    session = {
+        "timestamp": datetime.now().isoformat(),
+        "model": MODEL_NAME,
+        "strategy": strategy,
+        "query": query,
+        "response": response,
+        "metrics": metrics,
+    }
+    filename = f"{datetime.now().strftime('%Y%m%d_%H%M%S')}_{strategy}.json"
+    filepath = os.path.join(SESSION_DIR, filename)
+    with open(filepath, "w") as f:
+        json.dump(session, f, indent=2)
+    return filepath
+
+
+def print_metrics(metrics):
+    """Print timing metrics after a response."""
+    parts = []
+    if metrics.get("total_time"):
+        parts.append(f"Total: {metrics['total_time']:.1f}s")
+    if metrics.get("ttft"):
+        parts.append(f"TTFT: {metrics['ttft']:.2f}s")
+    if metrics.get("tps"):
+        parts.append(f"~{metrics['tps']:.0f} tok/s")
+    if metrics.get("chunks"):
+        parts.append(f"{metrics['chunks']} chunks")
+    if parts:
+        console.print(f"\n[dim]  [{' | '.join(parts)}][/dim]")
+
+
 def run_agent_chat(strategy):
     print_header()
-    console.print(f"[bold yellow]Chat Mode: {strategy.upper()}[/bold yellow]")
-    console.print("Type 'exit' or '0' to return.")
+    desc = AGENT_DESCRIPTIONS.get(strategy, ("Unknown", "", "", ""))
+    console.print(f"[bold yellow]Chat Mode: {desc[0]} ({strategy.upper()})[/bold yellow]")
+    console.print(f"[dim]{desc[1]} | Ref: {desc[2]} | Best for: {desc[3]}[/dim]")
+    console.print("Type 'exit' or '0' to return.\n")
 
     while True:
         query = Prompt.ask("\n[bold green]Query[/bold green]")
@@ -81,51 +137,80 @@ def run_agent_chat(strategy):
         visualizer = get_visualizer(strategy)
 
         if visualizer:
-            # Use structured event streaming with visualizer
-            run_with_visualizer(strategy, query, visualizer)
+            response, metrics = run_with_visualizer(strategy, query, visualizer)
         else:
-            # Fallback to legacy text streaming
-            run_with_markdown(strategy, query)
+            response, metrics = run_with_markdown(strategy, query)
+
+        print_metrics(metrics)
+
+        # Auto-save session
+        if response:
+            save_session(strategy, query, response, metrics)
 
 
 def run_with_visualizer(strategy, query, visualizer):
     """Run agent with rich visualization using structured events."""
-    # Get agent directly from map
     agent_class = AGENT_MAP.get(strategy)
     if not agent_class:
         console.print(f"[red]Unknown strategy: {strategy}[/red]")
-        return
+        return "", {}
 
     agent = agent_class(model=MODEL_NAME)
 
-    # Check if agent has stream_structured method
     if not hasattr(agent, 'stream_structured'):
         console.print("[dim]Agent does not support structured streaming, falling back to text mode.[/dim]")
-        run_with_markdown(strategy, query)
-        return
+        return run_with_markdown(strategy, query)
+
+    start_time = time.time()
+    first_chunk_time = None
+    chunk_count = 0
+    full_response = ""
 
     try:
         with Live(visualizer.render(), refresh_per_second=10) as live:
             for event in agent.stream_structured(query):
+                if first_chunk_time is None:
+                    first_chunk_time = time.time()
+                chunk_count += 1
+                if event.event_type == "text":
+                    full_response += event.data
                 visualizer.update(event)
                 live.update(visualizer.render())
     except Exception as e:
         console.print(f"[bold red]Error:[/bold red] {e}")
+
+    elapsed = time.time() - start_time
+    ttft = (first_chunk_time - start_time) if first_chunk_time else 0
+    tps = chunk_count / elapsed if elapsed > 0 else 0
+
+    return full_response, {"total_time": elapsed, "ttft": ttft, "tps": tps, "chunks": chunk_count}
 
 
 def run_with_markdown(strategy, query):
     """Fallback: Run agent with simple markdown rendering."""
     full_model_name = f"{MODEL_NAME}+{strategy}"
     full_response = ""
+    start_time = time.time()
+    first_chunk_time = None
+    chunk_count = 0
 
     with Live("", refresh_per_second=10) as live:
         try:
             for chunk_dict in client.generate(model=full_model_name, prompt=query, stream=True):
+                if first_chunk_time is None:
+                    first_chunk_time = time.time()
                 chunk = chunk_dict.get("response", "")
+                chunk_count += 1
                 full_response += chunk
                 live.update(Markdown(full_response))
         except Exception as e:
             console.print(f"[bold red]Error:[/bold red] {e}")
+
+    elapsed = time.time() - start_time
+    ttft = (first_chunk_time - start_time) if first_chunk_time else 0
+    tps = chunk_count / elapsed if elapsed > 0 else 0
+
+    return full_response, {"total_time": elapsed, "ttft": ttft, "tps": tps, "chunks": chunk_count}
 
 
 def run_arena_mode():
@@ -328,6 +413,7 @@ def run_benchmark_menu():
         choices = [
             questionary.Choice("🧠 Agent Reasoning Benchmark (All Strategies)", value="agent_all"),
             questionary.Choice("🧠 Agent Reasoning Benchmark (Select Tasks)", value="agent_select"),
+            questionary.Choice("🎯 Accuracy Benchmark (GSM8K, MMLU, ARC, HellaSwag)", value="accuracy"),
             questionary.Choice("⚡ Inference Speed Benchmark (Ollama)", value="inference"),
             questionary.Choice("☁️  OCI vs Ollama Comparison", value="oci_comparison"),
             questionary.Choice("📈 View Last Report", value="view_report"),
@@ -348,6 +434,8 @@ def run_benchmark_menu():
             run_agent_benchmark(select_tasks=False)
         elif choice == "agent_select":
             run_agent_benchmark(select_tasks=True)
+        elif choice == "accuracy":
+            run_accuracy_benchmark()
         elif choice == "inference":
             run_inference_benchmark()
         elif choice == "oci_comparison":
@@ -455,9 +543,181 @@ def run_agent_benchmark(select_tasks=False):
     # Save report
     if Confirm.ask("\nSave report to file?"):
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        os.makedirs("benchmarks", exist_ok=True)
         filepath = f"benchmarks/agent_benchmark_{timestamp}.md"
         runner.save_report(filepath, format="markdown")
         console.print(f"[green]Report saved to {filepath}[/green]")
+
+    # Auto-generate charts
+    console.print("\n[dim]Generating benchmark charts...[/dim]")
+    from src.benchmarks.charts import generate_agent_benchmark_charts
+    chart_data = []
+    for r in results:
+        chart_data.append({
+            "task_name": r.task_name,
+            "strategy": r.strategy,
+            "total_ms": r.total_ms,
+            "ttft_ms": r.ttft_ms,
+            "tps": r.tps,
+            "token_count": r.token_count,
+            "success": r.success,
+        })
+    chart_paths = generate_agent_benchmark_charts(chart_data, model=MODEL_NAME)
+    if chart_paths:
+        console.print(f"[green]Generated {len(chart_paths)} charts:[/green]")
+        for cp in chart_paths:
+            console.print(f"  [dim]{cp}[/dim]")
+    else:
+        console.print("[yellow]No charts generated (need matplotlib).[/yellow]")
+
+    input("\nPress Enter to return...")
+
+
+def run_accuracy_benchmark():
+    """Run accuracy benchmarks against standard datasets."""
+    from src.benchmarks.accuracy import (
+        DATASET_REGISTRY, AccuracyBenchmarkRunner, generate_accuracy_charts,
+    )
+
+    print_header()
+    console.print("[bold cyan]🎯 ACCURACY BENCHMARK[/bold cyan]")
+    console.print("Evaluate reasoning strategies against standard NLP datasets.\n")
+
+    # Dataset selection
+    ds_choices = [
+        questionary.Choice(
+            f"{info['name']} - {info['description']} ({len(info['loader']())} questions)",
+            value=ds_id, checked=True,
+        )
+        for ds_id, info in DATASET_REGISTRY.items()
+    ]
+    selected_datasets = questionary.checkbox(
+        "Select datasets:", choices=ds_choices,
+    ).ask()
+    if not selected_datasets:
+        console.print("[yellow]No datasets selected.[/yellow]")
+        input("\nPress Enter to return...")
+        return
+
+    # Strategy selection
+    all_strategies = ["standard", "cot", "tot", "react", "reflection",
+                      "decomposed", "least_to_most", "consistency",
+                      "refinement", "complex_refinement", "recursive"]
+    strat_choices = [
+        questionary.Choice(
+            f"{AGENT_DESCRIPTIONS.get(s, (s,))[0]} ({s})",
+            value=s, checked=(s in ["standard", "cot", "tot", "decomposed", "consistency"]),
+        )
+        for s in all_strategies
+    ]
+    selected_strategies = questionary.checkbox(
+        "Select strategies to evaluate:", choices=strat_choices,
+    ).ask()
+    if not selected_strategies:
+        console.print("[yellow]No strategies selected.[/yellow]")
+        input("\nPress Enter to return...")
+        return
+
+    # Count total questions
+    total_questions = sum(
+        len(DATASET_REGISTRY[ds]["loader"]()) for ds in selected_datasets
+    )
+    total_evals = total_questions * len(selected_strategies)
+
+    console.print(f"\n[dim]Model: {MODEL_NAME}[/dim]")
+    console.print(f"[dim]Datasets: {len(selected_datasets)} | Strategies: {len(selected_strategies)} | Total evaluations: {total_evals}[/dim]\n")
+
+    runner = AccuracyBenchmarkRunner(model=MODEL_NAME)
+    completed = 0
+    current_results = []
+
+    # Live progress table
+    def render_progress():
+        table = Table(title="Accuracy Benchmark Progress", show_lines=True)
+        table.add_column("Dataset", style="cyan", width=15)
+        table.add_column("Strategy", style="yellow", width=18)
+        table.add_column("Progress", style="white", width=12)
+        table.add_column("Correct", style="green", width=10)
+        table.add_column("Accuracy", style="bold", width=10)
+
+        # Group by dataset+strategy
+        groups = {}
+        for r in current_results:
+            key = f"{r.dataset}|{r.strategy}"
+            groups.setdefault(key, []).append(r)
+
+        for key, results in sorted(groups.items()):
+            ds, strat = key.split("|")
+            total = len(DATASET_REGISTRY[ds]["loader"]())
+            done = len(results)
+            correct = sum(1 for r in results if r.correct)
+            pct = correct / done * 100 if done else 0
+
+            ds_name = DATASET_REGISTRY.get(ds, {}).get("name", ds)
+            strat_name = AGENT_DESCRIPTIONS.get(strat, (strat,))[0]
+            color = "[green]" if pct >= 60 else "[yellow]" if pct >= 40 else "[red]"
+
+            table.add_row(
+                ds_name, strat_name,
+                f"{done}/{total}",
+                str(correct),
+                f"{color}{pct:.0f}%[/]",
+            )
+
+        return table
+
+    with Live(render_progress(), refresh_per_second=2, console=console) as live:
+        for ds_id in selected_datasets:
+            for result in runner.run_dataset(
+                ds_id, selected_strategies,
+                on_question_done=lambda r: None,
+            ):
+                current_results.append(result)
+                completed += 1
+                live.update(render_progress())
+
+    # Final reports
+    reports = runner.generate_reports()
+
+    console.print("\n" + "=" * 60)
+    console.print("[bold green]ACCURACY BENCHMARK COMPLETE[/bold green]\n")
+
+    # Summary table
+    summary = Table(title="Accuracy Results", show_lines=True)
+    summary.add_column("Dataset", style="cyan")
+    summary.add_column("Strategy", style="yellow")
+    summary.add_column("Correct", style="green")
+    summary.add_column("Total", style="white")
+    summary.add_column("Accuracy", style="bold")
+    summary.add_column("Avg Latency", style="dim")
+
+    for r in sorted(reports, key=lambda x: (x.dataset, -x.accuracy_pct)):
+        ds_name = DATASET_REGISTRY.get(r.dataset, {}).get("name", r.dataset)
+        strat_name = AGENT_DESCRIPTIONS.get(r.strategy, (r.strategy,))[0]
+        color = "[green]" if r.accuracy_pct >= 60 else "[yellow]" if r.accuracy_pct >= 40 else "[red]"
+        summary.add_row(
+            ds_name, strat_name,
+            str(r.correct), str(r.total),
+            f"{color}{r.accuracy_pct:.1f}%[/]",
+            f"{r.avg_latency_ms:.0f}ms",
+        )
+
+    console.print(summary)
+
+    # Auto-generate charts
+    console.print("\n[dim]Generating accuracy charts...[/dim]")
+    chart_paths = generate_accuracy_charts(reports, model=MODEL_NAME)
+    if chart_paths:
+        console.print(f"[green]Generated {len(chart_paths)} charts:[/green]")
+        for cp in chart_paths:
+            console.print(f"  [dim]{cp}[/dim]")
+
+    # Save results
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    os.makedirs("benchmarks", exist_ok=True)
+    json_path = f"benchmarks/accuracy_results_{timestamp}.json"
+    runner.save_results(json_path)
+    console.print(f"[green]Results saved to {json_path}[/green]")
 
     input("\nPress Enter to return...")
 
@@ -1012,28 +1272,216 @@ def export_benchmark_results():
     input("\nPress Enter to return...")
 
 
+def show_agent_info():
+    """Show detailed info about all agents."""
+    print_header()
+    console.print("[bold cyan]ℹ️  REASONING AGENTS GUIDE[/bold cyan]\n")
+
+    table = Table(title="Available Reasoning Strategies", show_lines=True, expand=True)
+    table.add_column("Strategy", style="cyan", width=18)
+    table.add_column("Full Name", style="bold white", width=20)
+    table.add_column("How It Works", style="white", width=35)
+    table.add_column("Best For", style="green", width=20)
+    table.add_column("Reference", style="dim", width=18)
+
+    for key, (name, desc, ref, best_for) in AGENT_DESCRIPTIONS.items():
+        table.add_row(key, name, desc, best_for, ref)
+
+    console.print(table)
+    input("\nPress Enter to return...")
+
+
+def view_session_history():
+    """View past chat sessions."""
+    import glob as glob_mod
+
+    print_header()
+    console.print("[bold cyan]📂 SESSION HISTORY[/bold cyan]\n")
+
+    session_files = sorted(glob_mod.glob(os.path.join(SESSION_DIR, "*.json")), reverse=True)
+
+    if not session_files:
+        console.print("[yellow]No sessions found. Chat with an agent to create one.[/yellow]")
+        input("\nPress Enter to return...")
+        return
+
+    choices = []
+    for f in session_files[:20]:
+        try:
+            with open(f, "r") as fh:
+                data = json.load(fh)
+            label = f"{data.get('timestamp', '?')[:16]} | {data.get('strategy', '?')} | {data.get('query', '?')[:40]}..."
+            choices.append(questionary.Choice(label, value=f))
+        except Exception:
+            pass
+
+    choices.append(questionary.Choice("← Back", value=None))
+
+    selected = questionary.select("Select session to view:", choices=choices).ask()
+    if not selected:
+        return
+
+    with open(selected, "r") as f:
+        data = json.load(f)
+
+    console.print(Panel(
+        f"[bold]Model:[/bold] {data.get('model')}\n"
+        f"[bold]Strategy:[/bold] {data.get('strategy')}\n"
+        f"[bold]Time:[/bold] {data.get('timestamp')}\n"
+        f"[bold]Metrics:[/bold] {json.dumps(data.get('metrics', {}), indent=2)}",
+        title="Session Info",
+        border_style="cyan"
+    ))
+    console.print(Panel(data.get("query", ""), title="[bold green]Query[/bold green]", border_style="green"))
+    response = data.get("response", "")
+    console.print(Panel(response[:2000] + ("..." if len(response) > 2000 else ""),
+                       title="[bold blue]Response[/bold blue]", border_style="blue"))
+
+    if Confirm.ask("\nExport to markdown?"):
+        md_path = selected.replace(".json", ".md")
+        with open(md_path, "w") as f:
+            f.write(f"# Session: {data.get('strategy', '?')}\n\n")
+            f.write(f"**Model:** {data.get('model')}\n")
+            f.write(f"**Timestamp:** {data.get('timestamp')}\n\n")
+            f.write(f"## Query\n{data.get('query')}\n\n")
+            f.write(f"## Response\n{data.get('response')}\n")
+        console.print(f"[green]Exported to {md_path}[/green]")
+
+    input("\nPress Enter to return...")
+
+
+def run_head_to_head():
+    """Compare two agents side-by-side on the same query."""
+    print_header()
+    console.print("[bold yellow]🔀 HEAD-TO-HEAD COMPARISON[/bold yellow]")
+    console.print("Compare two reasoning strategies on the same query.\n")
+
+    # Pick two strategies
+    strategy_choices = [
+        questionary.Choice(f"{AGENT_DESCRIPTIONS.get(k, (k,))[0]} ({k})", value=k)
+        for k in ["standard", "cot", "tot", "react", "recursive", "reflection",
+                   "decomposed", "least_to_most", "consistency", "refinement"]
+    ]
+
+    selected = questionary.checkbox(
+        "Select exactly 2 strategies:",
+        choices=strategy_choices,
+    ).ask()
+
+    if not selected or len(selected) != 2:
+        console.print("[yellow]Please select exactly 2 strategies.[/yellow]")
+        input("\nPress Enter to return...")
+        return
+
+    strat_a, strat_b = selected[0], selected[1]
+
+    query = Prompt.ask("\n[bold green]Enter Query[/bold green]")
+    if not query:
+        return
+
+    console.print(f"\n[dim]Running {strat_a} vs {strat_b} on: {query}[/dim]\n")
+
+    results = {}
+    lock = threading.Lock()
+
+    def run_strategy(strategy):
+        full_model = f"{MODEL_NAME}+{strategy}"
+        start = time.time()
+        resp = ""
+        chunks = 0
+        first_chunk = None
+        try:
+            for chunk_dict in client.generate(model=full_model, prompt=query, stream=True):
+                chunk = chunk_dict.get("response", "")
+                if first_chunk is None:
+                    first_chunk = time.time()
+                resp += chunk
+                chunks += 1
+        except Exception as e:
+            resp = f"Error: {e}"
+        elapsed = time.time() - start
+        ttft = (first_chunk - start) if first_chunk else 0
+        with lock:
+            results[strategy] = {
+                "response": resp,
+                "time": elapsed,
+                "ttft": ttft,
+                "chunks": chunks,
+                "tps": chunks / elapsed if elapsed > 0 else 0,
+            }
+
+    # Run both in parallel
+    t1 = threading.Thread(target=run_strategy, args=(strat_a,))
+    t2 = threading.Thread(target=run_strategy, args=(strat_b,))
+
+    console.print("[bold]Running both strategies in parallel...[/bold]")
+    t1.start()
+    t2.start()
+    t1.join()
+    t2.join()
+
+    # Display results side by side
+    console.print("\n")
+    console.rule("[bold red]Head-to-Head Results[/bold red]")
+
+    for strat in [strat_a, strat_b]:
+        r = results.get(strat, {})
+        name = AGENT_DESCRIPTIONS.get(strat, (strat,))[0]
+        resp_preview = r.get("response", "")[:500]
+        metrics = f"[dim]{r.get('time', 0):.1f}s | TTFT: {r.get('ttft', 0):.2f}s | ~{r.get('tps', 0):.0f} tok/s | {r.get('chunks', 0)} chunks[/dim]"
+        console.print(Panel(
+            f"{resp_preview}\n\n{metrics}",
+            title=f"[bold]{name} ({strat})[/bold]",
+            border_style="cyan" if strat == strat_a else "magenta"
+        ))
+
+    # Comparison table
+    table = Table(title="Performance Comparison")
+    table.add_column("Metric", style="cyan")
+    table.add_column(AGENT_DESCRIPTIONS.get(strat_a, (strat_a,))[0], style="green")
+    table.add_column(AGENT_DESCRIPTIONS.get(strat_b, (strat_b,))[0], style="magenta")
+
+    ra, rb = results.get(strat_a, {}), results.get(strat_b, {})
+    table.add_row("Total Time", f"{ra.get('time', 0):.2f}s", f"{rb.get('time', 0):.2f}s")
+    table.add_row("TTFT", f"{ra.get('ttft', 0):.2f}s", f"{rb.get('ttft', 0):.2f}s")
+    table.add_row("Tokens/sec", f"~{ra.get('tps', 0):.0f}", f"~{rb.get('tps', 0):.0f}")
+    table.add_row("Chunks", str(ra.get("chunks", 0)), str(rb.get("chunks", 0)))
+    table.add_row("Response Length", str(len(ra.get("response", ""))), str(len(rb.get("response", ""))))
+
+    # Highlight winner
+    faster = strat_a if ra.get("time", 999) < rb.get("time", 999) else strat_b
+    table.add_row("⚡ Faster", "✅" if faster == strat_a else "", "✅" if faster == strat_b else "")
+
+    console.print(table)
+
+    input("\nPress Enter to return...")
+
+
 def main_menu():
     while True:
         clear_screen()
         print_header()
 
         choices = [
-            questionary.Choice("Chat with Standard Agent", value="1"),
-            questionary.Choice("Chain of Thought (CoT)", value="2"),
-            questionary.Choice("Tree of Thoughts (ToT)", value="3"),
-            questionary.Choice("ReAct (Tools + Web)", value="4"),
-            questionary.Choice("Recursive (RLM)", value="5"),
-            questionary.Choice("Self-Reflection", value="6"),
-            questionary.Choice("Decomposed Prompting", value="7"),
-            questionary.Choice("Least-to-Most", value="8"),
-            questionary.Choice("Self-Consistency", value="9"),
+            questionary.Choice("Standard Agent - Direct generation", value="1"),
+            questionary.Choice("Chain of Thought (CoT) - Step-by-step reasoning", value="2"),
+            questionary.Choice("Tree of Thoughts (ToT) - Branching exploration", value="3"),
+            questionary.Choice("ReAct (Tools + Web) - Reason + Act", value="4"),
+            questionary.Choice("Recursive (RLM) - Code REPL agent", value="5"),
+            questionary.Choice("Self-Reflection - Draft/critique/refine", value="6"),
+            questionary.Choice("Decomposed - Sub-task breakdown", value="7"),
+            questionary.Choice("Least-to-Most - Easy to hard", value="8"),
+            questionary.Choice("Self-Consistency - Majority voting", value="9"),
             questionary.Separator(),
             questionary.Choice("🔄 Refinement Loop [Auto Demo]", value="r"),
             questionary.Choice("🔄 Complex Pipeline [5 Stages]", value="c"),
             questionary.Separator(),
+            questionary.Choice("🔀 HEAD-TO-HEAD: Compare Two Agents", value="h"),
             questionary.Choice("⚔️  ARENA: Run All Compare", value="a"),
             questionary.Choice("📊 BENCHMARKS: Performance Testing", value="b"),
             questionary.Separator(),
+            questionary.Choice("ℹ️  About Agents (Strategy Guide)", value="i"),
+            questionary.Choice("📂 Session History", value="s"),
             questionary.Choice(f"⚙️  Select AI Model (Current: {MODEL_NAME})", value="m"),
             questionary.Separator(),
             questionary.Choice("Exit", value="0")
@@ -1071,10 +1519,16 @@ def main_menu():
             run_refinement_demo(interactive=False)  # Auto-run demo without user input
         elif choice == "c":
             run_complex_refinement_demo()  # Auto-run 5-stage pipeline demo
+        elif choice == "h":
+            run_head_to_head()
         elif choice == "a":
             run_arena_mode()
         elif choice == "b":
             run_benchmark_menu()
+        elif choice == "i":
+            show_agent_info()
+        elif choice == "s":
+            view_session_history()
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Agent Reasoning CLI")
@@ -1082,6 +1536,9 @@ if __name__ == "__main__":
     parser.add_argument("--arena", action="store_true", help="Launch arena mode directly")
     parser.add_argument("--refinement-demo", action="store_true", help="Run refinement loop demo")
     parser.add_argument("--pipeline-demo", action="store_true", help="Run 5-stage pipeline demo")
+    parser.add_argument("--head-to-head", action="store_true", help="Compare two agents")
+    parser.add_argument("--accuracy", action="store_true", help="Run accuracy benchmarks")
+    parser.add_argument("--agents", action="store_true", help="Show agent info guide")
     args = parser.parse_args()
 
     try:
@@ -1093,6 +1550,12 @@ if __name__ == "__main__":
             run_refinement_demo(interactive=False)
         elif args.pipeline_demo:
             run_complex_refinement_demo()
+        elif args.head_to_head:
+            run_head_to_head()
+        elif args.accuracy:
+            run_accuracy_benchmark()
+        elif args.agents:
+            show_agent_info()
         else:
             main_menu()
     except KeyboardInterrupt:
