@@ -253,6 +253,7 @@ class ComplexRefinementLoopAgent(BaseAgent):
     def stream_structured(self, query):
         """Structured event streaming for visualization."""
         yield StreamEvent(event_type="query", data=query)
+        yield StreamEvent(event_type="phase", data="init")
         yield StreamEvent(event_type="text", data=f"Processing via Complex Refinement Pipeline (5 stages, threshold={self.score_threshold})...\n")
 
         # Display pipeline overview
@@ -263,6 +264,7 @@ class ComplexRefinementLoopAgent(BaseAgent):
         yield StreamEvent(event_type="text", data="="*60 + "\n\n")
 
         # 1. GENERATE: Initial draft
+        yield StreamEvent(event_type="phase", data="generating")
         yield StreamEvent(event_type="text", data="[GENERATOR] Creating initial draft...\n")
 
         generator_prompt = f"""You are a helpful assistant. Answer the following question thoroughly and accurately.
@@ -294,6 +296,7 @@ Provide a comprehensive answer suitable for a technical blog:"""
                 iteration_in_stage += 1
 
                 # CRITIQUE for this stage
+                yield StreamEvent(event_type="phase", data="critiquing")
                 yield StreamEvent(event_type="text", data=f"\n[CRITIC - {stage.name}] Iteration {iteration_in_stage}/{self.max_iterations_per_stage}...\n")
 
                 critic_prompt = stage.critic_prompt_template.format(query=query, draft=current_draft)
@@ -340,6 +343,7 @@ Provide a comprehensive answer suitable for a technical blog:"""
                 yield StreamEvent(event_type="pipeline", data=pipeline_iter)
 
                 # REFINE for this stage
+                yield StreamEvent(event_type="phase", data="refining")
                 yield StreamEvent(event_type="text", data=f"\n[REFINER - {stage.name}] Improving based on feedback...\n")
 
                 refiner_prompt = stage.refiner_prompt_template.format(
@@ -364,6 +368,7 @@ Provide a comprehensive answer suitable for a technical blog:"""
                 stage.is_complete = True  # Mark complete to proceed
 
         # 3. FINAL OUTPUT
+        yield StreamEvent(event_type="phase", data="complete")
         yield StreamEvent(event_type="text", data="\n" + "="*60 + "\n")
         yield StreamEvent(event_type="text", data="PIPELINE SUMMARY:\n")
         for i, stage in enumerate(self.stages, 1):

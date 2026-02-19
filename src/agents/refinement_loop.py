@@ -49,6 +49,7 @@ class RefinementLoopAgent(BaseAgent):
         yield StreamEvent(event_type="text", data=f"Processing via Refinement Loop (threshold={self.score_threshold})...\n")
 
         # 1. GENERATE: Initial draft
+        yield StreamEvent(event_type="phase", data="draft")
         yield StreamEvent(event_type="text", data="\n[GENERATOR] Creating initial draft...\n")
 
         generator_prompt = f"""You are a helpful assistant. Answer the following question thoroughly and accurately.
@@ -58,21 +59,21 @@ Question: {query}
 Provide a comprehensive answer:"""
 
         draft = ""
-        iteration = RefinementIteration(iteration=1, draft="")
-        yield StreamEvent(event_type="refinement", data=iteration)
-
         yield StreamEvent(event_type="text", data="Draft: ")
         for chunk in self.client.generate(generator_prompt):
             draft += chunk
-            iteration.draft = draft
-            yield StreamEvent(event_type="refinement", data=iteration, is_update=True)
             yield StreamEvent(event_type="text", data=chunk)
         yield StreamEvent(event_type="text", data="\n")
+
+        # Emit completed draft as a single refinement event
+        iteration = RefinementIteration(iteration=1, draft=draft)
+        yield StreamEvent(event_type="refinement", data=iteration)
 
         # 2. CRITIQUE & REFINE Loop
         current_draft = draft
 
         for i in range(self.max_iterations):
+            yield StreamEvent(event_type="phase", data="critique")
             yield StreamEvent(event_type="text", data=f"\n[CRITIC] Evaluating draft (iteration {i+1}/{self.max_iterations})...\n")
 
             # Critic evaluates and provides score + feedback
@@ -123,6 +124,7 @@ FEEDBACK: [specific improvement suggestions, or "No improvements needed" if scor
             yield StreamEvent(event_type="refinement", data=iteration)
 
             # 3. REFINE: Improve draft based on feedback
+            yield StreamEvent(event_type="phase", data="improvement")
             yield StreamEvent(event_type="text", data=f"\n[REFINER] Improving draft based on feedback...\n")
 
             refiner_prompt = f"""You are a skilled editor. Improve the following answer based on the feedback provided.
@@ -147,6 +149,17 @@ Improved Answer:"""
             yield StreamEvent(event_type="text", data="\n")
 
             current_draft = new_draft
+
+            # Emit refinement event with the improved draft for visualization
+            improved_iteration = RefinementIteration(
+                iteration=i + 1,
+                draft=current_draft,
+                critique=critique_response,
+                feedback=feedback,
+                score=score
+            )
+            improved_iteration.improvement = current_draft
+            yield StreamEvent(event_type="refinement", data=improved_iteration, is_update=True)
 
         else:
             # Max iterations reached without meeting threshold

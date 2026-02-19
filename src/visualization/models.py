@@ -59,6 +59,7 @@ class RefinementIteration:
     feedback: Optional[str] = None
     score: float = 0.0
     is_accepted: bool = False
+    improvement: Optional[str] = None
 
 
 @dataclass

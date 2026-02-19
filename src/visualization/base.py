@@ -29,7 +29,16 @@ class BaseVisualizer(ABC):
 
     def run(self, event_stream: Generator[StreamEvent, None, None]) -> None:
         """Run visualization with live updates."""
-        with Live(self.render(), console=self.console, refresh_per_second=10, vertical_overflow="visible") as live:
+        import time
+        last_render = 0
+        render_interval = 0.15
+        with Live(self.render(), console=self.console, refresh_per_second=4, vertical_overflow="visible") as live:
             for event in event_stream:
                 self.update(event)
-                live.update(self.render())
+                now = time.time()
+                is_structural = event.event_type in ("refinement", "pipeline", "iteration", "phase", "final")
+                if is_structural or (now - last_render) >= render_interval:
+                    live.update(self.render())
+                    last_render = now
+            # Final render
+            live.update(self.render())

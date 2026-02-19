@@ -18,6 +18,7 @@ from .voting_viz import VotingVisualizer
 from .diff_viz import DiffVisualizer
 from .swimlane_viz import SwimlaneVisualizer
 from .step_viz import StepVisualizer
+from .pipeline_viz import PipelineVisualizer
 
 VISUALIZER_MAP = {
     "tot": TreeVisualizer,
@@ -33,8 +34,8 @@ VISUALIZER_MAP = {
     "refinement": DiffVisualizer,
     "refinement_loop": DiffVisualizer,
     "iterative_refinement": DiffVisualizer,
-    "complex_refinement": None,  # Uses text mode with rich formatting
-    "pipeline": None,
+    "complex_refinement": PipelineVisualizer,
+    "pipeline": PipelineVisualizer,
     "react": SwimlaneVisualizer,
     "cot": StepVisualizer,
     "chain_of_thought": StepVisualizer,
@@ -66,6 +67,7 @@ __all__ = [
     "DiffVisualizer",
     "SwimlaneVisualizer",
     "StepVisualizer",
+    "PipelineVisualizer",
     "VISUALIZER_MAP",
     "get_visualizer",
 ]

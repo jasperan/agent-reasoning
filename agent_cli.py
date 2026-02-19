@@ -165,9 +165,11 @@ def run_with_visualizer(strategy, query, visualizer):
     first_chunk_time = None
     chunk_count = 0
     full_response = ""
+    last_render_time = 0
+    render_interval = 0.15  # ~6-7 fps max — smooth without jitter
 
     try:
-        with Live(visualizer.render(), refresh_per_second=10) as live:
+        with Live(visualizer.render(), console=console, refresh_per_second=4, vertical_overflow="visible") as live:
             for event in agent.stream_structured(query):
                 if first_chunk_time is None:
                     first_chunk_time = time.time()
@@ -175,6 +177,19 @@ def run_with_visualizer(strategy, query, visualizer):
                 if event.event_type == "text":
                     full_response += event.data
                 visualizer.update(event)
+
+                # Only re-render when visualizer state actually changed
+                if not getattr(visualizer, '_dirty', True):
+                    continue
+
+                now = time.time()
+                is_structural = event.event_type in ("refinement", "pipeline", "iteration", "phase", "final")
+                if is_structural or (now - last_render_time) >= render_interval:
+                    live.update(visualizer.render())
+                    last_render_time = now
+
+            # Final render to ensure everything is shown
+            if getattr(visualizer, '_dirty', False):
                 live.update(visualizer.render())
     except Exception as e:
         console.print(f"[bold red]Error:[/bold red] {e}")
@@ -193,8 +208,10 @@ def run_with_markdown(strategy, query):
     start_time = time.time()
     first_chunk_time = None
     chunk_count = 0
+    last_render_time = 0
+    render_interval = 0.15  # ~6-7 fps max — smooth without jitter
 
-    with Live("", refresh_per_second=10) as live:
+    with Live("", console=console, refresh_per_second=4, vertical_overflow="visible") as live:
         try:
             for chunk_dict in client.generate(model=full_model_name, prompt=query, stream=True):
                 if first_chunk_time is None:
@@ -202,9 +219,14 @@ def run_with_markdown(strategy, query):
                 chunk = chunk_dict.get("response", "")
                 chunk_count += 1
                 full_response += chunk
-                live.update(Markdown(full_response))
+                now = time.time()
+                if (now - last_render_time) >= render_interval:
+                    live.update(Markdown(full_response))
+                    last_render_time = now
         except Exception as e:
             console.print(f"[bold red]Error:[/bold red] {e}")
+        # Final render to show complete output
+        live.update(Markdown(full_response))
 
     elapsed = time.time() - start_time
     ttft = (first_chunk_time - start_time) if first_chunk_time else 0
@@ -237,12 +259,17 @@ def run_arena_mode():
         console.rule(f"[bold]{strategy}[/bold]")
         
         try:
-             # Streaming with Live Display
-             with Live("", refresh_per_second=10) as live:
+             last_render = 0
+             render_interval = 0.15
+             with Live("", console=console, refresh_per_second=4) as live:
                 for chunk_dict in client.generate(model=full_model_name, prompt=query, stream=True):
                      chunk = chunk_dict.get("response", "")
                      response_text += chunk
-                     live.update(Markdown(response_text))
+                     now = time.time()
+                     if (now - last_render) >= render_interval:
+                         live.update(Markdown(response_text))
+                         last_render = now
+                live.update(Markdown(response_text))
                      
         except Exception as e:
             response_text = f"Error: {e}"
@@ -323,22 +350,41 @@ Make it technically accurate and precise."""
 
     if visualizer and hasattr(agent, 'stream_structured'):
         try:
-            with Live(visualizer.render(), refresh_per_second=10) as live:
+            last_render = 0
+            render_interval = 0.15
+            with Live(visualizer.render(), console=console, refresh_per_second=4, vertical_overflow="visible") as live:
                 for event in agent.stream_structured(query):
                     visualizer.update(event)
+
+                    if not getattr(visualizer, '_dirty', True):
+                        continue
+
+                    now = time.time()
+                    is_structural = event.event_type in ("refinement", "pipeline", "iteration", "phase", "final")
+                    if is_structural or (now - last_render) >= render_interval:
+                        live.update(visualizer.render())
+                        last_render = now
+
+                if getattr(visualizer, '_dirty', False):
                     live.update(visualizer.render())
         except Exception as e:
             console.print(f"[bold red]Error:[/bold red] {e}")
     else:
         # Fallback to text streaming
         full_response = ""
-        with Live("", refresh_per_second=10) as live:
+        last_render = 0
+        render_interval = 0.15
+        with Live("", console=console, refresh_per_second=4, vertical_overflow="visible") as live:
             try:
                 for chunk in agent.stream(query):
                     full_response += chunk
-                    live.update(Markdown(full_response))
+                    now = time.time()
+                    if (now - last_render) >= render_interval:
+                        live.update(Markdown(full_response))
+                        last_render = now
             except Exception as e:
                 console.print(f"[bold red]Error:[/bold red] {e}")
+            live.update(Markdown(full_response))
 
     console.print("\n[bold green]Demo Complete![/bold green]")
     console.print("[dim]This demonstrates how iterative refinement improves content quality through score-based feedback.[/dim]")
@@ -388,15 +434,46 @@ Make it technically accurate and precise."""
     console.print(f"[dim]Using model: {MODEL_NAME}+complex_refinement (5 stages, threshold=0.9, max 3 iter/stage)[/dim]")
     console.print(f"[bold magenta]--- COMPLEX REFINEMENT PIPELINE Running ---[/bold magenta]\n")
 
-    # Text streaming (complex refinement uses rich text output)
-    full_response = ""
-    with Live("", refresh_per_second=10) as live:
+    # Use PipelineVisualizer for structured rendering
+    visualizer = get_visualizer("complex_refinement")
+
+    if visualizer and hasattr(agent, 'stream_structured'):
         try:
-            for chunk in agent.stream(query):
-                full_response += chunk
-                live.update(Markdown(full_response))
+            last_render = 0
+            render_interval = 0.15
+            with Live(visualizer.render(), console=console, refresh_per_second=4, vertical_overflow="visible") as live:
+                for event in agent.stream_structured(query):
+                    visualizer.update(event)
+
+                    if not getattr(visualizer, '_dirty', True):
+                        continue
+
+                    now = time.time()
+                    is_structural = event.event_type in ("refinement", "pipeline", "iteration", "phase", "final")
+                    if is_structural or (now - last_render) >= render_interval:
+                        live.update(visualizer.render())
+                        last_render = now
+
+                if getattr(visualizer, '_dirty', False):
+                    live.update(visualizer.render())
         except Exception as e:
             console.print(f"[bold red]Error:[/bold red] {e}")
+    else:
+        # Fallback to text streaming
+        full_response = ""
+        last_render = 0
+        render_interval = 0.15
+        with Live("", console=console, refresh_per_second=4, vertical_overflow="visible") as live:
+            try:
+                for chunk in agent.stream(query):
+                    full_response += chunk
+                    now = time.time()
+                    if (now - last_render) >= render_interval:
+                        live.update(Markdown(full_response))
+                        last_render = now
+            except Exception as e:
+                console.print(f"[bold red]Error:[/bold red] {e}")
+            live.update(Markdown(full_response))
 
     console.print("\n[bold green]Pipeline Complete![/bold green]")
     console.print("[dim]This demonstrates how multi-stage refinement progressively improves content through specialized critics.[/dim]")
@@ -505,7 +582,7 @@ def run_agent_benchmark(select_tasks=False):
     runner = BenchmarkRunner(model=MODEL_NAME)
 
     # Run benchmarks with live updates
-    with Live(render_task_table(), refresh_per_second=4) as live:
+    with Live(render_task_table(), console=console, refresh_per_second=4) as live:
         def on_task_start(task, strategy):
             task_status[task.id] = "🔄 Running..."
             live.update(render_task_table())
