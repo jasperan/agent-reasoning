@@ -5,7 +5,7 @@
 [![License](https://img.shields.io/badge/license-MIT-green?style=for-the-badge)](LICENSE)
 [![Python](https://img.shields.io/badge/python-3.10%2B-blue?style=for-the-badge)](https://www.python.org/)
 ![Ollama](https://img.shields.io/badge/backend-Ollama-black?style=for-the-badge)
-![Reasoning](https://img.shields.io/badge/reasoning-CoT%20|%20ToT%20|%20ReAct%20|%20Refinement-purple?style=for-the-badge)
+![Reasoning](https://img.shields.io/badge/reasoning-CoT%20|%20ToT%20|%20ReAct%20|%20Reflection%20|%20RLM%20|%20Consistency%20|%20Decomposed%20|%20LtM%20|%20Refinement-purple?style=for-the-badge)
 ![Status](https://img.shields.io/badge/status-experimental-orange?style=for-the-badge)
 
 ![](https://raw.githubusercontent.com/jasperan/agent-reasoning/main/gif/arena_mode.gif)
