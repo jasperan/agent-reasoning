@@ -23,7 +23,7 @@ This repository transforms standard Open Source models (like `gemma3`, `llama3`)
 ## Quick Start (3 commands)
 
 ```bash
-pip install agent-reasoning && ollama pull gemma3:270m && agent-reasoning
+uv sync && ollama pull gemma3:270m && uv run agent-reasoning
 ```
 
 ## 📦 Installation
@@ -32,17 +32,47 @@ pip install agent-reasoning && ollama pull gemma3:270m && agent-reasoning
 
 ```bash
 pip install agent-reasoning
+# or
+uv add agent-reasoning
 
 # With server dependencies (for the reasoning gateway):
 pip install "agent-reasoning[server]"
+# or
+uv add "agent-reasoning[server]"
 ```
 
-### From Source
+### From Source with uv
 
 ```bash
 git clone https://github.com/jasperan/agent-reasoning.git
 cd agent-reasoning
-pip install -e ".[server,dev]"
+uv sync
+uv run agent-reasoning
+```
+
+### Development
+
+```bash
+# Sync dependencies
+uv sync
+
+# Run tests
+uv run pytest
+
+# Lint code
+uv run ruff check .
+
+# Format code
+uv run ruff format .
+
+# Type check
+uv run ty check .
+
+# Add a new dependency
+uv add <package>
+
+# Add a dev dependency
+uv add --dev <package>
 ```
 
 **Prerequisite**: [Ollama](https://ollama.com/) must be running locally, or you can connect to a remote Ollama instance.
