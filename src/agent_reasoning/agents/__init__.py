@@ -14,15 +14,16 @@ Available agents:
 """
 
 from agent_reasoning.agents.base import BaseAgent
-from agent_reasoning.agents.standard import StandardAgent
-from agent_reasoning.agents.cot import CoTAgent
-from agent_reasoning.agents.tot import ToTAgent
-from agent_reasoning.agents.react import ReActAgent
-from agent_reasoning.agents.self_reflection import SelfReflectionAgent
 from agent_reasoning.agents.consistency import ConsistencyAgent
+from agent_reasoning.agents.cot import CoTAgent
 from agent_reasoning.agents.decomposed import DecomposedAgent
 from agent_reasoning.agents.least_to_most import LeastToMostAgent
+from agent_reasoning.agents.mcts import MCTSAgent
+from agent_reasoning.agents.react import ReActAgent
 from agent_reasoning.agents.recursive import RecursiveAgent
+from agent_reasoning.agents.self_reflection import SelfReflectionAgent
+from agent_reasoning.agents.standard import StandardAgent
+from agent_reasoning.agents.tot import ToTAgent
 
 AGENT_MAP = {
     "standard": StandardAgent,
@@ -40,6 +41,7 @@ AGENT_MAP = {
     "ltm": LeastToMostAgent,
     "recursive": RecursiveAgent,
     "rlm": RecursiveAgent,
+    "mcts": MCTSAgent,
 }
 
 __all__ = [
@@ -53,5 +55,6 @@ __all__ = [
     "DecomposedAgent",
     "LeastToMostAgent",
     "RecursiveAgent",
+    "MCTSAgent",
     "AGENT_MAP",
 ]
