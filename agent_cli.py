@@ -114,6 +114,12 @@ AGENT_DESCRIPTIONS = {
         "Paul & Elder 2007",
         "Deep understanding, philosophy",
     ),
+    "meta": (
+        "Meta-Reasoning",
+        "Auto-classifies query and routes to optimal strategy",
+        "Novel",
+        "Any query type",
+    ),
 }
 
 # Session directory

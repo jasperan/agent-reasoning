@@ -21,6 +21,7 @@ from agent_reasoning.agents.debate import DebateAgent
 from agent_reasoning.agents.decomposed import DecomposedAgent
 from agent_reasoning.agents.least_to_most import LeastToMostAgent
 from agent_reasoning.agents.mcts import MCTSAgent
+from agent_reasoning.agents.meta import MetaReasoningAgent
 from agent_reasoning.agents.react import ReActAgent
 from agent_reasoning.agents.recursive import RecursiveAgent
 from agent_reasoning.agents.self_reflection import SelfReflectionAgent
@@ -52,6 +53,8 @@ AGENT_MAP = {
     "analogy": AnalogicalAgent,
     "socratic": SocraticAgent,
     "questioning": SocraticAgent,
+    "meta": MetaReasoningAgent,
+    "auto": MetaReasoningAgent,
 }
 
 __all__ = [
@@ -69,5 +72,6 @@ __all__ = [
     "AnalogicalAgent",
     "DebateAgent",
     "SocraticAgent",
+    "MetaReasoningAgent",
     "AGENT_MAP",
 ]

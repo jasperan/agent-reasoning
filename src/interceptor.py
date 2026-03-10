@@ -8,6 +8,7 @@ from src.agents.debate import DebateAgent
 from src.agents.decomposed import DecomposedAgent
 from src.agents.least_to_most import LeastToMostAgent
 from src.agents.mcts import MCTSAgent
+from src.agents.meta import MetaReasoningAgent
 from src.agents.react import ReActAgent
 from src.agents.recursive import RecursiveAgent
 from src.agents.refinement_loop import RefinementLoopAgent
@@ -50,6 +51,8 @@ AGENT_MAP = {
     "analogy": AnalogicalAgent,
     "socratic": SocraticAgent,
     "questioning": SocraticAgent,
+    "meta": MetaReasoningAgent,
+    "auto": MetaReasoningAgent,
 }
 
 
