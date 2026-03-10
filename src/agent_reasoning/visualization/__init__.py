@@ -43,11 +43,13 @@ VISUALIZER_MAP = {
     "cot": StepVisualizer,
     "chain_of_thought": StepVisualizer,
     "debate": DebateVisualizer,
+    "adversarial": DebateVisualizer,
     "adversarial_debate": DebateVisualizer,
     "analogy": AnalogyVisualizer,
     "analogical": AnalogyVisualizer,
     "analogical_reasoning": AnalogyVisualizer,
     "socratic": SocraticVisualizer,
+    "questioning": SocraticVisualizer,
     "socratic_method": SocraticVisualizer,
     # MCTS reuses TreeVisualizer
     "mcts": TreeVisualizer,
