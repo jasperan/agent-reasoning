@@ -1,23 +1,27 @@
 """Visualization models and components for reasoning agents."""
+
+from agent_reasoning.visualization.analogy_viz import AnalogyVisualizer
+from agent_reasoning.visualization.base import BaseVisualizer
+from agent_reasoning.visualization.debate_viz import DebateVisualizer
+from agent_reasoning.visualization.diff_viz import DiffVisualizer
 from agent_reasoning.visualization.models import (
-    TaskStatus,
-    TreeNode,
-    SubTask,
-    VotingSample,
-    ReflectionIteration,
-    RefinementIteration,
+    ChainStep,
     PipelineIteration,
     ReActStep,
-    ChainStep,
+    RefinementIteration,
+    ReflectionIteration,
     StreamEvent,
+    SubTask,
+    TaskStatus,
+    TreeNode,
+    VotingSample,
 )
-from agent_reasoning.visualization.base import BaseVisualizer
-from agent_reasoning.visualization.tree_viz import TreeVisualizer
-from agent_reasoning.visualization.task_viz import TaskVisualizer
-from agent_reasoning.visualization.voting_viz import VotingVisualizer
-from agent_reasoning.visualization.diff_viz import DiffVisualizer
-from agent_reasoning.visualization.swimlane_viz import SwimlaneVisualizer
+from agent_reasoning.visualization.socratic_viz import SocraticVisualizer
 from agent_reasoning.visualization.step_viz import StepVisualizer
+from agent_reasoning.visualization.swimlane_viz import SwimlaneVisualizer
+from agent_reasoning.visualization.task_viz import TaskVisualizer
+from agent_reasoning.visualization.tree_viz import TreeVisualizer
+from agent_reasoning.visualization.voting_viz import VotingVisualizer
 
 VISUALIZER_MAP = {
     "tot": TreeVisualizer,
@@ -38,6 +42,16 @@ VISUALIZER_MAP = {
     "react": SwimlaneVisualizer,
     "cot": StepVisualizer,
     "chain_of_thought": StepVisualizer,
+    "debate": DebateVisualizer,
+    "adversarial_debate": DebateVisualizer,
+    "analogy": AnalogyVisualizer,
+    "analogical": AnalogyVisualizer,
+    "analogical_reasoning": AnalogyVisualizer,
+    "socratic": SocraticVisualizer,
+    "socratic_method": SocraticVisualizer,
+    # MCTS reuses TreeVisualizer
+    "mcts": TreeVisualizer,
+    "monte_carlo": TreeVisualizer,
     "standard": None,
 }
 
@@ -68,6 +82,9 @@ __all__ = [
     "DiffVisualizer",
     "SwimlaneVisualizer",
     "StepVisualizer",
+    "DebateVisualizer",
+    "AnalogyVisualizer",
+    "SocraticVisualizer",
     "VISUALIZER_MAP",
     "get_visualizer",
 ]
