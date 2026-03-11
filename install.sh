@@ -7,6 +7,9 @@ set -euo pipefail
 #
 # Usage:
 #   curl -fsSL https://raw.githubusercontent.com/jasperan/agent-reasoning/main/install.sh | bash
+#
+# Override install location:
+#   PROJECT_DIR=/opt/myapp curl -fsSL ... | bash
 # ============================================================
 
 REPO_URL="https://github.com/jasperan/agent-reasoning.git"
@@ -61,7 +64,7 @@ check_prereqs() {
             ver=$("$cmd" -c 'import sys; v=sys.version_info; print(f"{v.major}.{v.minor}")' 2>/dev/null) || continue
             major=${ver%%.*}
             minor=${ver##*.}
-            if [ "$major" -ge 3 ] && [ "$minor" -ge 10 ]; then
+            if [ "$major" -gt 3 ] || { [ "$major" -eq 3 ] && [ "$minor" -ge 10 ]; }; then
                 PYTHON="$cmd"
                 break
             fi
@@ -80,14 +83,18 @@ check_prereqs() {
 
 install_deps() {
     cd "$INSTALL_DIR"
-    info "Creating virtual environment..."
-    $PYTHON -m venv .venv
+    if [ ! -d ".venv" ]; then
+        info "Creating virtual environment..."
+        $PYTHON -m venv .venv
+    else
+        info "Using existing virtual environment..."
+    fi
     # shellcheck disable=SC1091
     source .venv/bin/activate
 
     info "Installing dependencies..."
-    pip install --upgrade pip -q 2>/dev/null
-    pip install -e ".[dev]" -q 2>/dev/null || pip install -e . -q 2>/dev/null || {
+    pip install --upgrade pip -q
+    pip install -e ".[dev]" -q 2>/dev/null || pip install -e . -q || {
         if [ -f requirements.txt ]; then
             pip install -r requirements.txt -q
         else
