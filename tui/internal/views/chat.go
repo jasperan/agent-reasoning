@@ -14,6 +14,7 @@ import (
 	"github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/charmbracelet/x/ansi"
 )
 
 // Focus represents which component has focus within ChatView.
@@ -115,10 +116,22 @@ func NewChatView(appCtx *app.Context) *ChatView {
 	header.SetModel(appCtx.CurrentModel)
 	header.SetConnected(appCtx.Connected)
 
+	// Build sidebar from server-fetched agents when available, else use defaults.
+	var sidebar *ui.Sidebar
+	if len(appCtx.Agents) > 0 {
+		items := make([]ui.AgentItem, len(appCtx.Agents))
+		for i, a := range appCtx.Agents {
+			items[i] = ui.AgentItem{ID: a.ID, Name: a.Name}
+		}
+		sidebar = ui.NewSidebarFromAgents(items)
+	} else {
+		sidebar = ui.NewSidebar()
+	}
+
 	return &ChatView{
 		ctx:           appCtx,
 		header:        header,
-		sidebar:       ui.NewSidebar(),
+		sidebar:       sidebar,
 		chat:          ui.NewChat(),
 		input:         ui.NewInput(),
 		arena:         ui.NewArena(),
@@ -148,7 +161,28 @@ func (v *ChatView) Update(msg tea.Msg) (app.View, tea.Cmd) {
 
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
-		return v.handleKeyMsg(msg)
+		// When focused on input but not streaming, j/k and mouse-wheel scroll
+		// the chat viewport. Key handling still runs first so Enter submits.
+		if v.focus == FocusInput && !v.chat.IsStreaming() && !v.modelSelector.IsActive() && !v.arena.IsActive() {
+			_, scrollCmd := v.chat.Update(msg)
+			if scrollCmd != nil {
+				cmds = append(cmds, scrollCmd)
+			}
+		}
+		view, cmd := v.handleKeyMsg(msg)
+		if cmd != nil {
+			cmds = append(cmds, cmd)
+		}
+		return view, tea.Batch(cmds...)
+
+	case tea.MouseMsg:
+		// Always forward mouse events to the chat viewport so scroll wheel works.
+		if !v.arena.IsActive() && !v.modelSelector.IsActive() {
+			_, scrollCmd := v.chat.Update(msg)
+			if scrollCmd != nil {
+				cmds = append(cmds, scrollCmd)
+			}
+		}
 
 	case streamChunkMsg:
 		if v.arena.IsActive() {
@@ -547,27 +581,52 @@ func (v *ChatView) runBenchmarkCLI() tea.Cmd {
 
 // --- Overlay helper ---
 
+// ansiDropLeft returns the visible tail of s after skipping n visible columns,
+// preserving ANSI escape sequences. It works by truncating a reversed-width
+// view: get the full string width, then truncate from the right to (width-n).
+func ansiDropLeft(s string, n int) string {
+	total := lipgloss.Width(s)
+	if n <= 0 {
+		return s
+	}
+	if n >= total {
+		return ""
+	}
+	// Truncate the full string to `total` keeps everything; we want the
+	// right (total-n) columns. Achieve this by stripping the left n columns:
+	// first build a prefix of exactly n cols, then remove it from the raw
+	// string byte-wise (safe because Truncate preserves escape sequences and
+	// we only strip the prefix bytes it produced).
+	prefix := ansi.Truncate(s, n, "")
+	return s[len(prefix):]
+}
+
 func placeOverlay(x, y int, overlay, background string) string {
 	bgLines := strings.Split(background, "\n")
 	overlayLines := strings.Split(overlay, "\n")
 
 	for i, line := range overlayLines {
 		bgY := y + i
-		if bgY >= 0 && bgY < len(bgLines) {
-			bgLine := bgLines[bgY]
-			if x >= 0 && x < len(bgLine) {
-				before := ""
-				if x > 0 {
-					before = bgLine[:x]
-				}
-				after := ""
-				endX := x + lipgloss.Width(line)
-				if endX < len(bgLine) {
-					after = bgLine[endX:]
-				}
-				bgLines[bgY] = before + line + after
-			}
+		if bgY < 0 || bgY >= len(bgLines) {
+			continue
 		}
+		bgLine := bgLines[bgY]
+		bgWidth := lipgloss.Width(bgLine)
+		if x < 0 || x >= bgWidth {
+			continue
+		}
+
+		// ANSI-safe left portion (before the overlay).
+		before := ansi.Truncate(bgLine, x, "")
+
+		// ANSI-safe right portion (after the overlay).
+		endX := x + lipgloss.Width(line)
+		after := ""
+		if endX < bgWidth {
+			after = ansiDropLeft(bgLine, endX)
+		}
+
+		bgLines[bgY] = before + line + after
 	}
 
 	return strings.Join(bgLines, "\n")
