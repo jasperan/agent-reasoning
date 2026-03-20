@@ -8,7 +8,9 @@ import (
 	"syscall"
 
 	"agent-reasoning-tui/internal/app"
+	"agent-reasoning-tui/internal/config"
 	"agent-reasoning-tui/internal/server"
+	"agent-reasoning-tui/internal/views"
 
 	tea "github.com/charmbracelet/bubbletea"
 )
@@ -43,6 +45,10 @@ func main() {
 	fmt.Println("Starting Agent Reasoning TUI...")
 	fmt.Printf("Project directory: %s\n", projectDir)
 
+	// Load config
+	configPath := filepath.Join(os.Getenv("HOME"), ".config", "agent-reasoning", "config.yaml")
+	cfg := config.Load(configPath)
+
 	// Create server manager
 	serverMgr := server.NewManager(projectDir)
 
@@ -65,8 +71,13 @@ func main() {
 		os.Exit(0)
 	}()
 
-	// Create and run the TUI
-	model := app.New()
+	// Create the root model with config
+	model := app.NewWithConfig(cfg, projectDir)
+
+	// Create and register views
+	chatView := views.NewChatView(model.Ctx())
+	model.Router().RegisterView(chatView)
+
 	p := tea.NewProgram(model, tea.WithAltScreen())
 
 	if _, err := p.Run(); err != nil {
