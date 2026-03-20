@@ -1,15 +1,21 @@
 import asyncio
 import json
+import queue
+import threading
 import time
+import uuid
 
 from fastapi import FastAPI, Request
-from fastapi.responses import StreamingResponse
+from fastapi.responses import JSONResponse, StreamingResponse
 from pydantic import BaseModel
 
 from src.agent_reasoning.agent_metadata import get_agent_list
 
 # Import unified AGENT_MAP from interceptor (single source of truth)
 from src.interceptor import AGENT_MAP
+
+# Store active debug sessions
+debug_sessions = {}
 
 app = FastAPI(title="Agent Reasoning Gateway")
 
@@ -18,6 +24,7 @@ class GenerateRequest(BaseModel):
     model: str
     prompt: str
     stream: bool = True
+    parameters: dict = {}
     # Other ollama fields ignored for this demo
 
 
@@ -39,10 +46,13 @@ async def generate(request: GenerateRequest):
 
     print(f"Rx Request: Model={base_model}, Strategy={strategy}")
 
-    # 2. Instantiate Agent
+    # 2. Instantiate Agent, forwarding any optional hyperparameters
     agent_class = AGENT_MAP[strategy]
-    # We pass the base model requested by user to the agent
-    agent = agent_class(model=base_model)
+    params = request.parameters
+    try:
+        agent = agent_class(model=base_model, **params)
+    except TypeError:
+        agent = agent_class(model=base_model)
 
     # 3. Stream Response with timing
     async def response_generator():
@@ -147,6 +157,134 @@ async def list_agents():
     """List available reasoning agents with full metadata."""
     agents = get_agent_list()
     return {"agents": agents, "count": len(agents)}
+
+
+@app.post("/api/debug/start")
+async def debug_start(request: Request):
+    body = await request.json()
+    model_name = body.get("model", "gemma3:latest")
+    prompt = body.get("prompt", "")
+    params = body.get("parameters", {})
+
+    parts = model_name.split("+", 1)
+    base_model = parts[0]
+    strategy = parts[1] if len(parts) > 1 else "standard"
+
+    agent_class = AGENT_MAP.get(strategy)
+    if not agent_class:
+        return JSONResponse({"error": f"Unknown strategy: {strategy}"}, status_code=400)
+
+    session_id = str(uuid.uuid4())[:8]
+    step_event = threading.Event()
+    event_queue = queue.Queue(maxsize=100)
+
+    try:
+        agent = agent_class(model=base_model, _debug_event=step_event, **params)
+    except TypeError:
+        agent = agent_class(model=base_model, _debug_event=step_event)
+
+    def run_agent():
+        try:
+            if hasattr(agent, "stream_structured"):
+                for event in agent.stream_structured(prompt):
+                    if agent._debug_cancelled:
+                        break
+                    event_queue.put(event.to_dict())
+                    agent._debug_pause()
+            else:
+                for chunk in agent.stream(prompt):
+                    if agent._debug_cancelled:
+                        break
+                    event_queue.put(
+                        {"event_type": "text", "data": {"content": chunk}, "is_update": False}
+                    )
+                    agent._debug_pause()
+        except Exception as e:
+            event_queue.put(
+                {"event_type": "error", "data": {"message": str(e)}, "is_update": False}
+            )
+        finally:
+            event_queue.put(None)  # sentinel
+
+    thread = threading.Thread(target=run_agent, daemon=True)
+    thread.start()
+
+    debug_sessions[session_id] = {
+        "agent": agent,
+        "event": step_event,
+        "queue": event_queue,
+        "thread": thread,
+    }
+
+    # Signal the first step so the agent starts
+    step_event.set()
+
+    return {"session_id": session_id}
+
+
+@app.post("/api/debug/step")
+async def debug_step(request: Request):
+    body = await request.json()
+    session_id = body.get("session_id", "")
+
+    if session_id not in debug_sessions:
+        return JSONResponse({"error": "Session not found"}, status_code=404)
+
+    session = debug_sessions[session_id]
+
+    # Get the event from the queue (from previous step)
+    try:
+        event = session["queue"].get(timeout=30)
+    except queue.Empty:
+        return JSONResponse({"error": "Timeout waiting for event"}, status_code=408)
+
+    if event is None:
+        return {"event": None, "done": True}
+
+    # Signal agent to continue to next step
+    session["event"].set()
+
+    return {"event": event, "done": False}
+
+
+@app.post("/api/debug/run")
+async def debug_run(request: Request):
+    body = await request.json()
+    session_id = body.get("session_id", "")
+
+    if session_id not in debug_sessions:
+        return JSONResponse({"error": "Session not found"}, status_code=404)
+
+    session = debug_sessions[session_id]
+    # Disable pausing
+    session["agent"]._debug_event = None
+    session["event"].set()
+
+    # Drain remaining events
+    events = []
+    while True:
+        try:
+            event = session["queue"].get(timeout=10)
+            if event is None:
+                break
+            events.append(event)
+        except queue.Empty:
+            break
+
+    del debug_sessions[session_id]
+    return {"events": events}
+
+
+@app.delete("/api/debug/{session_id}")
+async def debug_cancel(session_id: str):
+    if session_id not in debug_sessions:
+        return {"status": "not_found"}
+
+    session = debug_sessions[session_id]
+    session["agent"]._debug_cancelled = True
+    session["event"].set()  # unblock if waiting
+    del debug_sessions[session_id]
+    return {"status": "cancelled"}
 
 
 if __name__ == "__main__":

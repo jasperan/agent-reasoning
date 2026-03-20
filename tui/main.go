@@ -90,6 +90,9 @@ func main() {
 	agentInfoView := views.NewAgentInfoView(model.Ctx())
 	model.Router().RegisterView(agentInfoView)
 
+	debugView := views.NewDebugView(model.Ctx())
+	model.Router().RegisterView(debugView)
+
 	p := tea.NewProgram(model, tea.WithAltScreen())
 
 	if _, err := p.Run(); err != nil {

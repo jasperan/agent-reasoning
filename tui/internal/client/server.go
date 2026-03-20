@@ -318,6 +318,118 @@ func (c *ServerClient) GenerateWithParams(ctx context.Context, model, prompt str
 	return respCh, errCh
 }
 
+// DebugStepResponse is the response from POST /api/debug/step.
+type DebugStepResponse struct {
+	Event map[string]interface{} `json:"event"`
+	Done  bool                   `json:"done"`
+}
+
+// DebugRunResponse is the response from POST /api/debug/run.
+type DebugRunResponse struct {
+	Events []map[string]interface{} `json:"events"`
+}
+
+// DebugStart starts a new debug session and returns the session ID.
+func (c *ServerClient) DebugStart(model, prompt string, params map[string]float64) (string, error) {
+	body := map[string]interface{}{
+		"model":  model,
+		"prompt": prompt,
+	}
+	if len(params) > 0 {
+		body["parameters"] = params
+	}
+
+	jsonBody, _ := json.Marshal(body)
+	resp, err := c.client.Post(c.baseURL+"/api/debug/start", "application/json", bytes.NewReader(jsonBody))
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+
+	var result struct {
+		SessionID string `json:"session_id"`
+		Error     string `json:"error"`
+	}
+	json.NewDecoder(resp.Body).Decode(&result)
+	if result.Error != "" {
+		return "", fmt.Errorf("debug start error: %s", result.Error)
+	}
+	return result.SessionID, nil
+}
+
+// DebugStep fetches the next event from a debug session.
+// Returns (event, done, error). When done is true, the session is complete.
+func (c *ServerClient) DebugStep(sessionID string) (*StructuredEvent, bool, error) {
+	body, _ := json.Marshal(map[string]string{"session_id": sessionID})
+	resp, err := c.client.Post(c.baseURL+"/api/debug/step", "application/json", bytes.NewReader(body))
+	if err != nil {
+		return nil, false, err
+	}
+	defer resp.Body.Close()
+
+	var result DebugStepResponse
+	json.NewDecoder(resp.Body).Decode(&result)
+
+	if result.Done || result.Event == nil {
+		return nil, true, nil
+	}
+
+	eventType, _ := result.Event["event_type"].(string)
+	data, _ := result.Event["data"].(map[string]interface{})
+	if data == nil {
+		data = map[string]interface{}{}
+	}
+	event := &StructuredEvent{
+		EventType: eventType,
+		Data:      data,
+	}
+	if v, ok := result.Event["is_update"].(bool); ok {
+		event.IsUpdate = v
+	}
+	return event, false, nil
+}
+
+// DebugRun disables step-by-step pausing and drains all remaining events.
+func (c *ServerClient) DebugRun(sessionID string) ([]StructuredEvent, error) {
+	body, _ := json.Marshal(map[string]string{"session_id": sessionID})
+	resp, err := c.client.Post(c.baseURL+"/api/debug/run", "application/json", bytes.NewReader(body))
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	var result DebugRunResponse
+	json.NewDecoder(resp.Body).Decode(&result)
+
+	var events []StructuredEvent
+	for _, raw := range result.Events {
+		eventType, _ := raw["event_type"].(string)
+		data, _ := raw["data"].(map[string]interface{})
+		if data == nil {
+			data = map[string]interface{}{}
+		}
+		events = append(events, StructuredEvent{
+			EventType: eventType,
+			Data:      data,
+		})
+	}
+	return events, nil
+}
+
+// DebugCancel cancels and removes a debug session.
+func (c *ServerClient) DebugCancel(sessionID string) error {
+	req, err := http.NewRequest("DELETE", c.baseURL+"/api/debug/"+sessionID, nil)
+	if err != nil {
+		return err
+	}
+	resp, err := c.client.Do(req)
+	if err != nil {
+		return err
+	}
+	resp.Body.Close()
+	return nil
+}
+
 // IsHealthy checks if the server is responding
 func (c *ServerClient) IsHealthy() bool {
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)

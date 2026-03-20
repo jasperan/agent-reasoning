@@ -50,13 +50,14 @@ type (
 
 // KeyMap defines the keybindings for ChatView.
 type KeyMap struct {
-	Up          key.Binding
-	Down        key.Binding
-	Enter       key.Binding
-	Tab         key.Binding
-	Escape      key.Binding
-	Quit        key.Binding
-	ToggleViz   key.Binding
+	Up        key.Binding
+	Down      key.Binding
+	Enter     key.Binding
+	Tab       key.Binding
+	Escape    key.Binding
+	Quit      key.Binding
+	ToggleViz key.Binding
+	Debug     key.Binding
 }
 
 func defaultKeyMap() KeyMap {
@@ -88,6 +89,10 @@ func defaultKeyMap() KeyMap {
 		ToggleViz: key.NewBinding(
 			key.WithKeys("v"),
 			key.WithHelp("v", "toggle viz mode"),
+		),
+		Debug: key.NewBinding(
+			key.WithKeys("d"),
+			key.WithHelp("d", "debug last query"),
 		),
 	}
 }
@@ -404,6 +409,11 @@ func (v *ChatView) handleKeyMsg(msg tea.KeyMsg) (app.View, tea.Cmd) {
 			}
 		}
 		return v, nil
+
+	case key.Matches(msg, v.keys.Debug):
+		// Switch to debugger, pre-filling current agent and last query if available.
+		v.ctx.CurrentAgent = v.currentAgent
+		return v, func() tea.Msg { return app.SwitchViewMsg{Target: app.ViewDebug} }
 	}
 
 	// Route to focused component
@@ -438,7 +448,10 @@ func (v *ChatView) handleSidebarSelect() (app.View, tea.Cmd) {
 	case "benchmark":
 		return v, func() tea.Msg { return app.SwitchViewMsg{Target: app.ViewBenchmark} }
 
-	case "agentinfo":
+	case "debug":
+		return v, func() tea.Msg { return app.SwitchViewMsg{Target: app.ViewDebug} }
+
+	case "agentinfo", "agent_info":
 		return v, func() tea.Msg { return app.SwitchViewMsg{Target: app.ViewAgentInfo} }
 
 	case "model":

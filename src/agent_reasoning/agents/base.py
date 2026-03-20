@@ -10,6 +10,14 @@ class BaseAgent(ABC):
         self.client = OllamaClient(model=model, base_url=base_url)
         self.name = "BaseAgent"
         self.color = "white"
+        self._debug_event = kwargs.get("_debug_event", None)
+        self._debug_cancelled = False
+
+    def _debug_pause(self):
+        """If in debug mode, pause until signaled."""
+        if self._debug_event is not None and not self._debug_cancelled:
+            self._debug_event.wait()
+            self._debug_event.clear()
 
     def log_thought(self, message):
         print(colored(f"[{self.name}]: {message}", self.color))
