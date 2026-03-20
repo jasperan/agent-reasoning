@@ -78,6 +78,12 @@ func main() {
 	chatView := views.NewChatView(model.Ctx())
 	model.Router().RegisterView(chatView)
 
+	arenaView := views.NewArenaView(model.Ctx())
+	model.Router().RegisterView(arenaView)
+
+	duelView := views.NewDuelView(model.Ctx())
+	model.Router().RegisterView(duelView)
+
 	p := tea.NewProgram(model, tea.WithAltScreen())
 
 	if _, err := p.Run(); err != nil {

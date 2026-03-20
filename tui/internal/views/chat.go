@@ -387,12 +387,10 @@ func (v *ChatView) handleSidebarSelect() (app.View, tea.Cmd) {
 
 	switch selected {
 	case "arena":
-		// Switch to arena mode - focus input for query
-		v.focus = FocusInput
-		v.input.Focus()
-		v.sidebar.SetFocused(false)
-		v.currentAgent = "arena"
-		return v, nil
+		return v, func() tea.Msg { return app.SwitchViewMsg{Target: app.ViewArena} }
+
+	case "duel":
+		return v, func() tea.Msg { return app.SwitchViewMsg{Target: app.ViewDuel} }
 
 	case "benchmark":
 		return v, v.runBenchmarkCLI()
