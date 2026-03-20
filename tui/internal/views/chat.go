@@ -104,6 +104,7 @@ type ChatView struct {
 	arena         *ui.Arena
 	modelSelector *ui.ModelSelector
 	metrics       *ui.MetricsBar
+	hyperParams   *ui.HyperParams
 
 	// State
 	focus        Focus
@@ -155,6 +156,7 @@ func NewChatView(appCtx *app.Context) *ChatView {
 		arena:         ui.NewArena(),
 		modelSelector: ui.NewModelSelector(),
 		metrics:       ui.NewMetricsBar(),
+		hyperParams:   ui.NewHyperParams(),
 		focus:         FocusSidebar,
 		currentAgent:  appCtx.CurrentAgent,
 		keys:          defaultKeyMap(),
@@ -180,6 +182,18 @@ func (v *ChatView) Update(msg tea.Msg) (app.View, tea.Cmd) {
 
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
+		// Hyperparams overlay intercepts all keys when active.
+		if v.hyperParams.Active() {
+			applied, values := v.hyperParams.Update(msg)
+			if applied && len(values) > 0 {
+				if v.ctx.AgentParams == nil {
+					v.ctx.AgentParams = make(map[string]map[string]float64)
+				}
+				v.ctx.AgentParams[v.currentAgent] = values
+			}
+			return v, nil
+		}
+
 		// When focused on input but not streaming, j/k and mouse-wheel scroll
 		// the chat viewport. Key handling still runs first so Enter submits.
 		if v.focus == FocusInput && !v.chat.IsStreaming() && !v.modelSelector.IsActive() && !v.arena.IsActive() {
@@ -307,6 +321,22 @@ func (v *ChatView) View() string {
 		view = placeOverlay(x, y, selectorView, view)
 	}
 
+	// Overlay hyperparameter tuner if active
+	if v.hyperParams.Active() {
+		hpView := v.hyperParams.View()
+		hpW := lipgloss.Width(hpView)
+		hpH := lipgloss.Height(hpView)
+		x := (v.width - hpW) / 2
+		y := (v.height - hpH) / 2
+		if x < 0 {
+			x = 0
+		}
+		if y < 0 {
+			y = 0
+		}
+		view = placeOverlay(x, y, hpView, view)
+	}
+
 	return view
 }
 
@@ -361,6 +391,19 @@ func (v *ChatView) handleKeyMsg(msg tea.KeyMsg) (app.View, tea.Cmd) {
 	case key.Matches(msg, v.keys.ToggleViz):
 		v.vizMode = !v.vizMode
 		return v, nil
+
+	case msg.String() == "p":
+		// Open hyperparameter tuner for the current agent if it has parameters.
+		if v.currentAgent != "" {
+			for _, a := range v.ctx.Agents {
+				if a.ID == v.currentAgent && len(a.Parameters) > 0 {
+					v.hyperParams.SetSize(v.width, v.height)
+					v.hyperParams.Open(a.Name, a.Parameters)
+					break
+				}
+			}
+		}
+		return v, nil
 	}
 
 	// Route to focused component
@@ -393,7 +436,10 @@ func (v *ChatView) handleSidebarSelect() (app.View, tea.Cmd) {
 		return v, func() tea.Msg { return app.SwitchViewMsg{Target: app.ViewDuel} }
 
 	case "benchmark":
-		return v, v.runBenchmarkCLI()
+		return v, func() tea.Msg { return app.SwitchViewMsg{Target: app.ViewBenchmark} }
+
+	case "agentinfo":
+		return v, func() tea.Msg { return app.SwitchViewMsg{Target: app.ViewAgentInfo} }
 
 	case "model":
 		v.modelSelector.Show()
@@ -544,7 +590,11 @@ func (v *ChatView) startStream(agentID, query string) tea.Cmd {
 	v.visualizer = nil
 	v.vizMode = false
 	modelWithStrategy := fmt.Sprintf("%s+%s", v.ctx.CurrentModel, agentID)
-	v.streamRespChan, v.streamErrChan = v.ctx.ServerClient.Generate(ctx, modelWithStrategy, query)
+	if params, ok := v.ctx.AgentParams[agentID]; ok && len(params) > 0 {
+		v.streamRespChan, v.streamErrChan = v.ctx.ServerClient.GenerateWithParams(ctx, modelWithStrategy, query, params)
+	} else {
+		v.streamRespChan, v.streamErrChan = v.ctx.ServerClient.Generate(ctx, modelWithStrategy, query)
+	}
 	return v.nextStreamChunk(agentID)
 }
 

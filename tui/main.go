@@ -84,6 +84,12 @@ func main() {
 	duelView := views.NewDuelView(model.Ctx())
 	model.Router().RegisterView(duelView)
 
+	benchmarkView := views.NewBenchmarkView(model.Ctx())
+	model.Router().RegisterView(benchmarkView)
+
+	agentInfoView := views.NewAgentInfoView(model.Ctx())
+	model.Router().RegisterView(agentInfoView)
+
 	p := tea.NewProgram(model, tea.WithAltScreen())
 
 	if _, err := p.Run(); err != nil {
