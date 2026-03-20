@@ -2,7 +2,7 @@ import asyncio
 import json
 import time
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
@@ -83,6 +83,54 @@ async def generate(request: GenerateRequest):
             yield json.dumps(err_data) + "\n"
 
     return StreamingResponse(response_generator(), media_type="application/x-ndjson")
+
+
+@app.post("/api/generate_structured")
+async def generate_structured(request: Request):
+    """Structured streaming: yields StreamEvent objects as NDJSON."""
+    body = await request.json()
+    from fastapi.responses import JSONResponse
+
+    model_name = body.get("model", "gemma3:latest")
+    prompt = body.get("prompt", "")
+    params = body.get("parameters", {})
+
+    parts = model_name.split("+", 1)
+    base_model = parts[0]
+    strategy = parts[1] if len(parts) > 1 else "standard"
+
+    agent_class = AGENT_MAP.get(strategy)
+    if not agent_class:
+        return JSONResponse({"error": f"Unknown strategy: {strategy}"}, status_code=400)
+
+    try:
+        agent = agent_class(model=base_model, **params)
+    except TypeError:
+        agent = agent_class(model=base_model)
+
+    async def event_stream():
+        try:
+            if hasattr(agent, "stream_structured"):
+                for event in agent.stream_structured(prompt):
+                    yield json.dumps(event.to_dict()) + "\n"
+            else:
+                # Fallback: wrap plain text chunks as text events
+                for chunk in agent.stream(prompt):
+                    event_data = {
+                        "event_type": "text",
+                        "data": {"content": chunk},
+                        "is_update": False,
+                    }
+                    yield json.dumps(event_data) + "\n"
+            # Final done marker
+            yield json.dumps({"event_type": "done", "data": {}, "is_update": False}) + "\n"
+        except Exception as e:
+            yield (
+                json.dumps({"event_type": "error", "data": {"message": str(e)}, "is_update": False})
+                + "\n"
+            )
+
+    return StreamingResponse(event_stream(), media_type="application/x-ndjson")
 
 
 @app.get("/api/tags")
