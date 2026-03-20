@@ -96,15 +96,28 @@ type DuelView struct {
 	judgeErrCh   <-chan error
 }
 
+// getAgents returns the live agent list from ctx if populated, else defaults.
+func (v *DuelView) getAgents() []ui.Agent {
+	if len(v.ctx.Agents) > 0 {
+		agents := make([]ui.Agent, len(v.ctx.Agents))
+		for i, a := range v.ctx.Agents {
+			agents[i] = ui.Agent{ID: a.ID, Name: a.Name}
+		}
+		return agents
+	}
+	return ui.DefaultAgents()
+}
+
 func NewDuelView(appCtx *app.Context) *DuelView {
-	return &DuelView{
+	v := &DuelView{
 		ctx:      appCtx,
 		phase:    DuelSelection,
 		input:    ui.NewInput(),
-		agents:   ui.DefaultAgents(),
 		selected: [2]int{-1, -1},
 		keys:     defaultKeyMap(),
 	}
+	v.agents = v.getAgents()
+	return v
 }
 
 func (v *DuelView) ID() app.ViewID { return app.ViewDuel }
@@ -120,6 +133,8 @@ func (v *DuelView) Init() tea.Cmd {
 	v.judgeRunning = false
 	v.judgeDone = false
 	v.input.Reset()
+	// Refresh agent list in case ctx.Agents was populated after construction.
+	v.agents = v.getAgents()
 	return nil
 }
 
@@ -337,6 +352,7 @@ func (v *DuelView) nextDuelChunkFrom(side int, s *duelSide) tea.Cmd {
 	respChan := s.respChan
 	errChan := s.errChan
 	startTime := s.startTime
+	tokens := &s.tokens // pointer so the closure reads the live counter
 
 	return func() tea.Msg {
 		for {
@@ -344,14 +360,14 @@ func (v *DuelView) nextDuelChunkFrom(side int, s *duelSide) tea.Cmd {
 			case resp, ok := <-respChan:
 				if !ok {
 					elapsed := time.Since(startTime)
-					return duelDoneMsg{side: side, duration: elapsed, tokens: 0}
+					return duelDoneMsg{side: side, duration: elapsed, tokens: *tokens}
 				}
 				if resp.Response != "" {
 					return duelChunkMsg{side: side, content: resp.Response}
 				}
 				if resp.Done {
 					elapsed := time.Since(startTime)
-					return duelDoneMsg{side: side, duration: elapsed, tokens: 0}
+					return duelDoneMsg{side: side, duration: elapsed, tokens: *tokens}
 				}
 			case err, ok := <-errChan:
 				if ok && err != nil {

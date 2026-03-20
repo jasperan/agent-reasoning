@@ -70,24 +70,26 @@ type ArenaCell struct {
 // --- View ---
 
 type ArenaView struct {
-	ctx      *app.Context
-	cells    []*ArenaCell
-	query    string
-	input    *ui.Input
-	phase    ArenaPhase
-	cancels  []context.CancelFunc
-	finished []string // agent IDs in finish order
-	width    int
-	height   int
-	keys     KeyMap
+	ctx        *app.Context
+	cells      []*ArenaCell
+	cellStates map[string]*perCellState
+	query      string
+	input      *ui.Input
+	phase      ArenaPhase
+	cancels    []context.CancelFunc
+	finished   []string // agent IDs in finish order
+	width      int
+	height     int
+	keys       KeyMap
 }
 
 func NewArenaView(appCtx *app.Context) *ArenaView {
 	return &ArenaView{
-		ctx:   appCtx,
-		input: ui.NewInput(),
-		phase: ArenaInput,
-		keys:  defaultKeyMap(),
+		ctx:        appCtx,
+		input:      ui.NewInput(),
+		phase:      ArenaInput,
+		keys:       defaultKeyMap(),
+		cellStates: make(map[string]*perCellState),
 	}
 }
 
@@ -110,8 +112,20 @@ func (v *ArenaView) SetSize(width, height int) {
 	v.input.SetWidth(width)
 }
 
+// getAgents returns the live agent list from ctx if populated, else defaults.
+func (v *ArenaView) getAgents() []ui.Agent {
+	if len(v.ctx.Agents) > 0 {
+		agents := make([]ui.Agent, len(v.ctx.Agents))
+		for i, a := range v.ctx.Agents {
+			agents[i] = ui.Agent{ID: a.ID, Name: a.Name}
+		}
+		return agents
+	}
+	return ui.DefaultAgents()
+}
+
 func (v *ArenaView) rebuildCells() {
-	agents := ui.DefaultAgents()
+	agents := v.getAgents()
 	v.cells = make([]*ArenaCell, len(agents))
 	for i, a := range agents {
 		v.cells[i] = &ArenaCell{
@@ -232,11 +246,9 @@ type perCellState struct {
 	tokens    int
 }
 
-var cellStates = map[string]*perCellState{}
-
 func (v *ArenaView) startRace(query string) tea.Cmd {
 	// Reset cell state map
-	cellStates = make(map[string]*perCellState)
+	v.cellStates = make(map[string]*perCellState)
 	v.cancels = nil
 
 	var cmds []tea.Cmd
@@ -260,7 +272,7 @@ func (v *ArenaView) startRace(query string) tea.Cmd {
 			errChan:   errChan,
 			startTime: cell.StartTime,
 		}
-		cellStates[cell.AgentID] = state
+		v.cellStates[cell.AgentID] = state
 
 		agentID := cell.AgentID
 		cmds = append(cmds, v.nextChunkFrom(agentID, state))
@@ -270,7 +282,7 @@ func (v *ArenaView) startRace(query string) tea.Cmd {
 }
 
 func (v *ArenaView) nextChunk(agentID string) tea.Cmd {
-	state, ok := cellStates[agentID]
+	state, ok := v.cellStates[agentID]
 	if !ok {
 		return nil
 	}

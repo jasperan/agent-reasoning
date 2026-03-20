@@ -13,6 +13,12 @@ import (
 	"github.com/charmbracelet/lipgloss"
 )
 
+// AgentsLoadedMsg is sent when /api/agents is fetched successfully.
+type AgentsLoadedMsg struct{ Agents []AgentInfo }
+
+// agentsErrorMsg is sent when the /api/agents fetch fails (internal only).
+type agentsErrorMsg struct{ err error }
+
 // Messages for async operations handled at the root level.
 // Exported so views can react to connection state changes.
 type (
@@ -120,9 +126,19 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case ServerConnectedMsg:
 		m.ctx.Connected = true
-		// Notify the active view so it can update its header.
+		// Notify the active view so it can update its header, and kick off agent load.
+		cmd := m.router.Update(msg)
+		return m, tea.Batch(cmd, m.loadAgents())
+
+	case AgentsLoadedMsg:
+		m.ctx.Agents = msg.Agents
+		// Forward so views (e.g. ChatView) can rebuild their sidebars.
 		cmd := m.router.Update(msg)
 		return m, cmd
+
+	case agentsErrorMsg:
+		// Non-fatal: fall back to defaults; just drop the message.
+		return m, nil
 
 	case ServerDisconnectedMsg:
 		m.ctx.Connected = false
@@ -155,6 +171,40 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	// Everything else goes to the active view via the router.
 	cmd := m.router.Update(msg)
 	return m, cmd
+}
+
+// loadAgents fetches /api/agents and converts the result into app.AgentInfo slice.
+func (m *Model) loadAgents() tea.Cmd {
+	return func() tea.Msg {
+		agents, err := m.ctx.ServerClient.ListAgents()
+		if err != nil {
+			return agentsErrorMsg{err: err}
+		}
+		var infos []AgentInfo
+		for _, a := range agents {
+			params := make(map[string]ParameterSchema)
+			for k, v := range a.Parameters {
+				params[k] = ParameterSchema{
+					Type:        v.Type,
+					Default:     v.Default,
+					Min:         v.Min,
+					Max:         v.Max,
+					Description: v.Description,
+				}
+			}
+			infos = append(infos, AgentInfo{
+				ID:            a.ID,
+				Name:          a.Name,
+				Description:   a.Description,
+				Reference:     a.Reference,
+				BestFor:       a.BestFor,
+				Tradeoffs:     a.Tradeoffs,
+				HasVisualizer: a.HasVisualizer,
+				Parameters:    params,
+			})
+		}
+		return AgentsLoadedMsg{Agents: infos}
+	}
 }
 
 // View renders the application. If quitting, show goodbye; otherwise delegate.

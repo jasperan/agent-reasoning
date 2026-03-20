@@ -134,6 +134,20 @@ func (v *DebugView) Init() tea.Cmd {
 	v.statusMsg = ""
 	v.inspectMode = false
 
+	// Check ctx.PendingQuery first (set by ChatView D key), then fall back to prefilledQuery.
+	if v.ctx.PendingQuery != "" {
+		query := v.ctx.PendingQuery
+		v.ctx.PendingQuery = ""
+		agentID := v.ctx.CurrentAgent
+		if agentID == "" {
+			agentID = "cot"
+		}
+		v.agentID = agentID
+		v.prefilledQuery = query
+		v.input.SetValue(query)
+		return v.startDebugSession(agentID, query)
+	}
+
 	if v.prefilledQuery != "" {
 		// Auto-start with the pre-filled query
 		return v.startDebugSession(v.agentID, v.prefilledQuery)

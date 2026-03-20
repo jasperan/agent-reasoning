@@ -232,9 +232,10 @@ async def debug_step(request: Request):
 
     session = debug_sessions[session_id]
 
-    # Get the event from the queue (from previous step)
+    # Get the event from the queue without blocking the event loop
+    loop = asyncio.get_event_loop()
     try:
-        event = session["queue"].get(timeout=30)
+        event = await loop.run_in_executor(None, lambda: session["queue"].get(timeout=30))
     except queue.Empty:
         return JSONResponse({"error": "Timeout waiting for event"}, status_code=408)
 
@@ -260,16 +261,22 @@ async def debug_run(request: Request):
     session["agent"]._debug_event = None
     session["event"].set()
 
-    # Drain remaining events
-    events = []
-    while True:
-        try:
-            event = session["queue"].get(timeout=10)
-            if event is None:
+    # Drain remaining events without blocking the event loop
+    loop = asyncio.get_event_loop()
+
+    def drain_queue():
+        events = []
+        while True:
+            try:
+                event = session["queue"].get(timeout=10)
+                if event is None:
+                    break
+                events.append(event)
+            except queue.Empty:
                 break
-            events.append(event)
-        except queue.Empty:
-            break
+        return events
+
+    events = await loop.run_in_executor(None, drain_queue)
 
     del debug_sessions[session_id]
     return {"events": events}

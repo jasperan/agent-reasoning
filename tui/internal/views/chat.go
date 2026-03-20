@@ -9,6 +9,7 @@ import (
 
 	"agent-reasoning-tui/internal/app"
 	"agent-reasoning-tui/internal/client"
+	"agent-reasoning-tui/internal/session"
 	"agent-reasoning-tui/internal/ui"
 	"agent-reasoning-tui/internal/viz"
 
@@ -146,8 +147,11 @@ type ChatView struct {
 	streamErrChan   <-chan error
 	streamEventChan <-chan client.StructuredEvent
 	streamStart     time.Time
+	streamTTFT      time.Duration
 	tokenCount      int
 	gotFirstChunk   bool
+	lastQuery       string         // saved before input is reset, used for session auto-save
+	streamResponse  strings.Builder // accumulates full response for auto-save
 
 	// Visualization
 	visualizer viz.Visualizer
@@ -252,11 +256,13 @@ func (v *ChatView) Update(msg tea.Msg) (app.View, tea.Cmd) {
 		if v.arena.IsActive() {
 			v.arena.AppendCellContent(msg.agentID, msg.content)
 		} else {
+			v.streamResponse.WriteString(msg.content)
 			v.chat.AppendStreaming(msg.content)
 			// Update live metrics on every chunk.
 			if !v.gotFirstChunk {
 				v.gotFirstChunk = true
-				v.metrics.SetTTFT(time.Since(v.streamStart))
+				v.streamTTFT = time.Since(v.streamStart)
+				v.metrics.SetTTFT(v.streamTTFT)
 			}
 			v.tokenCount++
 			v.metrics.SetTokens(v.tokenCount)
@@ -280,6 +286,29 @@ func (v *ChatView) Update(msg tea.Msg) (app.View, tea.Cmd) {
 			v.arena.SetCellDuration(msg.agentID, msg.duration)
 		} else {
 			v.chat.FinishStreaming()
+			if v.ctx.Config.Sessions.AutoSave && v.ctx.SessionStore != nil {
+				fullResponse := v.streamResponse.String()
+				totalMS := msg.duration * 1000
+				tps := 0.0
+				if msg.duration > 0 {
+					tps = float64(v.tokenCount) / msg.duration
+				}
+				s := session.Session{
+					ID:       session.GenerateID(v.currentAgent),
+					Type:     session.TypeChat,
+					Model:    v.ctx.CurrentModel,
+					Strategy: v.currentAgent,
+					Query:    v.lastQuery,
+					Response: fullResponse,
+					Metrics: session.Metrics{
+						TTFT_MS:    float64(v.streamTTFT.Milliseconds()),
+						TotalMS:    totalMS,
+						TPS:        tps,
+						TokenCount: v.tokenCount,
+					},
+				}
+				go v.ctx.SessionStore.Save(s) //nolint:errcheck
+			}
 		}
 
 	case streamErrorMsg:
@@ -295,6 +324,15 @@ func (v *ChatView) Update(msg tea.Msg) (app.View, tea.Cmd) {
 
 	case app.ServerDisconnectedMsg:
 		v.header.SetConnected(false)
+
+	case app.AgentsLoadedMsg:
+		// Rebuild sidebar with live agents from server.
+		items := make([]ui.AgentItem, len(msg.Agents))
+		for i, a := range msg.Agents {
+			items[i] = ui.AgentItem{ID: a.ID, Name: a.Name}
+		}
+		v.sidebar = ui.NewSidebarFromAgents(items)
+		v.sidebar.SetHeight(v.height - 3 - 3 - 1) // match updateSizes logic
 
 	case modelsLoadedMsg:
 		v.modelSelector.SetModels(msg.models)
@@ -484,6 +522,9 @@ func (v *ChatView) handleKeyMsg(msg tea.KeyMsg) (app.View, tea.Cmd) {
 	case key.Matches(msg, v.keys.Debug):
 		// Switch to debugger, pre-filling current agent and last query if available.
 		v.ctx.CurrentAgent = v.currentAgent
+		if v.lastQuery != "" {
+			v.ctx.PendingQuery = v.lastQuery
+		}
 		return v, func() tea.Msg { return app.SwitchViewMsg{Target: app.ViewDebug} }
 	}
 
@@ -581,6 +622,7 @@ func (v *ChatView) handleInputKey(msg tea.KeyMsg) (app.View, tea.Cmd) {
 		}
 
 		// Normal chat mode
+		v.lastQuery = query
 		v.chat.AddUserMessage(query)
 		v.chat.StartStreaming()
 		v.input.Reset()
@@ -674,6 +716,8 @@ func (v *ChatView) startStream(agentID, query string) tea.Cmd {
 	v.streamStart = time.Now()
 	v.tokenCount = 0
 	v.gotFirstChunk = false
+	v.streamTTFT = 0
+	v.streamResponse.Reset()
 	v.metrics.Reset()
 	v.metrics.SetModel(fmt.Sprintf("%s+%s", v.ctx.CurrentModel, agentID))
 
