@@ -147,6 +147,177 @@ func (c *ServerClient) GenerateSync(ctx context.Context, model, prompt string) (
 	}
 }
 
+// ParameterSchema describes one tunable hyperparameter.
+type ParameterSchema struct {
+	Type        string  `json:"type"`
+	Default     float64 `json:"default"`
+	Min         float64 `json:"min"`
+	Max         float64 `json:"max"`
+	Description string  `json:"description"`
+}
+
+// AgentMeta holds metadata for one agent from /api/agents.
+type AgentMeta struct {
+	ID            string                     `json:"id"`
+	Name          string                     `json:"name"`
+	Description   string                     `json:"description"`
+	Reference     string                     `json:"reference"`
+	BestFor       string                     `json:"best_for"`
+	Tradeoffs     string                     `json:"tradeoffs"`
+	HasVisualizer bool                       `json:"has_visualizer"`
+	Parameters    map[string]ParameterSchema `json:"parameters"`
+}
+
+// AgentsResponse is the response from GET /api/agents.
+type AgentsResponse struct {
+	Agents []AgentMeta `json:"agents"`
+	Count  int         `json:"count"`
+}
+
+// StructuredEvent is one event from /api/generate_structured.
+type StructuredEvent struct {
+	EventType string                 `json:"event_type"`
+	Data      map[string]interface{} `json:"data"`
+	IsUpdate  bool                   `json:"is_update"`
+}
+
+// ListAgents calls GET /api/agents and returns agent metadata.
+func (c *ServerClient) ListAgents() ([]AgentMeta, error) {
+	resp, err := c.client.Get(c.baseURL + "/api/agents")
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	var result AgentsResponse
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return nil, err
+	}
+	return result.Agents, nil
+}
+
+// GenerateStructured calls POST /api/generate_structured and streams StructuredEvent objects.
+func (c *ServerClient) GenerateStructured(ctx context.Context, model, prompt string, params map[string]float64) (<-chan StructuredEvent, <-chan error) {
+	eventCh := make(chan StructuredEvent, 100)
+	errCh := make(chan error, 1)
+
+	go func() {
+		defer close(eventCh)
+		defer close(errCh)
+
+		body := map[string]interface{}{
+			"model":  model,
+			"prompt": prompt,
+			"stream": true,
+		}
+		if len(params) > 0 {
+			body["parameters"] = params
+		}
+
+		jsonBody, err := json.Marshal(body)
+		if err != nil {
+			errCh <- err
+			return
+		}
+
+		req, err := http.NewRequestWithContext(ctx, "POST", c.baseURL+"/api/generate_structured", bytes.NewReader(jsonBody))
+		if err != nil {
+			errCh <- err
+			return
+		}
+		req.Header.Set("Content-Type", "application/json")
+
+		resp, err := c.client.Do(req)
+		if err != nil {
+			errCh <- err
+			return
+		}
+		defer resp.Body.Close()
+
+		scanner := bufio.NewScanner(resp.Body)
+		scanner.Buffer(make([]byte, 1024*1024), 1024*1024)
+
+		for scanner.Scan() {
+			line := scanner.Text()
+			if line == "" {
+				continue
+			}
+			var event StructuredEvent
+			if err := json.Unmarshal([]byte(line), &event); err != nil {
+				continue // skip malformed lines
+			}
+			select {
+			case eventCh <- event:
+			case <-ctx.Done():
+				return
+			}
+		}
+	}()
+
+	return eventCh, errCh
+}
+
+// GenerateWithParams is like Generate but includes hyperparameters.
+func (c *ServerClient) GenerateWithParams(ctx context.Context, model, prompt string, params map[string]float64) (<-chan GenerateResponse, <-chan error) {
+	respCh := make(chan GenerateResponse, 100)
+	errCh := make(chan error, 1)
+
+	go func() {
+		defer close(respCh)
+		defer close(errCh)
+
+		body := map[string]interface{}{
+			"model":  model,
+			"prompt": prompt,
+			"stream": true,
+		}
+		if len(params) > 0 {
+			body["parameters"] = params
+		}
+
+		jsonBody, err := json.Marshal(body)
+		if err != nil {
+			errCh <- err
+			return
+		}
+
+		req, err := http.NewRequestWithContext(ctx, "POST", c.baseURL+"/api/generate", bytes.NewReader(jsonBody))
+		if err != nil {
+			errCh <- err
+			return
+		}
+		req.Header.Set("Content-Type", "application/json")
+
+		resp, err := c.client.Do(req)
+		if err != nil {
+			errCh <- err
+			return
+		}
+		defer resp.Body.Close()
+
+		scanner := bufio.NewScanner(resp.Body)
+		scanner.Buffer(make([]byte, 1024*1024), 1024*1024)
+
+		for scanner.Scan() {
+			line := scanner.Text()
+			if line == "" {
+				continue
+			}
+			var genResp GenerateResponse
+			if err := json.Unmarshal([]byte(line), &genResp); err != nil {
+				continue
+			}
+			select {
+			case respCh <- genResp:
+			case <-ctx.Done():
+				return
+			}
+		}
+	}()
+
+	return respCh, errCh
+}
+
 // IsHealthy checks if the server is responding
 func (c *ServerClient) IsHealthy() bool {
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
