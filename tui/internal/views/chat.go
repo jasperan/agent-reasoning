@@ -10,6 +10,7 @@ import (
 	"agent-reasoning-tui/internal/app"
 	"agent-reasoning-tui/internal/client"
 	"agent-reasoning-tui/internal/ui"
+	"agent-reasoning-tui/internal/viz"
 
 	"github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
@@ -39,18 +40,23 @@ type (
 		agentID string
 		err     error
 	}
+	streamStructuredMsg struct {
+		agentID string
+		event   client.StructuredEvent
+	}
 	arenaCompleteMsg     struct{}
 	benchmarkCompleteMsg struct{ err error }
 )
 
 // KeyMap defines the keybindings for ChatView.
 type KeyMap struct {
-	Up     key.Binding
-	Down   key.Binding
-	Enter  key.Binding
-	Tab    key.Binding
-	Escape key.Binding
-	Quit   key.Binding
+	Up          key.Binding
+	Down        key.Binding
+	Enter       key.Binding
+	Tab         key.Binding
+	Escape      key.Binding
+	Quit        key.Binding
+	ToggleViz   key.Binding
 }
 
 func defaultKeyMap() KeyMap {
@@ -79,6 +85,10 @@ func defaultKeyMap() KeyMap {
 			key.WithKeys("ctrl+c", "q"),
 			key.WithHelp("q/ctrl+c", "quit"),
 		),
+		ToggleViz: key.NewBinding(
+			key.WithKeys("v"),
+			key.WithHelp("v", "toggle viz mode"),
+		),
 	}
 }
 
@@ -102,12 +112,17 @@ type ChatView struct {
 	height       int
 
 	// Streaming control
-	streamCancel   context.CancelFunc
-	streamRespChan <-chan client.GenerateResponse
-	streamErrChan  <-chan error
-	streamStart    time.Time
-	tokenCount     int
-	gotFirstChunk  bool
+	streamCancel    context.CancelFunc
+	streamRespChan  <-chan client.GenerateResponse
+	streamErrChan   <-chan error
+	streamEventChan <-chan client.StructuredEvent
+	streamStart     time.Time
+	tokenCount      int
+	gotFirstChunk   bool
+
+	// Visualization
+	visualizer viz.Visualizer
+	vizMode    bool
 
 	// Keys
 	keys KeyMap
@@ -208,6 +223,12 @@ func (v *ChatView) Update(msg tea.Msg) (app.View, tea.Cmd) {
 		}
 		cmds = append(cmds, v.nextStreamChunk(msg.agentID))
 
+	case streamStructuredMsg:
+		if v.visualizer != nil {
+			v.visualizer.Update(msg.event)
+		}
+		cmds = append(cmds, v.nextStructuredEvent(msg.agentID))
+
 	case streamDoneMsg:
 		if v.arena.IsActive() {
 			v.arena.SetCellStatus(msg.agentID, ui.ArenaDone)
@@ -258,11 +279,19 @@ func (v *ChatView) View() string {
 	// Normal view
 	header := v.header.View()
 	sidebar := v.sidebar.View()
-	chat := v.chat.View()
+
+	// Use visualizer output when vizMode is active and visualizer is available
+	var chatContent string
+	if v.vizMode && v.visualizer != nil {
+		chatContent = v.visualizer.View()
+	} else {
+		chatContent = v.chat.View()
+	}
+
 	metricsView := v.metrics.View()
 	input := v.input.View()
 
-	mainContent := lipgloss.JoinHorizontal(lipgloss.Top, sidebar, chat)
+	mainContent := lipgloss.JoinHorizontal(lipgloss.Top, sidebar, chatContent)
 	var view string
 	if metricsView != "" {
 		view = lipgloss.JoinVertical(lipgloss.Left, header, mainContent, metricsView, input)
@@ -327,6 +356,10 @@ func (v *ChatView) handleKeyMsg(msg tea.KeyMsg) (app.View, tea.Cmd) {
 
 	case key.Matches(msg, v.keys.Tab):
 		v.toggleFocus()
+		return v, nil
+
+	case key.Matches(msg, v.keys.ToggleViz):
+		v.vizMode = !v.vizMode
 		return v, nil
 	}
 
@@ -485,6 +518,7 @@ func (v *ChatView) updateSizes() {
 // --- Streaming ---
 
 // startStream initiates a new streaming request.
+// When viz mode is on and the agent has a visualizer, uses GenerateStructured.
 func (v *ChatView) startStream(agentID, query string) tea.Cmd {
 	ctx, cancel := context.WithCancel(context.Background())
 	v.streamCancel = cancel
@@ -494,9 +528,25 @@ func (v *ChatView) startStream(agentID, query string) tea.Cmd {
 	v.metrics.Reset()
 	v.metrics.SetModel(fmt.Sprintf("%s+%s", v.ctx.CurrentModel, agentID))
 
+	// Try structured viz if enabled and agent supports it
+	if v.ctx.Config.Defaults.Visualization {
+		candidate := viz.GetVisualizer(agentID, v.width, v.height)
+		if candidate != nil {
+			v.visualizer = candidate
+			v.vizMode = true
+			v.visualizer.Reset()
+
+			modelWithStrategy := fmt.Sprintf("%s+%s", v.ctx.CurrentModel, agentID)
+			v.streamEventChan, v.streamErrChan = v.ctx.ServerClient.GenerateStructured(ctx, modelWithStrategy, query, nil)
+			return v.nextStructuredEvent(agentID)
+		}
+	}
+
+	// Fall back to plain text streaming
+	v.visualizer = nil
+	v.vizMode = false
 	modelWithStrategy := fmt.Sprintf("%s+%s", v.ctx.CurrentModel, agentID)
 	v.streamRespChan, v.streamErrChan = v.ctx.ServerClient.Generate(ctx, modelWithStrategy, query)
-
 	return v.nextStreamChunk(agentID)
 }
 
@@ -522,6 +572,32 @@ func (v *ChatView) nextStreamChunk(agentID string) tea.Cmd {
 				if resp.Done {
 					return streamDoneMsg{agentID: agentID, duration: time.Since(startTime).Seconds()}
 				}
+			case err := <-errChan:
+				if err != nil {
+					return streamErrorMsg{agentID: agentID, err: err}
+				}
+			}
+		}
+	}
+}
+
+// nextStructuredEvent reads the next event from the structured event channel.
+func (v *ChatView) nextStructuredEvent(agentID string) tea.Cmd {
+	eventChan := v.streamEventChan
+	errChan := v.streamErrChan
+	startTime := v.streamStart
+
+	return func() tea.Msg {
+		if eventChan == nil {
+			return streamDoneMsg{agentID: agentID, duration: 0}
+		}
+		for {
+			select {
+			case event, ok := <-eventChan:
+				if !ok {
+					return streamDoneMsg{agentID: agentID, duration: time.Since(startTime).Seconds()}
+				}
+				return streamStructuredMsg{agentID: agentID, event: event}
 			case err := <-errChan:
 				if err != nil {
 					return streamErrorMsg{agentID: agentID, err: err}
