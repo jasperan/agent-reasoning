@@ -93,6 +93,7 @@ type ChatView struct {
 	input         *ui.Input
 	arena         *ui.Arena
 	modelSelector *ui.ModelSelector
+	metrics       *ui.MetricsBar
 
 	// State
 	focus        Focus
@@ -105,6 +106,8 @@ type ChatView struct {
 	streamRespChan <-chan client.GenerateResponse
 	streamErrChan  <-chan error
 	streamStart    time.Time
+	tokenCount     int
+	gotFirstChunk  bool
 
 	// Keys
 	keys KeyMap
@@ -136,6 +139,7 @@ func NewChatView(appCtx *app.Context) *ChatView {
 		input:         ui.NewInput(),
 		arena:         ui.NewArena(),
 		modelSelector: ui.NewModelSelector(),
+		metrics:       ui.NewMetricsBar(),
 		focus:         FocusSidebar,
 		currentAgent:  appCtx.CurrentAgent,
 		keys:          defaultKeyMap(),
@@ -189,6 +193,18 @@ func (v *ChatView) Update(msg tea.Msg) (app.View, tea.Cmd) {
 			v.arena.AppendCellContent(msg.agentID, msg.content)
 		} else {
 			v.chat.AppendStreaming(msg.content)
+			// Update live metrics on every chunk.
+			if !v.gotFirstChunk {
+				v.gotFirstChunk = true
+				v.metrics.SetTTFT(time.Since(v.streamStart))
+			}
+			v.tokenCount++
+			v.metrics.SetTokens(v.tokenCount)
+			elapsed := time.Since(v.streamStart)
+			if elapsed > 0 {
+				v.metrics.SetTPS(float64(v.tokenCount) / elapsed.Seconds())
+			}
+			v.metrics.SetDuration(elapsed)
 		}
 		cmds = append(cmds, v.nextStreamChunk(msg.agentID))
 
@@ -243,10 +259,16 @@ func (v *ChatView) View() string {
 	header := v.header.View()
 	sidebar := v.sidebar.View()
 	chat := v.chat.View()
+	metricsView := v.metrics.View()
 	input := v.input.View()
 
 	mainContent := lipgloss.JoinHorizontal(lipgloss.Top, sidebar, chat)
-	view := lipgloss.JoinVertical(lipgloss.Left, header, mainContent, input)
+	var view string
+	if metricsView != "" {
+		view = lipgloss.JoinVertical(lipgloss.Left, header, mainContent, metricsView, input)
+	} else {
+		view = lipgloss.JoinVertical(lipgloss.Left, header, mainContent, input)
+	}
 
 	// Overlay model selector if active
 	if v.modelSelector.IsActive() {
@@ -445,15 +467,17 @@ func (v *ChatView) toggleFocus() {
 func (v *ChatView) updateSizes() {
 	headerHeight := 3
 	inputHeight := 3
+	metricsHeight := 1
 	sidebarWidth := ui.SidebarWidth + 2
 
-	contentHeight := v.height - headerHeight - inputHeight
+	contentHeight := v.height - headerHeight - inputHeight - metricsHeight
 	chatWidth := v.width - sidebarWidth
 
 	v.header.SetWidth(v.width)
 	v.sidebar.SetHeight(contentHeight)
 	v.chat.SetSize(chatWidth, contentHeight)
 	v.input.SetWidth(v.width)
+	v.metrics.SetWidth(v.width)
 	v.arena.SetSize(v.width, v.height-headerHeight)
 	v.modelSelector.SetSize(50, 20)
 }
@@ -465,6 +489,10 @@ func (v *ChatView) startStream(agentID, query string) tea.Cmd {
 	ctx, cancel := context.WithCancel(context.Background())
 	v.streamCancel = cancel
 	v.streamStart = time.Now()
+	v.tokenCount = 0
+	v.gotFirstChunk = false
+	v.metrics.Reset()
+	v.metrics.SetModel(fmt.Sprintf("%s+%s", v.ctx.CurrentModel, agentID))
 
 	modelWithStrategy := fmt.Sprintf("%s+%s", v.ctx.CurrentModel, agentID)
 	v.streamRespChan, v.streamErrChan = v.ctx.ServerClient.Generate(ctx, modelWithStrategy, query)
