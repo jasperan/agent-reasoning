@@ -93,6 +93,9 @@ func main() {
 	debugView := views.NewDebugView(model.Ctx())
 	model.Router().RegisterView(debugView)
 
+	sessionsView := views.NewSessionsView(model.Ctx())
+	model.Router().RegisterView(sessionsView)
+
 	p := tea.NewProgram(model, tea.WithAltScreen())
 
 	if _, err := p.Run(); err != nil {

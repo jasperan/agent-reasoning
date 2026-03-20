@@ -3,6 +3,7 @@ package app
 import (
 	"agent-reasoning-tui/internal/client"
 	"agent-reasoning-tui/internal/config"
+	"agent-reasoning-tui/internal/session"
 
 	tea "github.com/charmbracelet/bubbletea"
 )
@@ -69,4 +70,8 @@ type Context struct {
 	ProjectDir   string
 	// Active hyperparameter overrides per agent
 	AgentParams map[string]map[string]float64
+	// Session persistence store
+	SessionStore *session.Store
+	// PendingQuery is set by SessionsView when re-running a session.
+	PendingQuery string
 }

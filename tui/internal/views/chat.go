@@ -50,14 +50,15 @@ type (
 
 // KeyMap defines the keybindings for ChatView.
 type KeyMap struct {
-	Up        key.Binding
-	Down      key.Binding
-	Enter     key.Binding
-	Tab       key.Binding
-	Escape    key.Binding
-	Quit      key.Binding
-	ToggleViz key.Binding
-	Debug     key.Binding
+	Up             key.Binding
+	Down           key.Binding
+	Enter          key.Binding
+	Tab            key.Binding
+	Escape         key.Binding
+	Quit           key.Binding
+	ToggleViz      key.Binding
+	Debug          key.Binding
+	StrategyAdvisor key.Binding
 }
 
 func defaultKeyMap() KeyMap {
@@ -94,7 +95,29 @@ func defaultKeyMap() KeyMap {
 			key.WithKeys("d"),
 			key.WithHelp("d", "debug last query"),
 		),
+		StrategyAdvisor: key.NewBinding(
+			key.WithKeys("?"),
+			key.WithHelp("?", "strategy advisor"),
+		),
 	}
+}
+
+// advisorOverlay holds state for the strategy advisor popup.
+type advisorOverlay struct {
+	active            bool
+	loading           bool
+	recommendedID     string
+	recommendedName   string
+	reason            string
+	err               string
+}
+
+// advisorResultMsg is sent when the meta-agent response arrives.
+type advisorResultMsg struct {
+	strategy string // agent ID, e.g. "tot"
+	name     string // human name, e.g. "Tree of Thoughts (ToT)"
+	reason   string
+	err      error
 }
 
 // ChatView handles the main chat interface: sidebar, input, streaming, arena, model selector.
@@ -129,6 +152,9 @@ type ChatView struct {
 	// Visualization
 	visualizer viz.Visualizer
 	vizMode    bool
+
+	// Strategy advisor overlay
+	advisor advisorOverlay
 
 	// Keys
 	keys KeyMap
@@ -281,6 +307,16 @@ func (v *ChatView) Update(msg tea.Msg) (app.View, tea.Cmd) {
 
 	case benchmarkCompleteMsg:
 		// Returned from benchmark CLI.
+
+	case advisorResultMsg:
+		v.advisor.loading = false
+		if msg.err != nil {
+			v.advisor.err = msg.err.Error()
+		} else {
+			v.advisor.recommendedID = msg.strategy
+			v.advisor.recommendedName = msg.name
+			v.advisor.reason = msg.reason
+		}
 	}
 
 	return v, tea.Batch(cmds...)
@@ -342,6 +378,22 @@ func (v *ChatView) View() string {
 		view = placeOverlay(x, y, hpView, view)
 	}
 
+	// Overlay strategy advisor if active
+	if v.advisor.active {
+		advView := v.renderAdvisorOverlay()
+		advW := lipgloss.Width(advView)
+		advH := lipgloss.Height(advView)
+		x := (v.width - advW) / 2
+		y := (v.height - advH) / 2
+		if x < 0 {
+			x = 0
+		}
+		if y < 0 {
+			y = 0
+		}
+		view = placeOverlay(x, y, advView, view)
+	}
+
 	return view
 }
 
@@ -352,11 +404,30 @@ func (v *ChatView) SyncFromContext() {
 	if v.ctx.CurrentModel != "" {
 		v.header.SetModel(v.ctx.CurrentModel)
 	}
+	// Update input placeholder to reflect connection state.
+	if !v.ctx.Connected {
+		v.input.SetPlaceholder("Server unavailable — retrying...")
+	} else {
+		v.input.SetPlaceholder("Enter your query...")
+	}
+	// Pre-fill query if re-running a session.
+	if v.ctx.PendingQuery != "" {
+		v.input.SetValue(v.ctx.PendingQuery)
+		v.ctx.PendingQuery = ""
+		v.focus = FocusInput
+		v.input.Focus()
+		v.sidebar.SetFocused(false)
+	}
 }
 
 // --- Key handling ---
 
 func (v *ChatView) handleKeyMsg(msg tea.KeyMsg) (app.View, tea.Cmd) {
+	// Strategy advisor overlay intercepts all keys when active
+	if v.advisor.active && !v.advisor.loading {
+		return v.handleAdvisorKey(msg)
+	}
+
 	// Model selector overlay intercepts everything when active
 	if v.modelSelector.IsActive() {
 		return v.handleModelSelectorKey(msg)
@@ -454,6 +525,9 @@ func (v *ChatView) handleSidebarSelect() (app.View, tea.Cmd) {
 	case "agentinfo", "agent_info":
 		return v, func() tea.Msg { return app.SwitchViewMsg{Target: app.ViewAgentInfo} }
 
+	case "sessions":
+		return v, func() tea.Msg { return app.SwitchViewMsg{Target: app.ViewSessions} }
+
 	case "model":
 		v.modelSelector.Show()
 		v.modelSelector.SetLoading(true)
@@ -476,7 +550,25 @@ func (v *ChatView) handleSidebarSelect() (app.View, tea.Cmd) {
 
 func (v *ChatView) handleInputKey(msg tea.KeyMsg) (app.View, tea.Cmd) {
 	switch {
+	case key.Matches(msg, v.keys.StrategyAdvisor):
+		query := v.input.Value()
+		if query != "" && v.ctx.Connected {
+			v.advisor.active = true
+			v.advisor.loading = true
+			v.advisor.recommendedID = ""
+			v.advisor.recommendedName = ""
+			v.advisor.reason = ""
+			v.advisor.err = ""
+			return v, v.queryStrategyAdvisor(query)
+		}
+		return v, nil
+
 	case key.Matches(msg, v.keys.Enter):
+		// Block submission when disconnected.
+		if !v.ctx.Connected {
+			return v, nil
+		}
+
 		query := v.input.Value()
 		if query == "" {
 			return v, nil
@@ -734,6 +826,111 @@ func (v *ChatView) loadModels() tea.Cmd {
 // modelsLoadedMsg / modelsErrorMsg are handled internally within ChatView.Update.
 type modelsLoadedMsg struct{ models []string }
 type modelsErrorMsg struct{ err error }
+
+// --- Strategy Advisor ---
+
+// strategyNames maps agent IDs to display names.
+var strategyNames = map[string]string{
+	"standard":    "Standard",
+	"cot":         "Chain of Thought (CoT)",
+	"tot":         "Tree of Thoughts (ToT)",
+	"react":       "ReAct",
+	"reflection":  "Self-Reflection",
+	"consistency": "Self-Consistency",
+	"decomposed":  "Decomposed Prompting",
+	"least2most":  "Least-to-Most",
+	"recursive":   "Recursive LM",
+	"refinement":  "Refinement Loop",
+	"complex":     "Complex Refinement",
+}
+
+// queryStrategyAdvisor sends the query to the meta agent and returns a cmd.
+func (v *ChatView) queryStrategyAdvisor(query string) tea.Cmd {
+	model := fmt.Sprintf("%s+meta", v.ctx.CurrentModel)
+	serverClient := v.ctx.ServerClient
+	return func() tea.Msg {
+		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		defer cancel()
+		resp, err := serverClient.GenerateSync(ctx, model, query)
+		if err != nil {
+			return advisorResultMsg{err: err}
+		}
+		// Parse strategy from response: look for known strategy IDs.
+		respLower := strings.ToLower(resp)
+		found := "cot" // sensible default
+		foundName := strategyNames["cot"]
+		for id, name := range strategyNames {
+			if strings.Contains(respLower, id) || strings.Contains(respLower, strings.ToLower(name)) {
+				found = id
+				foundName = name
+				break
+			}
+		}
+		// Extract a short reason: first sentence of the response.
+		reason := resp
+		if idx := strings.IndexAny(resp, ".!?\n"); idx > 0 && idx < 200 {
+			reason = resp[:idx+1]
+		} else if len(resp) > 150 {
+			reason = resp[:150] + "..."
+		}
+		return advisorResultMsg{strategy: found, name: foundName, reason: reason}
+	}
+}
+
+// handleAdvisorKey handles key events when the advisor overlay is visible.
+func (v *ChatView) handleAdvisorKey(msg tea.KeyMsg) (app.View, tea.Cmd) {
+	switch {
+	case key.Matches(msg, v.keys.Enter):
+		if v.advisor.recommendedID != "" {
+			v.currentAgent = v.advisor.recommendedID
+			name := v.advisor.recommendedName
+			v.chat.SetAgent(v.advisor.recommendedID, name)
+			v.chat.Clear()
+			v.focus = FocusInput
+			v.input.Focus()
+			v.sidebar.SetFocused(false)
+		}
+		v.advisor.active = false
+	case key.Matches(msg, v.keys.Escape):
+		v.advisor.active = false
+	}
+	return v, nil
+}
+
+// renderAdvisorOverlay renders the strategy advisor popup box.
+func (v *ChatView) renderAdvisorOverlay() string {
+	boxStyle := lipgloss.NewStyle().
+		Border(lipgloss.RoundedBorder()).
+		BorderForeground(lipgloss.Color("63")).
+		Padding(1, 2).
+		Width(44)
+
+	titleStyle := lipgloss.NewStyle().
+		Bold(true).
+		Foreground(lipgloss.Color("63"))
+
+	recStyle := lipgloss.NewStyle().
+		Bold(true).
+		Foreground(lipgloss.Color("10"))
+
+	dimStyle := lipgloss.NewStyle().
+		Foreground(lipgloss.Color("240"))
+
+	var body string
+	if v.advisor.loading {
+		body = "Consulting meta-agent..."
+	} else if v.advisor.err != "" {
+		body = lipgloss.NewStyle().Foreground(lipgloss.Color("9")).Render("Error: " + v.advisor.err) +
+			"\n\n" + dimStyle.Render("[Esc] Close")
+	} else {
+		body = recStyle.Render("Recommended: "+v.advisor.recommendedName) +
+			"\n" + dimStyle.Render("Reason: "+v.advisor.reason) +
+			"\n\n" + dimStyle.Render("[Enter] Use  [Esc] Keep current")
+	}
+
+	content := titleStyle.Render("Strategy Advisor") + "\n\n" + body
+	return boxStyle.Render(content)
+}
 
 // --- Benchmark ---
 
