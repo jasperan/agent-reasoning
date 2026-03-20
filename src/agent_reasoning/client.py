@@ -1,16 +1,29 @@
 import json
-import requests
 import sys
 
+import requests
+
+
 class OllamaClient:
-    def __init__(self, model="gemma3:270m", base_url=None):
+    def __init__(self, model="gemma3:latest", base_url=None):
         if base_url is None:
             from agent_reasoning.config import get_ollama_host
+
             base_url = get_ollama_host()
         self.model = model
         self.base_url = base_url
 
-    def generate(self, prompt, system=None, stream=True, temperature=0.7, top_k=40, top_p=0.9, num_predict=2048, stop=None):
+    def generate(
+        self,
+        prompt,
+        system=None,
+        stream=True,
+        temperature=0.7,
+        top_k=40,
+        top_p=0.9,
+        num_predict=2048,
+        stop=None,
+    ):
         url = f"{self.base_url}/api/generate"
         data = {
             "model": self.model,
@@ -19,7 +32,7 @@ class OllamaClient:
             "temperature": temperature,
             "top_k": top_k,
             "top_p": top_p,
-            "num_predict": num_predict
+            "num_predict": num_predict,
         }
         if stop:
             data["stop"] = stop
@@ -46,5 +59,10 @@ class OllamaClient:
                 yield body.get("response", "")
 
         except requests.exceptions.RequestException as e:
-            print(f"Error communicating with Ollama: {e}", file=sys.stderr)
-            yield ""
+            error_msg = f"[OllamaClient] Error communicating with Ollama (model={self.model}): {e}"
+            print(error_msg, file=sys.stderr)
+            print(error_msg)  # Also print to stdout so it's visible in logs
+            yield (
+                f"Error: Could not reach Ollama model '{self.model}'. "
+                "Please check the model is available (ollama list)."
+            )

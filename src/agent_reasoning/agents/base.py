@@ -1,9 +1,12 @@
 from abc import ABC, abstractmethod
-from agent_reasoning.client import OllamaClient
+
 from termcolor import colored
 
+from agent_reasoning.client import OllamaClient
+
+
 class BaseAgent(ABC):
-    def __init__(self, model="gemma3:270m", base_url=None):
+    def __init__(self, model="gemma3:latest", base_url=None, **kwargs):
         self.client = OllamaClient(model=model, base_url=base_url)
         self.name = "BaseAgent"
         self.color = "white"
