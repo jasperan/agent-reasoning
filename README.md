@@ -5,7 +5,7 @@
 [![License](https://img.shields.io/badge/license-MIT-green?style=for-the-badge)](LICENSE)
 [![Python](https://img.shields.io/badge/python-3.10%2B-blue?style=for-the-badge)](https://www.python.org/)
 ![Ollama](https://img.shields.io/badge/backend-Ollama-black?style=for-the-badge)
-![Reasoning](https://img.shields.io/badge/reasoning-CoT%20|%20ToT%20|%20ReAct%20|%20Reflection%20|%20RLM%20|%20Consistency%20|%20Decomposed%20|%20LtM%20|%20Refinement-purple?style=for-the-badge)
+![Reasoning](https://img.shields.io/badge/reasoning-16%20strategies%20|%20CoT%20|%20ToT%20|%20ReAct%20|%20MCTS%20|%20Debate%20|%20Socratic%20|%20Meta-purple?style=for-the-badge)
 ![Status](https://img.shields.io/badge/status-experimental-orange?style=for-the-badge)
 
 ![](https://raw.githubusercontent.com/jasperan/agent-reasoning/main/gif/arena_mode.gif)
@@ -237,7 +237,8 @@ python agent_cli.py --agents         # Show strategy guide
 - **Benchmark Charts**: Auto-generate PNG visualizations of benchmark results
 
 ### 2. Terminal UI (TUI)
-A Go-based terminal interface with split-panel layout and arena grid view.
+
+A Go-based terminal interface built with [Bubble Tea](https://github.com/charmbracelet/bubbletea) + [Lipgloss](https://github.com/charmbracelet/lipgloss). 7 views, 10 structured visualizers, ~9,800 lines of Go.
 
 ```bash
 # Build and run
@@ -246,21 +247,115 @@ go build -o agent-tui .
 ./agent-tui
 ```
 
-The TUI automatically starts the reasoning server on launch.
+The TUI automatically starts the reasoning server on launch. Requires Go 1.18+.
 
-**Features:**
-- Split layout: agent sidebar + chat panel
-- Arena mode: 3x3 grid showing all agents running in parallel
-- Real-time streaming with cancellation support
+#### Chat View
 
-**Keybindings:**
-| Key | Action |
-|-----|--------|
-| `↑/↓` or `j/k` | Navigate sidebar |
-| `Tab` | Switch focus (sidebar ↔ input) |
-| `Enter` | Select agent / submit query |
-| `Esc` | Cancel streaming / exit arena |
-| `q` | Quit |
+The default view. Split-pane layout with a 16-agent sidebar, chat panel with live streaming, and a metrics bar showing TTFT, tokens/sec, and token count in real-time.
+
+![Chat View](assets/tui-chat.svg)
+
+Press `v` to toggle **structured visualization mode**. Instead of raw text, you see the agent's reasoning process rendered live: tree diagrams for ToT, swimlanes for ReAct, vote tallies for Consistency, score gauges for Refinement, and more.
+
+Press `p` to open the **hyperparameter tuner**. Adjust ToT width/depth, Consistency samples, Refinement score thresholds, and other agent parameters before running a query.
+
+Press `?` to invoke the **strategy advisor**. The MetaReasoningAgent analyzes your query and recommends the best strategy.
+
+#### Arena Mode
+
+All 16 agents race simultaneously on the same query. 4x4 grid with live streaming per cell. A leaderboard bar updates as agents finish.
+
+![Arena Mode](assets/tui-arena.svg)
+
+After all agents finish, press `Enter` for a summary table ranked by completion time, tokens, and TPS. Press `s` to save the full arena report.
+
+#### Head-to-Head Duel
+
+Pick any two agents, same query, side-by-side streaming. Live metrics comparison at the bottom. Press `j` after both finish to invoke an LLM judge that scores both responses.
+
+![Duel Mode](assets/tui-duel.svg)
+
+#### Step-Through Debugger
+
+Pause an agent between LLM calls. Inspect intermediate state (tree nodes, scores, prompts, raw responses). Step forward one call at a time or let it run to completion.
+
+![Debugger](assets/tui-debugger.svg)
+
+#### Benchmark Dashboard
+
+4-tab native dashboard reading existing JSON benchmark files:
+- **Reasoning**: strategy x task heatmap
+- **Accuracy**: bar charts by dataset (GSM8K, MMLU, ARC, HellaSwag)
+- **Speed**: TPS bars and latency columns per model
+- **Compare**: OCI vs Ollama side-by-side with color-coded winners
+
+#### Session Browser
+
+Browse, search, and re-run past conversations. Filter by type (chat/arena/duel), strategy, or free text. Export to markdown. Every interaction auto-saves to `data/sessions/`.
+
+#### Agent Guide
+
+Reference cards for all 16 agents: how it works, best for, parameters, trade-offs, and research reference. Press `Enter` on any card to jump straight into a chat with that agent.
+
+#### TUI Configuration
+
+Optional YAML config at `~/.config/agent-reasoning/config.yaml`:
+
+```yaml
+server:
+  port: 8080
+  auto_start: true
+ollama:
+  url: http://localhost:11434
+defaults:
+  model: gemma3:latest
+  visualization: true    # structured viz on by default
+ui:
+  sidebar_width: 22
+  metrics_bar: true
+sessions:
+  auto_save: true
+  directory: data/sessions
+```
+
+If the file doesn't exist, sane defaults are used. The file is never auto-created.
+
+#### TUI Keybindings
+
+| Key | Context | Action |
+|-----|---------|--------|
+| `j/k` or `↑/↓` | Sidebar, lists | Navigate |
+| `Tab` | Any view | Switch focus (sidebar / input) |
+| `Enter` | Sidebar | Select agent or action |
+| `Enter` | Input | Submit query |
+| `Esc` | Streaming | Cancel current stream |
+| `Esc` | Any view | Return to chat |
+| `v` | Chat | Toggle structured visualization |
+| `p` | Chat | Open hyperparameter tuner |
+| `?` | Chat (with text) | Strategy advisor |
+| `D` | Chat | Debug last query |
+| `S` | Any view | Jump to sessions |
+| `1-4` | Benchmarks | Switch tab |
+| `h/l` | Benchmarks | Navigate tabs |
+| `n` | Debugger | Step forward |
+| `c` | Debugger | Continue (run to end) |
+| `b` | Debugger | Step backward (replay) |
+| `i` | Debugger | Toggle inspector mode |
+| `j` | Duel (finished) | Invoke LLM judge |
+| `s` | Arena (finished) | Save report |
+| `q` or `Ctrl+C` | Not streaming | Quit |
+
+#### TUI Views Summary
+
+| View | Access | Description |
+|------|--------|-------------|
+| Chat | Default | Single-agent conversation with structured visualization |
+| Arena | Sidebar: "Arena Mode" | 16 agents racing on same query, live 4x4 grid |
+| Duel | Sidebar: "Head-to-Head" | Two agents side-by-side with LLM judge |
+| Debugger | Sidebar: "Debugger" or `D` | Step-through reasoning with state inspection |
+| Benchmarks | Sidebar: "Benchmarks" | 4-tab dashboard with terminal charts |
+| Sessions | Sidebar: "Sessions" | Browse, search, re-run, export past chats |
+| Agent Guide | Sidebar: "Agent Guide" | Reference cards for all 16 strategies |
 
 ### 3. Python API (For Developers)
 Use the `ReasoningInterceptor` as a drop-in replacement for your LLM client.
@@ -351,6 +446,11 @@ curl http://localhost:8080/api/tags
 | **Recursive (RLM)** | Uses Python REPL to recursively process prompt variables. | Long-context processing | [Author et al. (2025)](https://arxiv.org/abs/2512.24601) |
 | **Refinement Loop** | Generator → Critic (0.0-1.0 score) → Refiner iterative loop. | Technical Writing, Quality Content | Inspired by [Madaan et al. (2023)](https://arxiv.org/abs/2303.17651) |
 | **Complex Refinement** | 5-stage pipeline: Accuracy → Clarity → Depth → Examples → Polish. | Long-form Articles, Documentation | Multi-stage refinement architecture |
+| **Adversarial Debate** | Pro/con debate rounds with judge evaluation. | Controversial Topics, Analysis | [Irving et al. (2018)](https://arxiv.org/abs/1805.00899) |
+| **MCTS** | Monte Carlo Tree Search with UCB1 selection. | Complex Strategy, Planning | [Browne et al. (2012)](https://doi.org/10.1109/TCIAIG.2012.2186810) |
+| **Analogical** | Solve by finding and applying structural analogies. | Novel Problems, Cross-domain | [Gentner (1983)](https://doi.org/10.1111/j.1551-6708.1983.tb00497.x) |
+| **Socratic** | Progressive questioning to deepen understanding. | Deep Understanding, Philosophy | [Paul & Elder (2007)](https://www.criticalthinking.org/) |
+| **Meta-Reasoning** | Auto-classifies query and routes to optimal strategy. | Any Query Type (auto-selection) | Novel |
 
 ---
 
