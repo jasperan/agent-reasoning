@@ -1,12 +1,22 @@
 from abc import ABC, abstractmethod
-from src.client import OllamaClient
+
 from termcolor import colored
 
+from src.client import OllamaClient
+
+
 class BaseAgent(ABC):
-    def __init__(self, model="gemma3:270m"):
+    def __init__(self, model="gemma3:270m", **kwargs):
         self.client = OllamaClient(model=model)
         self.name = "BaseAgent"
         self.color = "white"
+        self._debug_event = kwargs.get("_debug_event", None)
+        self._debug_cancelled = False
+
+    def _debug_pause(self):
+        if self._debug_event is not None and not self._debug_cancelled:
+            self._debug_event.wait()
+            self._debug_event.clear()
 
     def log_thought(self, message):
         print(colored(f"[{self.name}]: {message}", self.color))

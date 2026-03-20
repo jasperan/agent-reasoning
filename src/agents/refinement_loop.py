@@ -1,7 +1,9 @@
 import re
-from src.agents.base import BaseAgent
-from src.visualization.models import StreamEvent, TaskStatus, RefinementIteration
+
 from termcolor import colored
+
+from src.agents.base import BaseAgent
+from src.visualization.models import RefinementIteration, StreamEvent
 
 
 class RefinementLoopAgent(BaseAgent):
@@ -17,8 +19,8 @@ class RefinementLoopAgent(BaseAgent):
     Reference: Based on iterative refinement patterns for reliable generation.
     """
 
-    def __init__(self, model="gemma3:270m", score_threshold=0.9, max_iterations=10):
-        super().__init__(model)
+    def __init__(self, model="gemma3:270m", score_threshold=0.9, max_iterations=10, **kwargs):
+        super().__init__(model, **kwargs)
         self.name = "RefinementLoopAgent"
         self.color = "yellow"
         self.score_threshold = score_threshold
@@ -41,12 +43,18 @@ class RefinementLoopAgent(BaseAgent):
             elif event.event_type == "refinement":
                 iteration = event.data
                 if iteration.is_accepted:
-                    yield colored(f"\n[Score {iteration.score:.2f} >= {self.score_threshold} - ACCEPTED]\n", "green")
+                    yield colored(
+                        f"\n[Score {iteration.score:.2f} >= {self.score_threshold} - ACCEPTED]\n",
+                        "green",
+                    )
 
     def stream_structured(self, query):
         """Structured event streaming for visualization."""
         yield StreamEvent(event_type="query", data=query)
-        yield StreamEvent(event_type="text", data=f"Processing via Refinement Loop (threshold={self.score_threshold})...\n")
+        yield StreamEvent(
+            event_type="text",
+            data=f"Processing via Refinement Loop (threshold={self.score_threshold})...\n",
+        )
 
         # 1. GENERATE: Initial draft
         yield StreamEvent(event_type="phase", data="draft")
@@ -74,7 +82,10 @@ Provide a comprehensive answer:"""
 
         for i in range(self.max_iterations):
             yield StreamEvent(event_type="phase", data="critique")
-            yield StreamEvent(event_type="text", data=f"\n[CRITIC] Evaluating draft (iteration {i+1}/{self.max_iterations})...\n")
+            yield StreamEvent(
+                event_type="text",
+                data=f"\n[CRITIC] Evaluating draft (iteration {i + 1}/{self.max_iterations})...\n",
+            )
 
             # Critic evaluates and provides score + feedback
             critic_prompt = f"""You are a strict quality evaluator. Evaluate the following answer to the question.
@@ -109,23 +120,31 @@ FEEDBACK: [specific improvement suggestions, or "No improvements needed" if scor
                 draft=current_draft,
                 critique=critique_response,
                 feedback=feedback,
-                score=score
+                score=score,
             )
 
-            yield StreamEvent(event_type="text", data=f"\n   -> Score: {score:.2f}, Threshold: {self.score_threshold}\n")
+            yield StreamEvent(
+                event_type="text",
+                data=f"\n   -> Score: {score:.2f}, Threshold: {self.score_threshold}\n",
+            )
 
             # Check if we've reached the threshold
             if score >= self.score_threshold:
                 iteration.is_accepted = True
                 yield StreamEvent(event_type="refinement", data=iteration)
-                yield StreamEvent(event_type="text", data=colored(f"\n[ACCEPTED] Score {score:.2f} meets threshold.\n", "green"))
+                yield StreamEvent(
+                    event_type="text",
+                    data=colored(f"\n[ACCEPTED] Score {score:.2f} meets threshold.\n", "green"),
+                )
                 break
 
             yield StreamEvent(event_type="refinement", data=iteration)
 
             # 3. REFINE: Improve draft based on feedback
             yield StreamEvent(event_type="phase", data="improvement")
-            yield StreamEvent(event_type="text", data=f"\n[REFINER] Improving draft based on feedback...\n")
+            yield StreamEvent(
+                event_type="text", data="\n[REFINER] Improving draft based on feedback...\n"
+            )
 
             refiner_prompt = f"""You are a skilled editor. Improve the following answer based on the feedback provided.
 
@@ -156,18 +175,22 @@ Improved Answer:"""
                 draft=current_draft,
                 critique=critique_response,
                 feedback=feedback,
-                score=score
+                score=score,
             )
             improved_iteration.improvement = current_draft
             yield StreamEvent(event_type="refinement", data=improved_iteration, is_update=True)
 
         else:
             # Max iterations reached without meeting threshold
-            yield StreamEvent(event_type="text", data=colored(
-                f"\n[MAX ITERATIONS] Reached {self.max_iterations} iterations. Using best draft.\n", "yellow"
-            ))
+            yield StreamEvent(
+                event_type="text",
+                data=colored(
+                    f"\n[MAX ITERATIONS] Reached {self.max_iterations} iterations. Using best draft.\n",
+                    "yellow",
+                ),
+            )
 
-        yield StreamEvent(event_type="text", data="\n" + "="*50 + "\n")
+        yield StreamEvent(event_type="text", data="\n" + "=" * 50 + "\n")
         yield StreamEvent(event_type="text", data="FINAL RESULT:\n")
         yield StreamEvent(event_type="text", data=current_draft)
         yield StreamEvent(event_type="text", data="\n")

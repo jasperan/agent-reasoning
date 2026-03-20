@@ -1,11 +1,14 @@
 import re
-from src.agents.base import BaseAgent
-from src.visualization.models import ChainStep, StreamEvent
+
 from termcolor import colored
 
+from src.agents.base import BaseAgent
+from src.visualization.models import ChainStep, StreamEvent
+
+
 class CoTAgent(BaseAgent):
-    def __init__(self, model="gemma3:270m"):
-        super().__init__(model)
+    def __init__(self, model="gemma3:270m", **kwargs):
+        super().__init__(model, **kwargs)
         self.name = "CoTAgent"
         self.color = "blue"
 
@@ -14,8 +17,8 @@ class CoTAgent(BaseAgent):
         print(colored("Reasoning: ", self.color), end="", flush=True)
         full_response = ""
         for chunk in self.stream(query):
-             print(colored(chunk, self.color), end="", flush=True)
-             full_response += chunk
+            print(colored(chunk, self.color), end="", flush=True)
+            full_response += chunk
         print()
         return full_response
 

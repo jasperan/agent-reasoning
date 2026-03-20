@@ -1,11 +1,14 @@
-from src.agents.base import BaseAgent
-from src.visualization.models import TreeNode, StreamEvent
-from termcolor import colored
 import re
 
+from termcolor import colored
+
+from src.agents.base import BaseAgent
+from src.visualization.models import StreamEvent, TreeNode
+
+
 class ToTAgent(BaseAgent):
-    def __init__(self, model="gemma3:270m"):
-        super().__init__(model)
+    def __init__(self, model="gemma3:270m", **kwargs):
+        super().__init__(model, **kwargs)
         self.name = "ToTAgent"
         self.color = "magenta"
         self.width = 2
@@ -36,14 +39,19 @@ class ToTAgent(BaseAgent):
     def stream_structured(self, query):
         """Structured event streaming for visualization."""
         yield StreamEvent(event_type="query", data=query)
-        yield StreamEvent(event_type="text", data=f"Thinking via Tree of Thoughts (Depth={self.depth}, Width={self.width})...\n")
+        yield StreamEvent(
+            event_type="text",
+            data=f"Thinking via Tree of Thoughts (Depth={self.depth}, Width={self.width})...\n",
+        )
 
         current_thoughts = [("", None)]  # (thought_path, parent_id)
         node_counter = 0
         all_nodes = {}
 
         for step in range(self.depth):
-            yield StreamEvent(event_type="text", data=f"\n[Step {step + 1}/{self.depth} - Exploring branches]\n")
+            yield StreamEvent(
+                event_type="text", data=f"\n[Step {step + 1}/{self.depth} - Exploring branches]\n"
+            )
 
             candidates = []
 
@@ -58,11 +66,15 @@ class ToTAgent(BaseAgent):
                 options = [opt for opt in response.split("Option ") if opt.strip()]
                 if not options:
                     options = [response]
-                options = options[:self.width]
+                options = options[: self.width]
 
                 for i, opt in enumerate(options):
                     node_counter += 1
-                    node_id = f"{chr(65 + (node_counter - 1) // self.width)}{(node_counter - 1) % self.width + 1}" if step > 0 else chr(65 + i)
+                    node_id = (
+                        f"{chr(65 + (node_counter - 1) // self.width)}{(node_counter - 1) % self.width + 1}"
+                        if step > 0
+                        else chr(65 + i)
+                    )
                     new_thought = thought_path + "\n" + opt.strip()
                     candidates.append((new_thought, node_id, parent_id, opt.strip()))
 
@@ -84,11 +96,7 @@ class ToTAgent(BaseAgent):
                     score = 0.1
 
                 node = TreeNode(
-                    id=node_id,
-                    depth=step + 1,
-                    content=content,
-                    score=score,
-                    parent_id=parent_id
+                    id=node_id, depth=step + 1, content=content, score=score, parent_id=parent_id
                 )
                 all_nodes[node_id] = node
                 yield StreamEvent(event_type="node", data=node)
@@ -97,8 +105,8 @@ class ToTAgent(BaseAgent):
 
             # 3. Prune - keep top width
             scored_candidates.sort(key=lambda x: x[0], reverse=True)
-            kept = scored_candidates[:self.width]
-            pruned = scored_candidates[self.width:]
+            kept = scored_candidates[: self.width]
+            pruned = scored_candidates[self.width :]
 
             # Mark pruned nodes
             for _, _, node_id, _ in pruned:
@@ -117,7 +125,9 @@ class ToTAgent(BaseAgent):
         else:
             best_path = "No valid path found."
 
-        yield StreamEvent(event_type="text", data="\n[Best Logic Trace selected. Generating Final Answer]\n")
+        yield StreamEvent(
+            event_type="text", data="\n[Best Logic Trace selected. Generating Final Answer]\n"
+        )
 
         final_prompt = f"Problem: {query}\n\nReasoning Trace:\n{best_path}\n\nInstruction: Based on the reasoning above, provide a comprehensive and detailed final answer to the problem."
         system_msg = "You are a logic engine. You provide detailed, academic answers based on reasoning traces. Do not use conversational fillers like 'Okay' or 'Sure'."

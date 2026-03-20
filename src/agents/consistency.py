@@ -1,12 +1,13 @@
-from src.agents.base import BaseAgent
-from src.visualization.models import VotingSample, StreamEvent, TaskStatus
-from termcolor import colored
-from collections import Counter
 import re
+from collections import Counter
+
+from src.agents.base import BaseAgent
+from src.visualization.models import StreamEvent, TaskStatus, VotingSample
+
 
 class ConsistencyAgent(BaseAgent):
-    def __init__(self, model="gemma3:270m", samples=5):
-        super().__init__(model)
+    def __init__(self, model="gemma3:270m", samples=5, **kwargs):
+        super().__init__(model, **kwargs)
         self.name = "ConsistencyAgent"
         self.color = "cyan"
         self.samples = samples
@@ -30,7 +31,10 @@ class ConsistencyAgent(BaseAgent):
     def stream_structured(self, query):
         """Structured event streaming for visualization."""
         yield StreamEvent(event_type="query", data=query)
-        yield StreamEvent(event_type="text", data=f"Processing query via Self-Consistency (k={self.samples}): {query}\n")
+        yield StreamEvent(
+            event_type="text",
+            data=f"Processing query via Self-Consistency (k={self.samples}): {query}\n",
+        )
 
         samples = []
 
@@ -39,7 +43,7 @@ class ConsistencyAgent(BaseAgent):
             samples.append(sample)
             yield StreamEvent(event_type="sample", data=sample)
 
-            yield StreamEvent(event_type="text", data=f"\n**[Path {i+1}/{self.samples}]**\n")
+            yield StreamEvent(event_type="text", data=f"\n**[Path {i + 1}/{self.samples}]**\n")
 
             prompt = f"Question: {query}\nThink step-by-step to answer this question. End your answer with 'Final Answer: <answer>'."
 
@@ -72,7 +76,10 @@ class ConsistencyAgent(BaseAgent):
         yield StreamEvent(event_type="voting_complete", data=True)
 
         yield StreamEvent(event_type="text", data="\n---\n")
-        yield StreamEvent(event_type="text", data=f"**Majority Logic:** {best_answer} ({count}/{self.samples} votes)\n")
+        yield StreamEvent(
+            event_type="text",
+            data=f"**Majority Logic:** {best_answer} ({count}/{self.samples} votes)\n",
+        )
         yield StreamEvent(event_type="text", data="\n**Final Consolidated Answer:**\n")
         yield StreamEvent(event_type="text", data=best_answer)
         yield StreamEvent(event_type="text", data="\n")
