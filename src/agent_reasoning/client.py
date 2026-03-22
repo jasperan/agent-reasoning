@@ -44,7 +44,6 @@ class OllamaClient:
             response = requests.post(url, json=data, stream=stream, timeout=timeout)
             response.raise_for_status()
 
-            full_response = ""
             if stream:
                 for line in response.iter_lines():
                     if line:
@@ -52,7 +51,6 @@ class OllamaClient:
                         if "response" in body:
                             content = body["response"]
                             yield content
-                            full_response += content
                         if body.get("done", False):
                             break
             else:

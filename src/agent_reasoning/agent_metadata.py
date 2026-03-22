@@ -246,16 +246,8 @@ def get_agent_list() -> list[dict]:
     (to confirm the agent is registered) and VISUALIZER_MAP (for
     has_visualizer).  Only primary IDs are returned (no aliases).
     """
-    try:
-        # When PYTHONPATH=src (tests, installed package)
-        from agent_reasoning.interceptor import AGENT_MAP
-    except ModuleNotFoundError:
-        # When running from project root (server.py style)
-        from src.interceptor import AGENT_MAP
-    try:
-        from agent_reasoning.visualization import VISUALIZER_MAP
-    except ModuleNotFoundError:
-        from src.agent_reasoning.visualization import VISUALIZER_MAP
+    from agent_reasoning.interceptor import AGENT_MAP
+    from agent_reasoning.visualization import VISUALIZER_MAP
 
     agents = []
     for agent_id, meta in AGENT_METADATA.items():

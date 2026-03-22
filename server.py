@@ -72,7 +72,8 @@ async def generate(request: GenerateRequest):
                     "done": False,
                 }
                 yield json.dumps(data) + "\n"
-                await asyncio.sleep(0)
+                if chunk_count % 10 == 0:
+                    await asyncio.sleep(0)
 
             end_time = time.time()
             total_duration = int((end_time - start_time) * 1e9)
