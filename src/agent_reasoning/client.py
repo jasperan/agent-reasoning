@@ -23,6 +23,7 @@ class OllamaClient:
         top_p=0.9,
         num_predict=2048,
         stop=None,
+        timeout=120,
     ):
         url = f"{self.base_url}/api/generate"
         data = {
@@ -40,7 +41,7 @@ class OllamaClient:
             data["system"] = system
 
         try:
-            response = requests.post(url, json=data, stream=stream)
+            response = requests.post(url, json=data, stream=stream, timeout=timeout)
             response.raise_for_status()
 
             full_response = ""

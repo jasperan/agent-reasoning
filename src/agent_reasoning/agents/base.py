@@ -19,6 +19,18 @@ class BaseAgent(ABC):
             self._debug_event.wait()
             self._debug_event.clear()
 
+    def _validate_query(self, query):
+        """Validate and normalize a query input.
+
+        Raises ValueError if query is None. Converts non-string inputs to string.
+        Returns the validated query string.
+        """
+        if query is None:
+            raise ValueError("Query must not be None")
+        if not isinstance(query, str):
+            query = str(query)
+        return query
+
     def log_thought(self, message):
         print(colored(f"[{self.name}]: {message}", self.color))
 
