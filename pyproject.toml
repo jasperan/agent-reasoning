@@ -78,7 +78,6 @@ asyncio_mode = "auto"
 pythonpath = ["src"]
 
 [project.scripts]
-agent-reasoning = "agent_reasoning.cli:main"
 agent-reasoning-server = "agent_reasoning.server:main"
 
 [tool.setuptools.packages.find]
