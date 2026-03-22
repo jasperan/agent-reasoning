@@ -49,6 +49,10 @@ class ToTAgent(BaseAgent):
         all_nodes = {}
 
         for step in range(self.depth):
+            if not self._check_budget():
+                yield StreamEvent(event_type="text", data=f"\n{self._budget_exceeded_msg}\n")
+                break
+
             yield StreamEvent(
                 event_type="text", data=f"\n[Step {step + 1}/{self.depth} - Exploring branches]\n"
             )
@@ -57,6 +61,10 @@ class ToTAgent(BaseAgent):
 
             # 1. Generate Candidates
             for thought_path, parent_id in current_thoughts:
+                if not self._check_budget():
+                    yield StreamEvent(event_type="text", data=f"\n{self._budget_exceeded_msg}\n")
+                    break
+
                 prompt = (
                     f"Problem: {query}\nCurrent reasoning path:\n{thought_path}\n\n"
                     f"Provide {self.width} distinct possible next steps or continuations "
@@ -83,6 +91,10 @@ class ToTAgent(BaseAgent):
             # 2. Evaluate Candidates
             scored_candidates = []
             for thought_path, node_id, parent_id, content in candidates:
+                if not self._check_budget():
+                    yield StreamEvent(event_type="text", data=f"\n{self._budget_exceeded_msg}\n")
+                    break
+
                 eval_prompt = (
                     f"Problem: {query}\nProposed Reasoning Path:\n{thought_path}\n\n"
                     "Rate this reasoning path from 0.0 to 1.0 based on correctness "
@@ -146,6 +158,11 @@ class ToTAgent(BaseAgent):
         )
 
         final_response = ""
+        if not self._check_budget():
+            yield StreamEvent(event_type="text", data=f"\n{self._budget_exceeded_msg}\n")
+            yield StreamEvent(event_type="final", data=best_path)
+            return
+
         for chunk in self.client.generate(final_prompt, system=system_msg):
             final_response += chunk
             yield StreamEvent(event_type="text", data=chunk)

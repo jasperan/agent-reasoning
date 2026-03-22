@@ -103,6 +103,10 @@ FINAL_ANSWER = answer
         max_steps = 8
 
         for step in range(max_steps):
+            if not self._check_budget():
+                yield f"\n{self._budget_exceeded_msg}\n"
+                break
+
             # Construct prompt for this step
             full_input = env["INPUT"]
             if step == 0:
