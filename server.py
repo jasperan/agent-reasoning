@@ -9,13 +9,14 @@ from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse, StreamingResponse
 from pydantic import BaseModel
 
-from src.agent_reasoning.agent_metadata import get_agent_list
+from agent_reasoning.agent_metadata import get_agent_list
 
 # Import unified AGENT_MAP from interceptor (single source of truth)
-from src.interceptor import AGENT_MAP
+from agent_reasoning.interceptor import AGENT_MAP
 
 # Store active debug sessions
 debug_sessions = {}
+debug_sessions_lock = threading.Lock()
 
 app = FastAPI(title="Agent Reasoning Gateway")
 
@@ -99,7 +100,6 @@ async def generate(request: GenerateRequest):
 async def generate_structured(request: Request):
     """Structured streaming: yields StreamEvent objects as NDJSON."""
     body = await request.json()
-    from fastapi.responses import JSONResponse
 
     model_name = body.get("model", "gemma3:latest")
     prompt = body.get("prompt", "")
@@ -146,7 +146,7 @@ async def generate_structured(request: Request):
 @app.get("/api/tags")
 async def tags():
     """Return available model+strategy combinations (Ollama-compatible)."""
-    from src.agent_reasoning.agent_metadata import PRIMARY_AGENT_IDS
+    from agent_reasoning.agent_metadata import PRIMARY_AGENT_IDS
 
     strategies = sorted(s for s in PRIMARY_AGENT_IDS if s in AGENT_MAP)
     return {"models": [{"name": f"gemma3:270m+{s}"} for s in strategies]}
@@ -209,12 +209,13 @@ async def debug_start(request: Request):
     thread = threading.Thread(target=run_agent, daemon=True)
     thread.start()
 
-    debug_sessions[session_id] = {
-        "agent": agent,
-        "event": step_event,
-        "queue": event_queue,
-        "thread": thread,
-    }
+    with debug_sessions_lock:
+        debug_sessions[session_id] = {
+            "agent": agent,
+            "event": step_event,
+            "queue": event_queue,
+            "thread": thread,
+        }
 
     # Signal the first step so the agent starts
     step_event.set()
@@ -227,10 +228,10 @@ async def debug_step(request: Request):
     body = await request.json()
     session_id = body.get("session_id", "")
 
-    if session_id not in debug_sessions:
-        return JSONResponse({"error": "Session not found"}, status_code=404)
-
-    session = debug_sessions[session_id]
+    with debug_sessions_lock:
+        if session_id not in debug_sessions:
+            return JSONResponse({"error": "Session not found"}, status_code=404)
+        session = debug_sessions[session_id]
 
     # Get the event from the queue without blocking the event loop
     loop = asyncio.get_event_loop()
@@ -253,10 +254,11 @@ async def debug_run(request: Request):
     body = await request.json()
     session_id = body.get("session_id", "")
 
-    if session_id not in debug_sessions:
-        return JSONResponse({"error": "Session not found"}, status_code=404)
+    with debug_sessions_lock:
+        if session_id not in debug_sessions:
+            return JSONResponse({"error": "Session not found"}, status_code=404)
+        session = debug_sessions[session_id]
 
-    session = debug_sessions[session_id]
     # Disable pausing
     session["agent"]._debug_event = None
     session["event"].set()
@@ -278,19 +280,23 @@ async def debug_run(request: Request):
 
     events = await loop.run_in_executor(None, drain_queue)
 
-    del debug_sessions[session_id]
+    with debug_sessions_lock:
+        debug_sessions.pop(session_id, None)
     return {"events": events}
 
 
 @app.delete("/api/debug/{session_id}")
 async def debug_cancel(session_id: str):
-    if session_id not in debug_sessions:
-        return {"status": "not_found"}
+    with debug_sessions_lock:
+        if session_id not in debug_sessions:
+            return {"status": "not_found"}
+        session = debug_sessions[session_id]
 
-    session = debug_sessions[session_id]
     session["agent"]._debug_cancelled = True
     session["event"].set()  # unblock if waiting
-    del debug_sessions[session_id]
+
+    with debug_sessions_lock:
+        debug_sessions.pop(session_id, None)
     return {"status": "cancelled"}
 
 
