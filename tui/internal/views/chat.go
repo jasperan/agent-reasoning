@@ -278,6 +278,24 @@ func (v *ChatView) Update(msg tea.Msg) (app.View, tea.Cmd) {
 		if v.visualizer != nil {
 			v.visualizer.Update(msg.event)
 		}
+		// Also pipe text content into the chat panel so it's always visible
+		if msg.event.EventType == "text" {
+			if content, ok := msg.event.Data["content"].(string); ok {
+				v.chat.AppendStreaming(content)
+				if !v.gotFirstChunk {
+					v.gotFirstChunk = true
+					v.streamTTFT = time.Since(v.streamStart)
+					v.metrics.SetTTFT(v.streamTTFT)
+				}
+				v.tokenCount++
+				v.metrics.SetTokens(v.tokenCount)
+				elapsed := time.Since(v.streamStart)
+				if elapsed > 0 {
+					v.metrics.SetTPS(float64(v.tokenCount) / elapsed.Seconds())
+				}
+				v.metrics.SetDuration(elapsed)
+			}
+		}
 		cmds = append(cmds, v.nextStructuredEvent(msg.agentID))
 
 	case streamDoneMsg:
@@ -769,7 +787,10 @@ func (v *ChatView) nextStreamChunk(agentID string) tea.Cmd {
 				if resp.Done {
 					return streamDoneMsg{agentID: agentID, duration: time.Since(startTime).Seconds()}
 				}
-			case err := <-errChan:
+			case err, ok := <-errChan:
+				if !ok {
+					return streamDoneMsg{agentID: agentID, duration: time.Since(startTime).Seconds()}
+				}
 				if err != nil {
 					return streamErrorMsg{agentID: agentID, err: err}
 				}
@@ -795,7 +816,10 @@ func (v *ChatView) nextStructuredEvent(agentID string) tea.Cmd {
 					return streamDoneMsg{agentID: agentID, duration: time.Since(startTime).Seconds()}
 				}
 				return streamStructuredMsg{agentID: agentID, event: event}
-			case err := <-errChan:
+			case err, ok := <-errChan:
+				if !ok {
+					return streamDoneMsg{agentID: agentID, duration: time.Since(startTime).Seconds()}
+				}
 				if err != nil {
 					return streamErrorMsg{agentID: agentID, err: err}
 				}
