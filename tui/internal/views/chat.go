@@ -278,23 +278,37 @@ func (v *ChatView) Update(msg tea.Msg) (app.View, tea.Cmd) {
 		if v.visualizer != nil {
 			v.visualizer.Update(msg.event)
 		}
-		// Also pipe text content into the chat panel so it's always visible
-		if msg.event.EventType == "text" {
-			if content, ok := msg.event.Data["content"].(string); ok {
-				v.chat.AppendStreaming(content)
-				if !v.gotFirstChunk {
-					v.gotFirstChunk = true
-					v.streamTTFT = time.Since(v.streamStart)
-					v.metrics.SetTTFT(v.streamTTFT)
-				}
-				v.tokenCount++
-				v.metrics.SetTokens(v.tokenCount)
-				elapsed := time.Since(v.streamStart)
-				if elapsed > 0 {
-					v.metrics.SetTPS(float64(v.tokenCount) / elapsed.Seconds())
-				}
-				v.metrics.SetDuration(elapsed)
+		// Pipe text content into the chat panel so it's always visible.
+		// For structured events (chain_step, etc.), extract the content field too.
+		var textContent string
+		switch msg.event.EventType {
+		case "text":
+			if c, ok := msg.event.Data["content"].(string); ok {
+				textContent = c
 			}
+		case "chain_step", "thought", "observation", "action", "candidate", "reflection", "critique", "sub_answer":
+			if c, ok := msg.event.Data["content"].(string); ok {
+				textContent = c
+			}
+		case "error":
+			if m, ok := msg.event.Data["message"].(string); ok {
+				textContent = "Error: " + m
+			}
+		}
+		if textContent != "" {
+			v.chat.AppendStreaming(textContent)
+			if !v.gotFirstChunk {
+				v.gotFirstChunk = true
+				v.streamTTFT = time.Since(v.streamStart)
+				v.metrics.SetTTFT(v.streamTTFT)
+			}
+			v.tokenCount++
+			v.metrics.SetTokens(v.tokenCount)
+			elapsed := time.Since(v.streamStart)
+			if elapsed > 0 {
+				v.metrics.SetTPS(float64(v.tokenCount) / elapsed.Seconds())
+			}
+			v.metrics.SetDuration(elapsed)
 		}
 		cmds = append(cmds, v.nextStructuredEvent(msg.agentID))
 

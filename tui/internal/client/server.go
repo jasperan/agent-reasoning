@@ -234,6 +234,11 @@ func (c *ServerClient) GenerateStructured(ctx context.Context, model, prompt str
 		}
 		defer resp.Body.Close()
 
+		if resp.StatusCode != http.StatusOK {
+			errCh <- fmt.Errorf("server returned status %d for generate_structured", resp.StatusCode)
+			return
+		}
+
 		scanner := bufio.NewScanner(resp.Body)
 		scanner.Buffer(make([]byte, 1024*1024), 1024*1024)
 
