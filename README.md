@@ -124,7 +124,7 @@ uv add --dev <package>
 **Prerequisite**: [Ollama](https://ollama.com/) must be running locally, or you can connect to a remote Ollama instance.
 ```bash
 ollama pull gemma3:270m    # Tiny model for quick testing
-ollama pull gemma3:latest  # Full model for quality results
+ollama pull qwen3.5:9b    # Recommended model for quality results
 ```
 
 ### Configuring Remote Ollama Endpoint
@@ -329,7 +329,7 @@ server:
 ollama:
   url: http://localhost:11434
 defaults:
-  model: gemma3:latest
+  model: qwen3.5:9b
   visualization: true    # structured viz on by default
 ui:
   sidebar_width: 22
@@ -486,25 +486,29 @@ Evaluate reasoning strategies against standard NLP datasets to measure accuracy 
 | **ARC-Challenge** | Science Reasoning | 25 | Multiple choice (A-D) | Clark et al. (2018) |
 | **HellaSwag** | Commonsense | 20 | Multiple choice (A-D) | Zellers et al. (2019) |
 
-### Results: `gemma3:latest` (4.3B Q4_K_M)
+### Results: `qwen3.5:9b` (9.7B Q4_K_M)
 
-Full eval across all 11 strategies (1,155 evaluations):
+Full eval across 13 strategies (4,200 evaluations, March 2026):
 
-| Strategy | GSM8K | MMLU | ARC-C | HellaSwag | **Avg** |
-|----------|-------|------|-------|-----------|---------|
-| **Standard** (baseline) | 66.7% | 90.0% | 92.0% | 90.0% | **84.7%** |
-| **Chain of Thought** | 73.3% | 96.7% | 88.0% | 90.0% | **87.0%** |
-| **Tree of Thoughts** | 76.7% | 63.3% | 76.0% | 90.0% | **76.5%** |
-| **ReAct** | 63.3% | 86.7% | 96.0% | 90.0% | **84.0%** |
-| **Self-Reflection** | 66.7% | 90.0% | 88.0% | 90.0% | **83.7%** |
-| **Self-Consistency** | 76.7% | 96.7% | 92.0% | — | **66.3%** |
-| **Decomposed** | 10.0% | 60.0% | 84.0% | — | **38.5%** |
+| Strategy | GSM8K | MMLU | ARC-C | **Avg** |
+|----------|-------|------|-------|---------|
+| **Chain of Thought** | 94.0% | 82.0% | 90.0% | **88.7%** |
+| **Recursive** | 96.0% | 78.0% | 88.0% | **87.3%** |
+| **Self-Consistency** | 92.0% | 80.0% | 88.0% | **86.7%** |
+| **Tree of Thoughts** | 96.0% | 74.0% | 90.0% | **86.7%** |
+| **Standard** (baseline) | 96.0% | 66.0% | 82.0% | **81.3%** |
+| **Self-Reflection** | 96.0% | 60.0% | 86.0% | **80.7%** |
+| **Refinement Loop** | 94.0% | 60.0% | 80.0% | **78.0%** |
+| **Socratic** | 74.0% | 76.0% | 84.0% | **78.0%** |
+| **Debate** | 60.0% | 72.0% | 86.0% | **72.7%** |
+| **Decomposed** | 88.0% | 54.0% | 60.0% | **67.3%** |
+| **ReAct** | 84.0% | 46.0% | 70.0% | **66.7%** |
 
 **Key findings:**
-- **CoT** achieves the highest average accuracy (87.0%), outperforming Standard on GSM8K (+6.6%) and MMLU (+6.7%)
-- **Self-Consistency** ties CoT on MMLU (96.7%) and GSM8K (76.7%) through majority voting
-- **ToT** excels on GSM8K math (76.7%, +10% over Standard) through branch exploration
-- **ReAct** achieves the highest ARC-Challenge score (96.0%) via tool-augmented reasoning
+- **CoT** achieves the highest average accuracy (88.7%), outperforming Standard on MMLU (+16%) and ARC-C (+8%)
+- **Recursive** and **ToT** cluster close behind at 86.7-87.3%
+- **Self-Consistency** matches ToT at 86.7% through majority voting reliability
+- **Standard** generation scores 96.0% on GSM8K but drops on MMLU (66.0%), showing reasoning strategies help most on knowledge tasks
 
 ### Accuracy Heatmap
 
@@ -532,7 +536,7 @@ Charts are auto-generated after each run to `benchmarks/charts/`.
 ```python
 from src.benchmarks.accuracy import AccuracyBenchmarkRunner, DATASET_REGISTRY
 
-runner = AccuracyBenchmarkRunner(model="gemma3:latest")
+runner = AccuracyBenchmarkRunner(model="qwen3.5:9b")
 
 # Run all datasets with specific strategies
 for result in runner.run_all_datasets(
@@ -662,7 +666,7 @@ Observation: [1] Sundar Pichai - Wikipedia: ... He is the chief executive office
 
 ## 📊 Appendix C: Benchmark Charts
 
-Benchmark charts are auto-generated after every benchmark run. Below are sample outputs using `gemma3:latest`.
+Benchmark charts are auto-generated after every benchmark run. Below are sample outputs using `qwen3.5:9b`.
 
 ### Response Latency by Strategy
 
