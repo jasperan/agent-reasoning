@@ -1,13 +1,13 @@
 # src/visualization/tree_viz.py
 from typing import Dict, Optional
-from rich.console import RenderableType
+
+from rich.console import Group, RenderableType
 from rich.panel import Panel
-from rich.tree import Tree
 from rich.text import Text
-from rich.console import Group
 
 from .base import BaseVisualizer
 from .models import StreamEvent, TreeNode
+
 
 class TreeVisualizer(BaseVisualizer):
     """Visualizer for Tree of Thoughts - nested panels with color-coded scores."""
@@ -54,11 +54,9 @@ class TreeVisualizer(BaseVisualizer):
 
         # Query panel
         if self.query:
-            elements.append(Panel(
-                self.query,
-                title="[bold cyan]Query[/bold cyan]",
-                border_style="cyan"
-            ))
+            elements.append(
+                Panel(self.query, title="[bold cyan]Query[/bold cyan]", border_style="cyan")
+            )
 
         if not self.nodes:
             elements.append(Text("Thinking...", style="dim italic"))
@@ -83,17 +81,19 @@ class TreeVisualizer(BaseVisualizer):
 
                 content = node.content[:200] + "..." if len(node.content) > 200 else node.content
 
-                depth_panels.append(Panel(
-                    Text(content, style="dim" if node.is_pruned else ""),
-                    title=f"[{style}]{title}[/{style}]",
-                    border_style=style,
-                    padding=(0, 1)
-                ))
+                depth_panels.append(
+                    Panel(
+                        Text(content, style="dim" if node.is_pruned else ""),
+                        title=f"[{style}]{title}[/{style}]",
+                        border_style=style,
+                        padding=(0, 1),
+                    )
+                )
 
-            elements.append(Panel(
-                Group(*depth_panels),
-                title=f"[bold]Depth {depth}[/bold]",
-                border_style="blue"
-            ))
+            elements.append(
+                Panel(
+                    Group(*depth_panels), title=f"[bold]Depth {depth}[/bold]", border_style="blue"
+                )
+            )
 
         return Group(*elements)

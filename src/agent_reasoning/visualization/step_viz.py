@@ -1,13 +1,14 @@
 # src/visualization/step_viz.py
 import re
-from typing import Dict, List
-from rich.console import RenderableType
+from typing import Dict
+
+from rich.console import Group, RenderableType
 from rich.panel import Panel
 from rich.text import Text
-from rich.console import Group
 
 from .base import BaseVisualizer
-from .models import StreamEvent, ChainStep
+from .models import ChainStep, StreamEvent
+
 
 class StepVisualizer(BaseVisualizer):
     """Visualizer for Chain-of-Thought - numbered step panels with flow arrows."""
@@ -71,9 +72,7 @@ class StepVisualizer(BaseVisualizer):
             if matches:
                 for i, (_, content) in enumerate(matches, 1):
                     self.steps[i] = ChainStep(
-                        step=i,
-                        content=content.strip(),
-                        icon=self._detect_icon(content)
+                        step=i, content=content.strip(), icon=self._detect_icon(content)
                     )
                 break
 
@@ -81,11 +80,13 @@ class StepVisualizer(BaseVisualizer):
         elements = []
 
         # Header
-        elements.append(Panel(
-            f"Query: {self.query}",
-            title="[bold cyan]Chain-of-Thought Reasoning[/bold cyan]",
-            border_style="cyan"
-        ))
+        elements.append(
+            Panel(
+                f"Query: {self.query}",
+                title="[bold cyan]Chain-of-Thought Reasoning[/bold cyan]",
+                border_style="cyan",
+            )
+        )
 
         # Try to parse if we have raw content but no steps
         if self.raw_content and not self.steps:
@@ -103,28 +104,43 @@ class StepVisualizer(BaseVisualizer):
 
                 content = step.content[:300] + "..." if len(step.content) > 300 else step.content
 
-                elements.append(Panel(
-                    f"{step.icon} {content}",
-                    title=f"[bold]Step {step_num}[/bold]",
-                    border_style="blue"
-                ))
+                elements.append(
+                    Panel(
+                        f"{step.icon} {content}",
+                        title=f"[bold]Step {step_num}[/bold]",
+                        border_style="blue",
+                    )
+                )
 
                 # Arrow between steps
                 if step_num < total:
-                    elements.append(Text("                          │\n                          ▼", style="dim"))
+                    elements.append(
+                        Text(
+                            "                          │\n                          ▼", style="dim"
+                        )
+                    )
 
             # Progress
-            elements.append(Text(f"\nReasoning Progress: {'●───' * len(self.steps)}● {len(self.steps)}/{len(self.steps)}", style="dim"))
+            elements.append(
+                Text(
+                    f"\nReasoning Progress: {'●───' * len(self.steps)}● {len(self.steps)}/{len(self.steps)}",
+                    style="dim",
+                )
+            )
         else:
             # Fallback to raw content
-            elements.append(Panel(self.raw_content, title="[bold]Reasoning[/bold]", border_style="blue"))
+            elements.append(
+                Panel(self.raw_content, title="[bold]Reasoning[/bold]", border_style="blue")
+            )
 
         # Final answer
         if self.final_answer:
-            elements.append(Panel(
-                self.final_answer,
-                title="[bold green]🎯 Final Answer[/bold green]",
-                border_style="green"
-            ))
+            elements.append(
+                Panel(
+                    self.final_answer,
+                    title="[bold green]🎯 Final Answer[/bold green]",
+                    border_style="green",
+                )
+            )
 
         return Group(*elements)

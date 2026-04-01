@@ -5,13 +5,14 @@ import requests
 
 
 class OllamaClient:
-    def __init__(self, model="gemma3:latest", base_url=None):
+    def __init__(self, model="gemma3:latest", base_url=None, think=None):
         if base_url is None:
             from agent_reasoning.config import get_ollama_host
 
             base_url = get_ollama_host()
         self.model = model
         self.base_url = base_url
+        self.think = think  # None = model default, False = disable thinking
 
     def generate(
         self,
@@ -39,6 +40,8 @@ class OllamaClient:
             data["stop"] = stop
         if system:
             data["system"] = system
+        if self.think is not None:
+            data["think"] = self.think
 
         try:
             response = requests.post(url, json=data, stream=stream, timeout=timeout)

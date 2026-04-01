@@ -57,6 +57,26 @@
       {
         "key": "phi3:latest",
         "display_name": "Phi 3"
+      },
+      {
+        "key": "qwen3.5:35b-a3b",
+        "display_name": "Qwen 3.5 35B A3B (MoE: 35B/3B active)"
+      },
+      {
+        "key": "qwen3.5:9b",
+        "display_name": "Qwen 3.5 9B"
+      },
+      {
+        "key": "qwen3.5:4b",
+        "display_name": "Qwen 3.5 4B"
+      },
+      {
+        "key": "qwen3:8b",
+        "display_name": "Qwen 3 8B"
+      },
+      {
+        "key": "qwen3:4b",
+        "display_name": "Qwen 3 4B"
       }
     ]
   },

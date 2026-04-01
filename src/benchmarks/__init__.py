@@ -1,14 +1,14 @@
 """Benchmark suite for agent reasoning strategies."""
 
 from src.benchmarks.runner import (
-    BenchmarkRunner,
-    BenchmarkResult,
-    BenchmarkTask,
-    BenchmarkType,
-    InferenceResult,
-    ComparisonResult,
     AGENT_BENCHMARK_TASKS,
     INFERENCE_BENCHMARK_PROMPTS,
+    BenchmarkResult,
+    BenchmarkRunner,
+    BenchmarkTask,
+    BenchmarkType,
+    ComparisonResult,
+    InferenceResult,
 )
 
 __all__ = [

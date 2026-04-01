@@ -11,8 +11,11 @@ Each dataset embeds a representative sample (20-50 questions) for quick
 evaluation. Full dataset evaluation can be done via HuggingFace downloads.
 """
 
+import hashlib
 import json
+import math
 import os
+import random
 import re
 import time
 from dataclasses import asdict, dataclass, field
@@ -873,6 +876,146 @@ def get_hellaswag_questions() -> List[AccuracyQuestion]:
     ]
 
 
+# ── HuggingFace Dataset Loaders ──────────────────────────────────────────────
+
+
+def _load_hf_dataset(name: str, config: str, split: str, n: int, seed: int = 42):
+    """Load and sample from a HuggingFace dataset."""
+    from datasets import load_dataset
+
+    ds = load_dataset(name, config, split=split)
+    if n and n < len(ds):
+        rng = random.Random(seed)
+        indices = sorted(rng.sample(range(len(ds)), n))
+        return ds.select(indices), indices
+    return ds, list(range(len(ds)))
+
+
+def load_hf_gsm8k(n: int = 100, seed: int = 42) -> List[AccuracyQuestion]:
+    """Load GSM8K from HuggingFace: openai/gsm8k, test split."""
+    ds, indices = _load_hf_dataset("openai/gsm8k", "main", "test", n, seed)
+    questions = []
+    for idx, row in zip(indices, ds):
+        answer_text = row["answer"]
+        m = re.search(r"####\s*([-+]?\d[\d,]*\.?\d*)", answer_text)
+        numeric = m.group(1).replace(",", "") if m else ""
+        questions.append(
+            AccuracyQuestion(
+                dataset="gsm8k",
+                question_id=f"gsm8k_hf_{idx}",
+                question=row["question"],
+                choices=None,
+                correct_answer=numeric,
+                category="math",
+            )
+        )
+    return questions
+
+
+def load_hf_mmlu(n: int = 100, seed: int = 42) -> List[AccuracyQuestion]:
+    """Load MMLU from HuggingFace: cais/mmlu, all subjects, test split."""
+    ds, indices = _load_hf_dataset("cais/mmlu", "all", "test", n, seed)
+    letter_map = {0: "A", 1: "B", 2: "C", 3: "D"}
+    questions = []
+    for idx, row in zip(indices, ds):
+        questions.append(
+            AccuracyQuestion(
+                dataset="mmlu",
+                question_id=f"mmlu_hf_{idx}",
+                question=row["question"],
+                choices=row["choices"],
+                correct_answer=letter_map[row["answer"]],
+                category=row.get("subject", "general"),
+            )
+        )
+    return questions
+
+
+def load_hf_arc(n: int = 100, seed: int = 42) -> List[AccuracyQuestion]:
+    """Load ARC-Challenge from HuggingFace: allenai/ai2_arc, test split."""
+    ds, indices = _load_hf_dataset("allenai/ai2_arc", "ARC-Challenge", "test", n, seed)
+    questions = []
+    for idx, row in zip(indices, ds):
+        choices_list = row["choices"]["text"]
+        row["choices"]["label"]
+        # Normalize answerKey: some use "1","2","3","4" instead of "A","B","C","D"
+        answer_key = row["answerKey"]
+        if answer_key.isdigit():
+            answer_key = chr(64 + int(answer_key))  # 1->A, 2->B, etc.
+        questions.append(
+            AccuracyQuestion(
+                dataset="arc_challenge",
+                question_id=f"arc_hf_{idx}",
+                question=row["question"],
+                choices=choices_list[:4],
+                correct_answer=answer_key,
+                category="science",
+            )
+        )
+    return questions
+
+
+def load_hf_hellaswag(n: int = 100, seed: int = 42) -> List[AccuracyQuestion]:
+    """Load HellaSwag from HuggingFace: Rowan/hellaswag, validation split."""
+    ds, indices = _load_hf_dataset("Rowan/hellaswag", None, "validation", n, seed)
+    letter_map = {0: "A", 1: "B", 2: "C", 3: "D"}
+    questions = []
+    for idx, row in zip(indices, ds):
+        ctx = row["ctx"]
+        endings = row["endings"]
+        label = int(row["label"])
+        questions.append(
+            AccuracyQuestion(
+                dataset="hellaswag",
+                question_id=f"hellaswag_hf_{idx}",
+                question=f"{ctx}",
+                choices=endings[:4],
+                correct_answer=letter_map[label],
+                category="commonsense",
+            )
+        )
+    return questions
+
+
+# ── Verifiability Helpers ────────────────────────────────────────────────────
+
+
+def get_model_fingerprint(model: str) -> dict:
+    """Get model digest and metadata from Ollama for reproducibility."""
+    try:
+        import httpx
+
+        resp = httpx.post("http://localhost:11434/api/show", json={"name": model}, timeout=10)
+        data = resp.json()
+        return {
+            "model": model,
+            "digest": data.get("digest", "unknown"),
+            "size": data.get("size", 0),
+            "parameter_size": data.get("details", {}).get("parameter_size", "unknown"),
+            "quantization": data.get("details", {}).get("quantization_level", "unknown"),
+            "family": data.get("details", {}).get("family", "unknown"),
+        }
+    except Exception:
+        return {"model": model, "digest": "unavailable"}
+
+
+def compute_confidence_interval(correct: int, total: int, confidence: float = 0.95) -> tuple:
+    """Wilson score interval for binomial proportion (better than normal approx for small n)."""
+    if total == 0:
+        return (0.0, 0.0)
+    p = correct / total
+    z = 1.96 if confidence == 0.95 else 2.576  # 95% or 99%
+    denom = 1 + z**2 / total
+    center = (p + z**2 / (2 * total)) / denom
+    spread = z * math.sqrt((p * (1 - p) + z**2 / (4 * total)) / total) / denom
+    return (round(max(0, center - spread) * 100, 1), round(min(1, center + spread) * 100, 1))
+
+
+def hash_question(q: AccuracyQuestion) -> str:
+    """SHA256 hash of question text for verifiability."""
+    return hashlib.sha256(q.question.encode()).hexdigest()[:16]
+
+
 # ── Dataset Registry ──────────────────────────────────────────────────────────
 
 
@@ -883,6 +1026,8 @@ DATASET_REGISTRY = {
         "category": "Math Reasoning",
         "reference": "Cobbe et al. (2021)",
         "loader": get_gsm8k_questions,
+        "hf_loader": load_hf_gsm8k,
+        "hf_source": "openai/gsm8k (main, test)",
     },
     "mmlu": {
         "name": "MMLU",
@@ -890,6 +1035,8 @@ DATASET_REGISTRY = {
         "category": "Knowledge",
         "reference": "Hendrycks et al. (2021)",
         "loader": get_mmlu_questions,
+        "hf_loader": load_hf_mmlu,
+        "hf_source": "cais/mmlu (all, test)",
     },
     "arc_challenge": {
         "name": "ARC-Challenge",
@@ -897,6 +1044,8 @@ DATASET_REGISTRY = {
         "category": "Science Reasoning",
         "reference": "Clark et al. (2018)",
         "loader": get_arc_questions,
+        "hf_loader": load_hf_arc,
+        "hf_source": "allenai/ai2_arc (ARC-Challenge, test)",
     },
     "hellaswag": {
         "name": "HellaSwag",
@@ -904,6 +1053,8 @@ DATASET_REGISTRY = {
         "category": "Commonsense",
         "reference": "Zellers et al. (2019)",
         "loader": get_hellaswag_questions,
+        "hf_loader": load_hf_hellaswag,
+        "hf_source": "Rowan/hellaswag (validation)",
     },
 }
 
@@ -938,11 +1089,77 @@ def format_question_prompt(question: AccuracyQuestion) -> str:
 
 
 class AccuracyBenchmarkRunner:
-    """Runs accuracy evaluations across datasets and strategies."""
+    """Runs accuracy evaluations across datasets and strategies.
 
-    def __init__(self, model: str = "gemma3:latest"):
+    Args:
+        model: Ollama model name (e.g. 'qwen3.5:9b')
+        source: 'embedded' for hardcoded questions, 'huggingface' for HF datasets
+        samples: Number of questions per dataset when using HuggingFace (default 100)
+        seed: Random seed for reproducible HF sampling (default 42)
+    """
+
+    def __init__(
+        self,
+        model: str = "gemma3:latest",
+        source: str = "embedded",
+        samples: int = 100,
+        seed: int = 42,
+        think: Optional[bool] = None,
+    ):
         self.model = model
+        self.source = source
+        self.samples = samples
+        self.seed = seed
+        self.think = think  # None = model default, False = disable thinking (qwen3.5)
         self.results: List[AccuracyResult] = []
+        self._question_hashes: Dict[str, str] = {}
+        self._model_fingerprint: Optional[dict] = None
+
+    def _load_questions(
+        self, dataset_id: str, max_questions: Optional[int] = None
+    ) -> List[AccuracyQuestion]:
+        """Load questions from embedded or HuggingFace source."""
+        registry = DATASET_REGISTRY[dataset_id]
+
+        if self.source == "huggingface" and "hf_loader" in registry:
+            n = max_questions or self.samples
+            questions = registry["hf_loader"](n=n, seed=self.seed)
+        else:
+            questions = registry["loader"]()
+            if max_questions:
+                questions = questions[:max_questions]
+
+        # Record question hashes for verifiability
+        for q in questions:
+            self._question_hashes[q.question_id] = hash_question(q)
+
+        return questions
+
+    @staticmethod
+    def _ensure_ollama(max_retries: int = 3, wait: int = 10) -> bool:
+        """Check Ollama is reachable; restart via systemd if not."""
+        import subprocess
+
+        try:
+            import requests as _req
+        except ImportError:
+            import httpx as _req
+        for attempt in range(max_retries):
+            try:
+                r = _req.get("http://localhost:11434/api/tags", timeout=5)
+                if hasattr(r, "status_code") and r.status_code == 200:
+                    return True
+            except Exception:
+                pass
+            print(
+                f"\n  [HEALTH] Ollama unreachable (attempt {attempt + 1}/{max_retries}), restarting...",
+                flush=True,
+            )
+            subprocess.run(
+                ["sudo", "systemctl", "restart", "ollama"], capture_output=True, timeout=15
+            )
+            time.sleep(wait)
+        return False
 
     def run_dataset(
         self,
@@ -958,17 +1175,24 @@ class AccuracyBenchmarkRunner:
         if dataset_id not in DATASET_REGISTRY:
             raise ValueError(f"Unknown dataset: {dataset_id}")
 
-        questions = DATASET_REGISTRY[dataset_id]["loader"]()
-        if max_questions:
-            questions = questions[:max_questions]
+        questions = self._load_questions(dataset_id, max_questions)
 
         for strategy in strategies:
             if strategy not in AGENT_MAP:
                 continue
 
+            # Health check before each strategy
+            if not self._ensure_ollama():
+                print(f"\n  [HEALTH] Ollama failed to restart, skipping {strategy}", flush=True)
+                continue
+
             agent_class = AGENT_MAP[strategy]
             agent = agent_class(model=self.model)
+            # Disable thinking mode for models like qwen3.5
+            if self.think is not None and hasattr(agent, "client"):
+                agent.client.think = self.think
 
+            consecutive_errors = 0
             for q in questions:
                 if on_question_start:
                     on_question_start(q, strategy)
@@ -980,8 +1204,24 @@ class AccuracyBenchmarkRunner:
                 try:
                     for chunk in agent.stream(prompt):
                         response += chunk
+                    consecutive_errors = 0
                 except Exception as e:
                     response = f"ERROR: {e}"
+                    consecutive_errors += 1
+                    # If 3 consecutive errors, Ollama likely crashed — restart it
+                    if consecutive_errors >= 3:
+                        print("\n  [HEALTH] 3 consecutive errors, checking Ollama...", flush=True)
+                        if self._ensure_ollama():
+                            agent = agent_class(model=self.model)
+                            if self.think is not None and hasattr(agent, "client"):
+                                agent.client.think = self.think
+                            consecutive_errors = 0
+                        else:
+                            print(
+                                f"\n  [HEALTH] Cannot recover Ollama, aborting {strategy}",
+                                flush=True,
+                            )
+                            break
 
                 latency = (time.time() - start) * 1000
                 correct, predicted = check_answer(q, response)
@@ -1011,7 +1251,7 @@ class AccuracyBenchmarkRunner:
         on_question_start: Optional[Callable] = None,
         on_question_done: Optional[Callable] = None,
     ) -> Generator[AccuracyResult, None, None]:
-        """Evaluate strategies across all embedded datasets."""
+        """Evaluate strategies across all datasets."""
         for dataset_id in DATASET_REGISTRY:
             yield from self.run_dataset(
                 dataset_id,
@@ -1050,12 +1290,49 @@ class AccuracyBenchmarkRunner:
         return reports
 
     def save_results(self, filepath: str):
-        """Save all results to JSON."""
+        """Save results with full verifiability metadata."""
+        # Get model fingerprint on first save
+        if not self._model_fingerprint:
+            self._model_fingerprint = get_model_fingerprint(self.model)
+
+        # Build dataset provenance
+        provenance = {}
+        for did, reg in DATASET_REGISTRY.items():
+            entry = {
+                "name": reg["name"],
+                "reference": reg["reference"],
+                "source": self.source,
+            }
+            if self.source == "huggingface":
+                entry["hf_dataset"] = reg.get("hf_source", "N/A")
+                entry["sample_size"] = self.samples
+                entry["seed"] = self.seed
+            provenance[did] = entry
+
+        # Compute confidence intervals per report
+        reports = self.generate_reports()
+        reports_with_ci = []
+        for r in reports:
+            rd = asdict(r)
+            ci_low, ci_high = compute_confidence_interval(r.correct, r.total)
+            rd["ci_95_low"] = ci_low
+            rd["ci_95_high"] = ci_high
+            reports_with_ci.append(rd)
+
         data = {
+            "version": "2.0",
             "model": self.model,
+            "model_fingerprint": self._model_fingerprint,
             "timestamp": datetime.now().isoformat(),
+            "config": {
+                "source": self.source,
+                "samples_per_dataset": self.samples,
+                "seed": self.seed,
+            },
+            "dataset_provenance": provenance,
+            "question_hashes": self._question_hashes,
             "results": [asdict(r) for r in self.results],
-            "reports": [asdict(r) for r in self.generate_reports()],
+            "reports": reports_with_ci,
         }
         os.makedirs(os.path.dirname(filepath) or ".", exist_ok=True)
         with open(filepath, "w") as f:
@@ -1063,6 +1340,7 @@ class AccuracyBenchmarkRunner:
 
     def clear(self):
         self.results = []
+        self._question_hashes = {}
 
 
 # ── Chart Generation ──────────────────────────────────────────────────────────

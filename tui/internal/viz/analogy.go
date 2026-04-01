@@ -15,9 +15,10 @@ var (
 )
 
 type analogyData struct {
-	sourceDomain string
-	mapping      string
-	application  string
+	structure    string // abstract_structure (phase 1: identify)
+	sourceDomain string // source_domain (phase 2: generate)
+	mapping      string // mapping (phase 3: transfer)
+	solution     string // solution_transfer (phase 3: transfer)
 }
 
 // AnalogyViz renders analogical reasoning events in 3 sequential panels.
@@ -47,6 +48,10 @@ func (v *AnalogyViz) Update(event client.StructuredEvent) {
 		phase := getString(event.Data, "phase")
 		v.phase = phase
 
+		structure := getString(event.Data, "abstract_structure")
+		if structure != "" {
+			v.data.structure = structure
+		}
 		src := getString(event.Data, "source_domain")
 		if src != "" {
 			v.data.sourceDomain = src
@@ -55,21 +60,21 @@ func (v *AnalogyViz) Update(event client.StructuredEvent) {
 		if mapping != "" {
 			v.data.mapping = mapping
 		}
-		application := getString(event.Data, "application")
-		if application != "" {
-			v.data.application = application
+		solution := getString(event.Data, "solution_transfer")
+		if solution != "" {
+			v.data.solution = solution
 		}
 
 	case "final":
 		content := getString(event.Data, "content")
 		if content != "" {
-			v.data.application = content
+			v.data.solution = content
 		}
 	}
 }
 
 func (v *AnalogyViz) View() string {
-	if v.data.sourceDomain == "" && v.data.mapping == "" && v.data.application == "" {
+	if v.data.structure == "" && v.data.sourceDomain == "" && v.data.mapping == "" && v.data.solution == "" {
 		return analogySepStyle.Render("Waiting for analogy events...")
 	}
 
@@ -85,9 +90,10 @@ func (v *AnalogyViz) View() string {
 		content string
 		active  bool
 	}{
-		{"Source Domain", v.data.sourceDomain, v.data.sourceDomain != ""},
+		{"Problem Structure", v.data.structure, v.data.structure != ""},
+		{"Analogies", v.data.sourceDomain, v.data.sourceDomain != ""},
 		{"Mapping", v.data.mapping, v.data.mapping != ""},
-		{"Application", v.data.application, v.data.application != ""},
+		{"Solution Transfer", v.data.solution, v.data.solution != ""},
 	}
 
 	for _, p := range panels {

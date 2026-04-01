@@ -14,17 +14,18 @@ Uses the Chat API with GenericChatRequest for non-Cohere models.
 """
 
 import argparse
-import time
 import json
-import sys
-import random
 import os
-from pathlib import Path
+import random
+import sys
+import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from pathlib import Path
 from threading import Lock
 
 # Load config from benchmarks/config.json
 CONFIG_PATH = Path(__file__).parent / "config.json"
+
 
 def load_config():
     """Load benchmark configuration from config.json."""
@@ -32,6 +33,7 @@ def load_config():
         with open(CONFIG_PATH) as f:
             return json.load(f)
     return {}
+
 
 CONFIG = load_config()
 
@@ -41,13 +43,14 @@ try:
     from oci.generative_ai_inference import GenerativeAiInferenceClient
     from oci.generative_ai_inference.models import (
         ChatDetails,
-        GenericChatRequest,
         CohereChatRequest,
-        UserMessage,
-        TextContent,
+        GenericChatRequest,
         OnDemandServingMode,
+        TextContent,
+        UserMessage,
     )
     from oci.retry import NoneRetryStrategy
+
     OCI_AVAILABLE = True
 except ImportError:
     OCI_AVAILABLE = False
@@ -60,45 +63,41 @@ OCI_MODELS = {
         "model_id": "openai.gpt-oss-120b",
         "display_name": "OpenAI GPT-OSS-120B",
         "provider": "openai",
-        "type": "generic"
+        "type": "generic",
     },
-
     # xAI Grok models
     "grok-4.1-fast": {
         "model_id": "xai.grok-4-1-fast-non-reasoning",
         "display_name": "xAI Grok 4.1 Fast",
         "provider": "xai",
-        "type": "generic"
+        "type": "generic",
     },
     "grok-3-fast": {
         "model_id": "xai.grok-3-fast",
         "display_name": "xAI Grok 3 Fast",
         "provider": "xai",
-        "type": "generic"
+        "type": "generic",
     },
-
     # Meta Llama models
     "llama-4-maverick": {
         "model_id": "meta.llama-4-maverick-17b-128e-instruct-fp8",
         "display_name": "Meta Llama 4 Maverick",
         "provider": "meta",
-        "type": "generic"
+        "type": "generic",
     },
-
     # Google Gemini models
     "gemini-2.5-pro": {
         "model_id": "google.gemini-2.5-pro",
         "display_name": "Google Gemini 2.5 Pro",
         "provider": "google",
-        "type": "generic"
+        "type": "generic",
     },
-
     # Cohere models (for comparison)
     "cohere-command-r": {
         "model_id": "cohere.command-r-08-2024",
         "display_name": "Cohere Command R",
         "provider": "cohere",
-        "type": "cohere"
+        "type": "cohere",
     },
 }
 
@@ -129,7 +128,7 @@ def get_model_info(model_key: str) -> dict:
         "model_id": model_key,
         "display_name": model_key,
         "provider": "unknown",
-        "type": "generic"  # Default to generic for unknown models
+        "type": "generic",  # Default to generic for unknown models
     }
 
 
@@ -141,9 +140,7 @@ def create_generic_chat_request(prompt: str, max_tokens: int = 1000, temperature
     """
     return GenericChatRequest(
         api_format="GENERIC",
-        messages=[
-            UserMessage(content=[TextContent(text=prompt)])
-        ],
+        messages=[UserMessage(content=[TextContent(text=prompt)])],
         max_tokens=max_tokens,
         temperature=temperature,
         top_p=0.9,
@@ -159,7 +156,9 @@ def create_cohere_chat_request(prompt: str, max_tokens: int = 1000, temperature:
     )
 
 
-def benchmark_oci(compartment_id: str, endpoint: str, model_key: str, prompt: str, dry_run: bool = False):
+def benchmark_oci(
+    compartment_id: str, endpoint: str, model_key: str, prompt: str, dry_run: bool = False
+):
     """
     Benchmarks a single prompt against OCI Generative AI Service.
 
@@ -202,14 +201,14 @@ def benchmark_oci(compartment_id: str, endpoint: str, model_key: str, prompt: st
             "latency_ms": base_latency + random.uniform(0, 80),
             "output_tokens": random.randint(80, 150),
             "cost_estimate": 0.00015 if provider != "openai" else 0.0003,
-            "error": None
+            "error": None,
         }
 
     if not OCI_AVAILABLE:
         return {
             "model": model_key,
             "model_id": model_id,
-            "error": "OCI SDK not installed. Run 'pip install oci'."
+            "error": "OCI SDK not installed. Run 'pip install oci'.",
         }
 
     try:
@@ -220,7 +219,7 @@ def benchmark_oci(compartment_id: str, endpoint: str, model_key: str, prompt: st
         # Fallback to config file values if arguments are missing
         final_compartment = compartment_id or config.get("compartment_id") or config.get("tenancy")
         final_endpoint = endpoint or config.get("endpoint")
-        
+
         # If endpoint is still missing, try to resolve from region
         if not final_endpoint and config.get("region") and config.get("region") in OCI_ENDPOINTS:
             final_endpoint = OCI_ENDPOINTS[config.get("region")]
@@ -229,14 +228,14 @@ def benchmark_oci(compartment_id: str, endpoint: str, model_key: str, prompt: st
             return {
                 "model": model_key,
                 "model_id": model_id,
-                "error": "No compartment_id provided and could not resolve from OCI config."
+                "error": "No compartment_id provided and could not resolve from OCI config.",
             }
 
         genai_client = GenerativeAiInferenceClient(
             config=config,
             service_endpoint=final_endpoint,
             retry_strategy=NoneRetryStrategy(),
-            timeout=(10, 240)
+            timeout=(10, 240),
         )
 
         # Select appropriate chat request type based on model
@@ -284,7 +283,9 @@ def benchmark_oci(compartment_id: str, endpoint: str, model_key: str, prompt: st
         input_tokens = len(prompt.split()) * 1.3
         cost_per_1k_input = 0.0015 if model_info["provider"] == "openai" else 0.0005
         cost_per_1k_output = 0.002 if model_info["provider"] == "openai" else 0.0015
-        cost_estimate = (input_tokens / 1000 * cost_per_1k_input) + (output_tokens / 1000 * cost_per_1k_output)
+        cost_estimate = (input_tokens / 1000 * cost_per_1k_input) + (
+            output_tokens / 1000 * cost_per_1k_output
+        )
 
         return {
             "model": model_key,
@@ -297,7 +298,7 @@ def benchmark_oci(compartment_id: str, endpoint: str, model_key: str, prompt: st
             "output_tokens": output_tokens,
             "output_preview": output_text[:100] + "..." if len(output_text) > 100 else output_text,
             "cost_estimate": round(cost_estimate, 6),
-            "error": None
+            "error": None,
         }
 
     except Exception as e:
@@ -307,7 +308,7 @@ def benchmark_oci(compartment_id: str, endpoint: str, model_key: str, prompt: st
             "display_name": model_info.get("display_name", model_key),
             "provider": model_info.get("provider", "unknown"),
             "prompt_len": len(prompt),
-            "error": str(e)
+            "error": str(e),
         }
 
 
@@ -346,32 +347,58 @@ Examples:
 
   # Dry run to test without API calls
   python benchmark_oci.py --dry-run
-        """
+        """,
     )
-    parser.add_argument("--compartment-id", type=str, default=default_compartment,
-                       help="OCI Compartment OCID (default: from config.json or OCI config)")
-    parser.add_argument("--endpoint", type=str, default=default_endpoint,
-                       help=f"OCI GenAI Endpoint (default: from config.json or OCI config)")
-    parser.add_argument("--profile", type=str, default=default_profile,
-                       help=f"OCI CLI profile name (default: {default_profile})")
-    parser.add_argument("--region", type=str, choices=list(OCI_ENDPOINTS.keys()),
-                       help="OCI region (alternative to --endpoint)")
-    parser.add_argument("--models", nargs='+', default=DEFAULT_MODELS,
-                       help="Model keys or IDs to benchmark (space separated)")
-    parser.add_argument("--prompts-file", type=str, default=None,
-                       help="JSON file containing list of prompts")
-    parser.add_argument("--output", type=str, default="oci_results.json",
-                       help="Output file for results")
-    parser.add_argument("--dry-run", action="store_true",
-                       help="Simulate run without calling API")
-    parser.add_argument("--iterations", type=int, default=default_iterations,
-                       help=f"Number of iterations per prompt (default: {default_iterations})")
-    parser.add_argument("--list-models", action="store_true",
-                       help="List available models and exit")
-    parser.add_argument("--parallel", action="store_true",
-                       help="Run all models in parallel for faster results")
-    parser.add_argument("--workers", type=int, default=6,
-                       help="Number of parallel workers (default: 6)")
+    parser.add_argument(
+        "--compartment-id",
+        type=str,
+        default=default_compartment,
+        help="OCI Compartment OCID (default: from config.json or OCI config)",
+    )
+    parser.add_argument(
+        "--endpoint",
+        type=str,
+        default=default_endpoint,
+        help="OCI GenAI Endpoint (default: from config.json or OCI config)",
+    )
+    parser.add_argument(
+        "--profile",
+        type=str,
+        default=default_profile,
+        help=f"OCI CLI profile name (default: {default_profile})",
+    )
+    parser.add_argument(
+        "--region",
+        type=str,
+        choices=list(OCI_ENDPOINTS.keys()),
+        help="OCI region (alternative to --endpoint)",
+    )
+    parser.add_argument(
+        "--models",
+        nargs="+",
+        default=DEFAULT_MODELS,
+        help="Model keys or IDs to benchmark (space separated)",
+    )
+    parser.add_argument(
+        "--prompts-file", type=str, default=None, help="JSON file containing list of prompts"
+    )
+    parser.add_argument(
+        "--output", type=str, default="oci_results.json", help="Output file for results"
+    )
+    parser.add_argument("--dry-run", action="store_true", help="Simulate run without calling API")
+    parser.add_argument(
+        "--iterations",
+        type=int,
+        default=default_iterations,
+        help=f"Number of iterations per prompt (default: {default_iterations})",
+    )
+    parser.add_argument("--list-models", action="store_true", help="List available models and exit")
+    parser.add_argument(
+        "--parallel", action="store_true", help="Run all models in parallel for faster results"
+    )
+    parser.add_argument(
+        "--workers", type=int, default=6, help="Number of parallel workers (default: 6)"
+    )
 
     args = parser.parse_args()
 
@@ -385,10 +412,14 @@ Examples:
             config = oci.config.from_file(profile_name=args.profile)
             if not args.compartment_id:
                 args.compartment_id = config.get("compartment_id") or config.get("tenancy")
-            
+
             if not args.endpoint:
                 args.endpoint = config.get("endpoint")
-                if not args.endpoint and config.get("region") and config.get("region") in OCI_ENDPOINTS:
+                if (
+                    not args.endpoint
+                    and config.get("region")
+                    and config.get("region") in OCI_ENDPOINTS
+                ):
                     args.endpoint = OCI_ENDPOINTS[config.get("region")]
         except Exception as e:
             if not args.dry_run:
@@ -410,15 +441,18 @@ Examples:
         sys.exit(1)
 
     # Default prompts from config or hardcoded fallback
-    prompts = CONFIG.get("defaults", {}).get("prompts", [
-        "Explain the concept of recursion in programming with a simple example.",
-        "What are the key differences between SQL and NoSQL databases?",
-        "Write a Python function to find the longest common subsequence of two strings.",
-    ])
+    prompts = CONFIG.get("defaults", {}).get(
+        "prompts",
+        [
+            "Explain the concept of recursion in programming with a simple example.",
+            "What are the key differences between SQL and NoSQL databases?",
+            "Write a Python function to find the longest common subsequence of two strings.",
+        ],
+    )
 
     if args.prompts_file:
         try:
-            with open(args.prompts_file, 'r') as f:
+            with open(args.prompts_file, "r") as f:
                 prompts = json.load(f)
         except FileNotFoundError:
             print(f"Error: Prompts file '{args.prompts_file}' not found.")
@@ -449,11 +483,13 @@ Examples:
         for model_key in args.models:
             for i in range(args.iterations):
                 for prompt in prompts:
-                    tasks.append({
-                        "model_key": model_key,
-                        "iteration": i + 1,
-                        "prompt": prompt,
-                    })
+                    tasks.append(
+                        {
+                            "model_key": model_key,
+                            "iteration": i + 1,
+                            "prompt": prompt,
+                        }
+                    )
 
         # Thread-safe counter and lock for progress
         print_lock = Lock()
@@ -461,11 +497,7 @@ Examples:
 
         def run_task(task):
             res = benchmark_oci(
-                args.compartment_id,
-                endpoint,
-                task["model_key"],
-                task["prompt"],
-                args.dry_run
+                args.compartment_id, endpoint, task["model_key"], task["prompt"], args.dry_run
             )
             res["iteration"] = task["iteration"]
             res["prompt_sample"] = task["prompt"][:80]
@@ -473,11 +505,15 @@ Examples:
 
             with print_lock:
                 completed[0] += 1
-                model_info = get_model_info(task["model_key"])
+                get_model_info(task["model_key"])
                 if res.get("error"):
-                    print(f"[{completed[0]}/{total_requests}] {task['model_key']}: ❌ {str(res['error'])[:50]}")
+                    print(
+                        f"[{completed[0]}/{total_requests}] {task['model_key']}: ❌ {str(res['error'])[:50]}"
+                    )
                 else:
-                    print(f"[{completed[0]}/{total_requests}] {task['model_key']}: ✓ {res['latency_ms']:.0f}ms")
+                    print(
+                        f"[{completed[0]}/{total_requests}] {task['model_key']}: ✓ {res['latency_ms']:.0f}ms"
+                    )
 
             return res
 
@@ -489,11 +525,13 @@ Examples:
                     results.append(res)
                 except Exception as e:
                     task = futures[future]
-                    results.append({
-                        "model": task["model_key"],
-                        "error": str(e),
-                        "iteration": task["iteration"],
-                    })
+                    results.append(
+                        {
+                            "model": task["model_key"],
+                            "error": str(e),
+                            "iteration": task["iteration"],
+                        }
+                    )
 
         # Print summaries after parallel run
         print("\n" + "-" * 80)
@@ -504,7 +542,9 @@ Examples:
             if successful:
                 avg_latency = sum(r["latency_ms"] for r in successful) / len(successful)
                 avg_ttft = sum(r["ttft_ms"] for r in successful) / len(successful)
-                print(f"📊 {model_info['display_name']}: {avg_latency:.0f}ms avg, {len(successful)}/{len(model_results)} success")
+                print(
+                    f"📊 {model_info['display_name']}: {avg_latency:.0f}ms avg, {len(successful)}/{len(model_results)} success"
+                )
 
     else:
         # Sequential execution (original behavior)
@@ -512,21 +552,21 @@ Examples:
 
         for model_key in args.models:
             model_info = get_model_info(model_key)
-            print(f"\n--- Benchmarking: {model_info['display_name']} ({model_info['model_id']}) ---")
+            print(
+                f"\n--- Benchmarking: {model_info['display_name']} ({model_info['model_id']}) ---"
+            )
 
             model_results = []
 
             for i in range(args.iterations):
                 for prompt in prompts:
                     completed += 1
-                    print(f"[{completed}/{total_requests}] {model_key}, Iter {i+1}: '{prompt[:40]}...'")
+                    print(
+                        f"[{completed}/{total_requests}] {model_key}, Iter {i + 1}: '{prompt[:40]}...'"
+                    )
 
                     res = benchmark_oci(
-                        args.compartment_id,
-                        endpoint,
-                        model_key,
-                        prompt,
-                        args.dry_run
+                        args.compartment_id, endpoint, model_key, prompt, args.dry_run
                     )
                     res["iteration"] = i + 1
                     res["prompt_sample"] = prompt[:80]
@@ -537,7 +577,9 @@ Examples:
                     if res.get("error"):
                         print(f"  ❌ Error: {res['error']}")
                     else:
-                        print(f"  ✓ TTFT: {res['ttft_ms']:.1f}ms, Latency: {res['latency_ms']:.1f}ms, Tokens: {res['output_tokens']}")
+                        print(
+                            f"  ✓ TTFT: {res['ttft_ms']:.1f}ms, Latency: {res['latency_ms']:.1f}ms, Tokens: {res['output_tokens']}"
+                        )
 
             # Print model summary
             successful = [r for r in model_results if not r.get("error")]
@@ -564,12 +606,12 @@ Examples:
             "workers": args.workers if args.parallel else 1,
             "dry_run": args.dry_run,
             "total_time_s": round(total_time, 2),
-            "timestamp": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+            "timestamp": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
         },
-        "results": results
+        "results": results,
     }
 
-    with open(args.output, 'w') as f:
+    with open(args.output, "w") as f:
         json.dump(output_data, f, indent=2)
 
     print(f"Results saved to {args.output}")
@@ -588,7 +630,9 @@ Examples:
         if successful:
             avg_latency = sum(r["latency_ms"] for r in successful) / len(successful)
             avg_ttft = sum(r["ttft_ms"] for r in successful) / len(successful)
-            print(f"{model_key:<25} {avg_latency:>10.1f}ms    {avg_ttft:>10.1f}ms    {len(successful)}/{len(model_results)}")
+            print(
+                f"{model_key:<25} {avg_latency:>10.1f}ms    {avg_ttft:>10.1f}ms    {len(successful)}/{len(model_results)}"
+            )
         else:
             print(f"{model_key:<25} {'N/A':<15} {'N/A':<15} 0/{len(model_results)}")
 

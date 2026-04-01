@@ -1,0 +1,14 @@
+{
+  "id": "20260320_081129_analogical",
+  "timestamp": "2026-03-20T08:11:29.023411684Z",
+  "type": "chat",
+  "model": "gemma3:latest",
+  "strategy": "analogical",
+  "query": "yoyo",
+  "metrics": {
+    "ttft_ms": 0,
+    "total_ms": 2.103649,
+    "tps": 0,
+    "token_count": 0
+  }
+}

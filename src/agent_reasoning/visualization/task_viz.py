@@ -1,14 +1,14 @@
 # src/visualization/task_viz.py
-from typing import Dict, List
-from rich.console import RenderableType
+from typing import Dict
+
+from rich.console import Group, RenderableType
 from rich.panel import Panel
-from rich.progress import Progress, BarColumn, TextColumn, TaskID
-from rich.tree import Tree
 from rich.text import Text
-from rich.console import Group
+from rich.tree import Tree
 
 from .base import BaseVisualizer
 from .models import StreamEvent, SubTask, TaskStatus
+
 
 class TaskVisualizer(BaseVisualizer):
     """Visualizer for Decomposed/Least-to-Most - tree with status and progress bars."""
@@ -47,11 +47,9 @@ class TaskVisualizer(BaseVisualizer):
 
         header_content = f"{self.query}\n\nProgress: {self._make_progress_bar(overall_progress)} ({completed}/{total} tasks)"
 
-        elements.append(Panel(
-            header_content,
-            title="[bold cyan]Main Task[/bold cyan]",
-            border_style="cyan"
-        ))
+        elements.append(
+            Panel(header_content, title="[bold cyan]Main Task[/bold cyan]", border_style="cyan")
+        )
 
         if not self.tasks:
             elements.append(Text("Decomposing problem...", style="dim italic"))
@@ -75,7 +73,9 @@ class TaskVisualizer(BaseVisualizer):
             branch.add(Text(progress_bar, style=style))
 
             if task.result and task.status == TaskStatus.COMPLETED:
-                result_preview = task.result[:100] + "..." if len(task.result) > 100 else task.result
+                result_preview = (
+                    task.result[:100] + "..." if len(task.result) > 100 else task.result
+                )
                 branch.add(Text(f"Result: {result_preview}", style="dim"))
             elif task.status == TaskStatus.RUNNING and task.result:
                 branch.add(Text(f"Currently: {task.result[:50]}...", style="yellow italic"))

@@ -1,10 +1,12 @@
 # src/visualization/base.py
 from abc import ABC, abstractmethod
-from typing import Any, Generator
+from typing import Generator
+
 from rich.console import Console, RenderableType
 from rich.live import Live
 
 from .models import StreamEvent
+
 
 class BaseVisualizer(ABC):
     """Base class for all visualizers."""
@@ -29,7 +31,9 @@ class BaseVisualizer(ABC):
 
     def run(self, event_stream: Generator[StreamEvent, None, None]) -> None:
         """Run visualization with live updates."""
-        with Live(self.render(), console=self.console, refresh_per_second=10, vertical_overflow="visible") as live:
+        with Live(
+            self.render(), console=self.console, refresh_per_second=10, vertical_overflow="visible"
+        ) as live:
             for event in event_stream:
                 self.update(event)
                 live.update(self.render())

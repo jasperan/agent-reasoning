@@ -8,11 +8,12 @@ Requires matplotlib: pip install matplotlib
 
 import os
 from datetime import datetime
-from typing import List, Dict, Optional, Tuple
+from typing import Dict, List
 
 CHARTS_DIR = os.path.join(
     os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
-    "benchmarks", "charts",
+    "benchmarks",
+    "charts",
 )
 
 # ── Visual Design System ──────────────────────────────────────────────────────
@@ -29,31 +30,31 @@ ACCENT_GLOW = "#58a6ff"
 
 # Strategy colors - vibrant on dark backgrounds
 STRATEGY_COLORS = {
-    "standard":           "#8b949e",  # Neutral gray
-    "cot":                "#58a6ff",  # Blue
-    "tot":                "#bc8cff",  # Purple
-    "react":              "#f778ba",  # Pink
-    "recursive":          "#56d364",  # Green
-    "reflection":         "#3fb950",  # Emerald
-    "consistency":        "#d29922",  # Amber
-    "decomposed":         "#f85149",  # Red
-    "least_to_most":      "#79c0ff",  # Sky
-    "refinement":         "#e3b341",  # Gold
+    "standard": "#8b949e",  # Neutral gray
+    "cot": "#58a6ff",  # Blue
+    "tot": "#bc8cff",  # Purple
+    "react": "#f778ba",  # Pink
+    "recursive": "#56d364",  # Green
+    "reflection": "#3fb950",  # Emerald
+    "consistency": "#d29922",  # Amber
+    "decomposed": "#f85149",  # Red
+    "least_to_most": "#79c0ff",  # Sky
+    "refinement": "#e3b341",  # Gold
     "complex_refinement": "#a371f7",  # Violet
 }
 
 # Friendly display names
 STRATEGY_LABELS = {
-    "standard":           "Standard",
-    "cot":                "Chain of Thought",
-    "tot":                "Tree of Thoughts",
-    "react":              "ReAct",
-    "recursive":          "Recursive LM",
-    "reflection":         "Self-Reflection",
-    "consistency":        "Self-Consistency",
-    "decomposed":         "Decomposed",
-    "least_to_most":      "Least-to-Most",
-    "refinement":         "Refinement Loop",
+    "standard": "Standard",
+    "cot": "Chain of Thought",
+    "tot": "Tree of Thoughts",
+    "react": "ReAct",
+    "recursive": "Recursive LM",
+    "reflection": "Self-Reflection",
+    "consistency": "Self-Consistency",
+    "decomposed": "Decomposed",
+    "least_to_most": "Least-to-Most",
+    "refinement": "Refinement Loop",
     "complex_refinement": "Complex Pipeline",
 }
 
@@ -61,50 +62,53 @@ STRATEGY_LABELS = {
 def _apply_dark_theme():
     """Configure matplotlib with a polished dark theme."""
     import matplotlib
+
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
 
-    plt.rcParams.update({
-        # Figure
-        "figure.facecolor": BG_COLOR,
-        "figure.edgecolor": BG_COLOR,
-        "figure.dpi": 200,
-        # Axes
-        "axes.facecolor": SURFACE_COLOR,
-        "axes.edgecolor": BORDER_COLOR,
-        "axes.labelcolor": TEXT_PRIMARY,
-        "axes.titlecolor": TEXT_PRIMARY,
-        "axes.grid": True,
-        "axes.grid.which": "major",
-        "axes.spines.top": False,
-        "axes.spines.right": False,
-        "axes.spines.left": True,
-        "axes.spines.bottom": True,
-        # Grid
-        "grid.color": GRID_COLOR,
-        "grid.linewidth": 0.6,
-        "grid.alpha": 0.5,
-        # Text
-        "text.color": TEXT_PRIMARY,
-        "font.family": "sans-serif",
-        "font.sans-serif": ["DejaVu Sans"],
-        "font.size": 10,
-        # Ticks
-        "xtick.color": TEXT_SECONDARY,
-        "ytick.color": TEXT_SECONDARY,
-        "xtick.labelsize": 9,
-        "ytick.labelsize": 9,
-        # Legend
-        "legend.facecolor": SURFACE_COLOR,
-        "legend.edgecolor": BORDER_COLOR,
-        "legend.fontsize": 8,
-        "legend.labelcolor": TEXT_PRIMARY,
-        # Save
-        "savefig.facecolor": BG_COLOR,
-        "savefig.edgecolor": BG_COLOR,
-        "savefig.bbox": "tight",
-        "savefig.pad_inches": 0.3,
-    })
+    plt.rcParams.update(
+        {
+            # Figure
+            "figure.facecolor": BG_COLOR,
+            "figure.edgecolor": BG_COLOR,
+            "figure.dpi": 200,
+            # Axes
+            "axes.facecolor": SURFACE_COLOR,
+            "axes.edgecolor": BORDER_COLOR,
+            "axes.labelcolor": TEXT_PRIMARY,
+            "axes.titlecolor": TEXT_PRIMARY,
+            "axes.grid": True,
+            "axes.grid.which": "major",
+            "axes.spines.top": False,
+            "axes.spines.right": False,
+            "axes.spines.left": True,
+            "axes.spines.bottom": True,
+            # Grid
+            "grid.color": GRID_COLOR,
+            "grid.linewidth": 0.6,
+            "grid.alpha": 0.5,
+            # Text
+            "text.color": TEXT_PRIMARY,
+            "font.family": "sans-serif",
+            "font.sans-serif": ["DejaVu Sans"],
+            "font.size": 10,
+            # Ticks
+            "xtick.color": TEXT_SECONDARY,
+            "ytick.color": TEXT_SECONDARY,
+            "xtick.labelsize": 9,
+            "ytick.labelsize": 9,
+            # Legend
+            "legend.facecolor": SURFACE_COLOR,
+            "legend.edgecolor": BORDER_COLOR,
+            "legend.fontsize": 8,
+            "legend.labelcolor": TEXT_PRIMARY,
+            # Save
+            "savefig.facecolor": BG_COLOR,
+            "savefig.edgecolor": BG_COLOR,
+            "savefig.bbox": "tight",
+            "savefig.pad_inches": 0.3,
+        }
+    )
 
     return plt
 
@@ -120,9 +124,13 @@ def _get_label(strategy: str) -> str:
 def _add_watermark(fig, text="Agent Reasoning Benchmark"):
     """Add subtle branding watermark."""
     fig.text(
-        0.99, 0.01, text,
-        fontsize=7, color=TEXT_MUTED,
-        ha="right", va="bottom",
+        0.99,
+        0.01,
+        text,
+        fontsize=7,
+        color=TEXT_MUTED,
+        ha="right",
+        va="bottom",
         alpha=0.6,
         fontstyle="italic",
     )
@@ -144,7 +152,9 @@ def _draw_gradient_bar(ax, x, height, width, color, alpha=0.9):
 
     # Main bar
     bar = mpatches.FancyBboxPatch(
-        (x - width / 2, 0), width, height,
+        (x - width / 2, 0),
+        width,
+        height,
         boxstyle=mpatches.BoxStyle.Round(pad=0, rounding_size=width * 0.15),
         facecolor=base,
         edgecolor="none",
@@ -155,7 +165,9 @@ def _draw_gradient_bar(ax, x, height, width, color, alpha=0.9):
     # Highlight strip on left edge
     strip_w = width * 0.08
     strip = mpatches.FancyBboxPatch(
-        (x - width / 2, 0), strip_w, height,
+        (x - width / 2, 0),
+        strip_w,
+        height,
         boxstyle=mpatches.BoxStyle.Round(pad=0, rounding_size=strip_w * 0.5),
         facecolor=highlight,
         edgecolor="none",
@@ -190,8 +202,8 @@ def generate_agent_benchmark_charts(
     """
     try:
         plt = _apply_dark_theme()
-        import matplotlib.ticker as ticker
         import matplotlib.patches as mpatches
+        import matplotlib.ticker as ticker
         from matplotlib.colors import to_rgba
     except ImportError:
         print("matplotlib not installed. Run: pip install matplotlib")
@@ -227,10 +239,13 @@ def generate_agent_benchmark_charts(
     # Value labels above bars
     for i, val in enumerate(latencies):
         ax.text(
-            i, val + max(latencies) * 0.02,
+            i,
+            val + max(latencies) * 0.02,
             _format_ms(val),
-            ha="center", va="bottom",
-            fontsize=8, fontweight="bold",
+            ha="center",
+            va="bottom",
+            fontsize=8,
+            fontweight="bold",
             color=TEXT_PRIMARY,
         )
 
@@ -239,17 +254,25 @@ def generate_agent_benchmark_charts(
     ax.set_xticks(list(x_pos))
     ax.set_xticklabels(
         [f"{t[:18]}\n{_get_label(s)}" for t, s in zip(task_names, strategies)],
-        rotation=0, ha="center", fontsize=7.5,
+        rotation=0,
+        ha="center",
+        fontsize=7.5,
     )
     ax.set_ylabel("Total Latency", fontsize=11, fontweight="bold")
     ax.set_title(
-        f"Response Latency by Strategy",
-        fontsize=14, fontweight="bold", pad=15,
+        "Response Latency by Strategy",
+        fontsize=14,
+        fontweight="bold",
+        pad=15,
     )
     ax.text(
-        0.5, 1.02, model_label,
-        transform=ax.transAxes, ha="center",
-        fontsize=9, color=TEXT_SECONDARY,
+        0.5,
+        1.02,
+        model_label,
+        transform=ax.transAxes,
+        ha="center",
+        fontsize=9,
+        color=TEXT_SECONDARY,
     )
     ax.yaxis.set_major_formatter(ticker.FuncFormatter(lambda x, _: _format_ms(x)))
 
@@ -271,10 +294,13 @@ def generate_agent_benchmark_charts(
 
     for i, val in enumerate(tps_values):
         ax.text(
-            i, val + max(tps_values) * 0.02,
+            i,
+            val + max(tps_values) * 0.02,
             f"{val:.1f}",
-            ha="center", va="bottom",
-            fontsize=8, fontweight="bold",
+            ha="center",
+            va="bottom",
+            fontsize=8,
+            fontweight="bold",
             color=TEXT_PRIMARY,
         )
 
@@ -283,17 +309,25 @@ def generate_agent_benchmark_charts(
     ax.set_xticks(list(x_pos))
     ax.set_xticklabels(
         [f"{t[:18]}\n{_get_label(s)}" for t, s in zip(task_names, strategies)],
-        rotation=0, ha="center", fontsize=7.5,
+        rotation=0,
+        ha="center",
+        fontsize=7.5,
     )
     ax.set_ylabel("Tokens / Second", fontsize=11, fontweight="bold")
     ax.set_title(
-        f"Throughput by Strategy",
-        fontsize=14, fontweight="bold", pad=15,
+        "Throughput by Strategy",
+        fontsize=14,
+        fontweight="bold",
+        pad=15,
     )
     ax.text(
-        0.5, 1.02, model_label,
-        transform=ax.transAxes, ha="center",
-        fontsize=9, color=TEXT_SECONDARY,
+        0.5,
+        1.02,
+        model_label,
+        transform=ax.transAxes,
+        ha="center",
+        fontsize=9,
+        color=TEXT_SECONDARY,
     )
 
     _add_watermark(fig)
@@ -315,22 +349,33 @@ def generate_agent_benchmark_charts(
 
         # Outer glow
         ax.scatter(
-            ttft, total,
-            c=color, s=200, alpha=0.15,
-            edgecolors="none", zorder=3,
+            ttft,
+            total,
+            c=color,
+            s=200,
+            alpha=0.15,
+            edgecolors="none",
+            zorder=3,
         )
         # Main dot
         ax.scatter(
-            ttft, total,
-            c=color, s=80, alpha=0.9,
-            edgecolors="white", linewidth=0.5, zorder=4,
+            ttft,
+            total,
+            c=color,
+            s=80,
+            alpha=0.9,
+            edgecolors="white",
+            linewidth=0.5,
+            zorder=4,
         )
         # Label
         ax.annotate(
             f"{r.get('task_name', '?')[:14]}",
             (ttft, total),
-            textcoords="offset points", xytext=(10, 5),
-            fontsize=7, color=TEXT_SECONDARY,
+            textcoords="offset points",
+            xytext=(10, 5),
+            fontsize=7,
+            color=TEXT_SECONDARY,
             arrowprops=dict(arrowstyle="-", color=TEXT_MUTED, lw=0.5),
         )
 
@@ -338,12 +383,18 @@ def generate_agent_benchmark_charts(
     ax.set_ylabel("Total Latency (ms)", fontsize=11, fontweight="bold")
     ax.set_title(
         "TTFT vs Total Latency",
-        fontsize=14, fontweight="bold", pad=15,
+        fontsize=14,
+        fontweight="bold",
+        pad=15,
     )
     ax.text(
-        0.5, 1.02, model_label,
-        transform=ax.transAxes, ha="center",
-        fontsize=9, color=TEXT_SECONDARY,
+        0.5,
+        1.02,
+        model_label,
+        transform=ax.transAxes,
+        ha="center",
+        fontsize=9,
+        color=TEXT_SECONDARY,
     )
 
     # Diagonal reference line (y = x means TTFT == total latency)
@@ -361,12 +412,12 @@ def generate_agent_benchmark_charts(
         s = r.get("strategy", "?")
         if s not in seen:
             seen.add(s)
-            handles.append(
-                mpatches.Patch(color=_get_color(s), label=_get_label(s))
-            )
+            handles.append(mpatches.Patch(color=_get_color(s), label=_get_label(s)))
     ax.legend(
-        handles=handles, loc="upper left",
-        framealpha=0.8, borderpad=0.8,
+        handles=handles,
+        loc="upper left",
+        framealpha=0.8,
+        borderpad=0.8,
     )
 
     _add_watermark(fig)
@@ -402,20 +453,20 @@ def generate_agent_benchmark_charts(
         ]
 
         for ax, (title, key, fmt) in zip(axes, panels):
-            vals = [
-                sum(strategy_stats[s][key]) / len(strategy_stats[s][key])
-                for s in strats
-            ]
+            vals = [sum(strategy_stats[s][key]) / len(strategy_stats[s][key]) for s in strats]
 
             for i, (v, c) in enumerate(zip(vals, colors)):
                 _draw_gradient_bar(ax, i, v, 0.6, c)
 
             for i, v in enumerate(vals):
                 ax.text(
-                    i, v + max(vals) * 0.03,
+                    i,
+                    v + max(vals) * 0.03,
                     fmt(v),
-                    ha="center", va="bottom",
-                    fontsize=8, fontweight="bold",
+                    ha="center",
+                    va="bottom",
+                    fontsize=8,
+                    fontweight="bold",
                     color=TEXT_PRIMARY,
                 )
 
@@ -425,21 +476,27 @@ def generate_agent_benchmark_charts(
             ax.set_xticks(x)
             ax.set_xticklabels(
                 [_get_label(s) for s in strats],
-                rotation=35, ha="right", fontsize=7.5,
+                rotation=35,
+                ha="right",
+                fontsize=7.5,
             )
             # Format y-axis for ms-based panels
             if key in ("latency", "ttft"):
-                ax.yaxis.set_major_formatter(
-                    ticker.FuncFormatter(lambda v, _: _format_ms(v))
-                )
+                ax.yaxis.set_major_formatter(ticker.FuncFormatter(lambda v, _: _format_ms(v)))
 
         fig.suptitle(
-            f"Strategy Comparison",
-            fontsize=15, fontweight="bold", y=1.02,
+            "Strategy Comparison",
+            fontsize=15,
+            fontweight="bold",
+            y=1.02,
         )
         fig.text(
-            0.5, 0.98, model_label,
-            ha="center", fontsize=10, color=TEXT_SECONDARY,
+            0.5,
+            0.98,
+            model_label,
+            ha="center",
+            fontsize=10,
+            color=TEXT_SECONDARY,
         )
 
         _add_watermark(fig)
@@ -465,6 +522,7 @@ def generate_agent_benchmark_charts(
             data.append([avg_lat, avg_tps, avg_ttft])
 
         import numpy as np
+
         data_arr = np.array(data)
 
         # Normalize each column 0-1 for heatmap
@@ -482,12 +540,13 @@ def generate_agent_benchmark_charts(
         norm_data[:, 2] = 1 - norm_data[:, 2]  # ttft
 
         from matplotlib.colors import LinearSegmentedColormap
+
         cmap = LinearSegmentedColormap.from_list(
             "agent_heatmap",
             ["#f85149", "#d29922", "#56d364"],  # red -> amber -> green
         )
 
-        im = ax.imshow(norm_data, cmap=cmap, aspect="auto", vmin=0, vmax=1)
+        ax.imshow(norm_data, cmap=cmap, aspect="auto", vmin=0, vmax=1)
 
         ax.set_xticks(range(len(metrics)))
         ax.set_xticklabels(metrics, fontsize=10, fontweight="bold")
@@ -501,20 +560,30 @@ def generate_agent_benchmark_charts(
                 txt = _format_ms(val) if j != 1 else f"{val:.1f}"
                 text_color = "#0d1117" if norm_data[i, j] > 0.5 else TEXT_PRIMARY
                 ax.text(
-                    j, i, txt,
-                    ha="center", va="center",
-                    fontsize=9, fontweight="bold",
+                    j,
+                    i,
+                    txt,
+                    ha="center",
+                    va="center",
+                    fontsize=9,
+                    fontweight="bold",
                     color=text_color,
                 )
 
         ax.set_title(
             "Performance Heatmap",
-            fontsize=14, fontweight="bold", pad=15,
+            fontsize=14,
+            fontweight="bold",
+            pad=15,
         )
         ax.text(
-            0.5, 1.05, f"{model_label}  |  Green = Better",
-            transform=ax.transAxes, ha="center",
-            fontsize=9, color=TEXT_SECONDARY,
+            0.5,
+            1.05,
+            f"{model_label}  |  Green = Better",
+            transform=ax.transAxes,
+            ha="center",
+            fontsize=9,
+            color=TEXT_SECONDARY,
         )
 
         # Remove grid for heatmap
@@ -594,10 +663,13 @@ def generate_comparison_charts(
 
         for i, v in enumerate(vals):
             ax.text(
-                i, v + max(vals) * 0.03,
+                i,
+                v + max(vals) * 0.03,
                 fmt(v),
-                ha="center", va="bottom",
-                fontsize=9, fontweight="bold",
+                ha="center",
+                va="bottom",
+                fontsize=9,
+                fontweight="bold",
                 color=TEXT_PRIMARY,
             )
 
@@ -609,7 +681,9 @@ def generate_comparison_charts(
 
     fig.suptitle(
         "Multi-Model Comparison",
-        fontsize=15, fontweight="bold", y=1.02,
+        fontsize=15,
+        fontweight="bold",
+        y=1.02,
     )
 
     _add_watermark(fig)

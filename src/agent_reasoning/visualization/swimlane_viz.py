@@ -1,13 +1,14 @@
 # src/visualization/swimlane_viz.py
 from typing import Dict
-from rich.console import RenderableType
+
+from rich.console import Group, RenderableType
 from rich.panel import Panel
 from rich.table import Table
 from rich.text import Text
-from rich.console import Group
 
 from .base import BaseVisualizer
-from .models import StreamEvent, ReActStep, TaskStatus
+from .models import ReActStep, StreamEvent, TaskStatus
+
 
 class SwimlaneVisualizer(BaseVisualizer):
     """Visualizer for ReAct - three-track thought/action/observation."""
@@ -35,11 +36,13 @@ class SwimlaneVisualizer(BaseVisualizer):
         elements = []
 
         # Header
-        elements.append(Panel(
-            f"Query: {self.query}",
-            title=f"[bold cyan]ReAct Agent (Reason + Act)[/bold cyan]",
-            border_style="cyan"
-        ))
+        elements.append(
+            Panel(
+                f"Query: {self.query}",
+                title="[bold cyan]ReAct Agent (Reason + Act)[/bold cyan]",
+                border_style="cyan",
+            )
+        )
 
         if not self.steps:
             elements.append(Text("Thinking...", style="dim italic"))
@@ -62,7 +65,11 @@ class SwimlaneVisualizer(BaseVisualizer):
                 action = "─"
 
             if step.observation:
-                obs = step.observation[:100] + "..." if len(step.observation) > 100 else step.observation
+                obs = (
+                    step.observation[:100] + "..."
+                    if len(step.observation) > 100
+                    else step.observation
+                )
             elif step.status == TaskStatus.RUNNING:
                 obs = "⏳ Waiting..."
             else:
@@ -77,13 +84,19 @@ class SwimlaneVisualizer(BaseVisualizer):
 
         # Final answer
         if self.final_answer:
-            tool_summary = "  ".join([f"{tool}: {count} call{'s' if count > 1 else ''} ✅"
-                                      for tool, count in self.tool_usage.items()])
+            tool_summary = "  ".join(
+                [
+                    f"{tool}: {count} call{'s' if count > 1 else ''} ✅"
+                    for tool, count in self.tool_usage.items()
+                ]
+            )
 
-            elements.append(Panel(
-                f"{self.final_answer}\n\n[dim]Tool Usage: {tool_summary}[/dim]",
-                title="[bold green]🎯 Final Answer[/bold green]",
-                border_style="green"
-            ))
+            elements.append(
+                Panel(
+                    f"{self.final_answer}\n\n[dim]Tool Usage: {tool_summary}[/dim]",
+                    title="[bold green]🎯 Final Answer[/bold green]",
+                    border_style="green",
+                )
+            )
 
         return Group(*elements)

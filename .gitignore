@@ -239,3 +239,10 @@ docs/*.md
 task_plan.md
 findings.md
 progress.md
+
+# Local agent directories
+.agents/
+.claude/
+.crush/
+.openhands/
+.pi/

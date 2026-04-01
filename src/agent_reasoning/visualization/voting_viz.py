@@ -1,14 +1,15 @@
 # src/visualization/voting_viz.py
-from typing import Dict
 from collections import Counter
-from rich.console import RenderableType
+from typing import Dict
+
+from rich.console import Group, RenderableType
 from rich.panel import Panel
 from rich.table import Table
 from rich.text import Text
-from rich.console import Group
 
 from .base import BaseVisualizer
-from .models import StreamEvent, VotingSample, TaskStatus
+from .models import StreamEvent, TaskStatus, VotingSample
+
 
 class VotingVisualizer(BaseVisualizer):
     """Visualizer for Self-Consistency - side-by-side columns with vote tallies."""
@@ -41,11 +42,13 @@ class VotingVisualizer(BaseVisualizer):
         elements = []
 
         # Header
-        elements.append(Panel(
-            f"Query: {self.query}",
-            title=f"[bold cyan]Self-Consistency Voting (k={self.k})[/bold cyan]",
-            border_style="cyan"
-        ))
+        elements.append(
+            Panel(
+                f"Query: {self.query}",
+                title=f"[bold cyan]Self-Consistency Voting (k={self.k})[/bold cyan]",
+                border_style="cyan",
+            )
+        )
 
         # Sampling progress
         completed = sum(1 for s in self.samples.values() if s.status == TaskStatus.COMPLETED)
@@ -66,7 +69,9 @@ class VotingVisualizer(BaseVisualizer):
 
             sample = self.samples.get(i + 1)
             if sample:
-                status = "✅ Complete" if sample.status == TaskStatus.COMPLETED else "🔄 Streaming..."
+                status = (
+                    "✅ Complete" if sample.status == TaskStatus.COMPLETED else "🔄 Streaming..."
+                )
                 header = f"{icon} Sample {i + 1}\n{status}"
             else:
                 header = f"{icon} Sample {i + 1}\n⏳ Pending"
@@ -78,7 +83,11 @@ class VotingVisualizer(BaseVisualizer):
         for i in range(min(len(self.samples), self.k)):
             sample = self.samples.get(i + 1)
             if sample:
-                reasoning = sample.reasoning[:150] + "..." if len(sample.reasoning) > 150 else sample.reasoning
+                reasoning = (
+                    sample.reasoning[:150] + "..."
+                    if len(sample.reasoning) > 150
+                    else sample.reasoning
+                )
                 cell = f"{reasoning}\n\nFinal Answer:\n{sample.answer}"
             else:
                 cell = "(waiting)"
@@ -115,15 +124,23 @@ class VotingVisualizer(BaseVisualizer):
                     is_winner = count == counter.most_common(1)[0][1]
                     color = "green" if is_winner else "red"
                     marker = "✓ WINNER" if is_winner and count > total_votes / 2 else ""
-                    results.append(f"[{color}]   {answer}  {'█' * bar_width}  {count} votes  {marker}[/{color}]")
+                    results.append(
+                        f"[{color}]   {answer}  {'█' * bar_width}  {count} votes  {marker}[/{color}]"
+                    )
 
-                consensus = "UNANIMOUS" if len(counter) == 1 else f"MAJORITY ({counter.most_common(1)[0][1]}/{total_votes})"
+                consensus = (
+                    "UNANIMOUS"
+                    if len(counter) == 1
+                    else f"MAJORITY ({counter.most_common(1)[0][1]}/{total_votes})"
+                )
                 results.append(f"\nConsensus: {consensus}")
 
-                elements.append(Panel(
-                    "\n".join(results),
-                    title="[bold]🗳️  Voting Results[/bold]",
-                    border_style="yellow"
-                ))
+                elements.append(
+                    Panel(
+                        "\n".join(results),
+                        title="[bold]🗳️  Voting Results[/bold]",
+                        border_style="yellow",
+                    )
+                )
 
         return Group(*elements)

@@ -1,0 +1,15 @@
+{
+  "id": "20260324_124455_standard",
+  "timestamp": "2026-03-24T12:44:55.223581935Z",
+  "type": "chat",
+  "model": "gemma3:latest",
+  "strategy": "standard",
+  "query": "yes",
+  "response": "Okay! 😊",
+  "metrics": {
+    "ttft_ms": 421,
+    "total_ms": 423.84581399999996,
+    "tps": 7.078045602687019,
+    "token_count": 3
+  }
+}

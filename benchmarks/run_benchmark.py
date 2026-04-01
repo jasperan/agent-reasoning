@@ -9,12 +9,12 @@ Configuration is loaded from benchmarks/config.json
 """
 
 import argparse
-import subprocess
-import sys
 import json
 import os
-from pathlib import Path
+import subprocess
+import sys
 from datetime import datetime
+from pathlib import Path
 
 # Get the benchmarks directory
 BENCHMARKS_DIR = Path(__file__).parent
@@ -47,9 +47,12 @@ def run_ollama_benchmark(config, args):
     cmd = [
         sys.executable,
         str(BENCHMARKS_DIR / "benchmark_ollama.py"),
-        "--models", *ollama_models,
-        "--iterations", str(args.iterations),
-        "--output", str(output_file),
+        "--models",
+        *ollama_models,
+        "--iterations",
+        str(args.iterations),
+        "--output",
+        str(output_file),
     ]
 
     if args.dry_run:
@@ -93,15 +96,19 @@ def run_oci_benchmark(config, args):
     cmd = [
         sys.executable,
         str(BENCHMARKS_DIR / "benchmark_oci.py"),
-        "--profile", oci_config.get("profile", "DEFAULT"),
-        "--models", *oci_models,
-        "--iterations", str(args.iterations),
-        "--output", str(output_file),
+        "--profile",
+        oci_config.get("profile", "DEFAULT"),
+        "--models",
+        *oci_models,
+        "--iterations",
+        str(args.iterations),
+        "--output",
+        str(output_file),
     ]
 
     if oci_config.get("compartment_id"):
         cmd.extend(["--compartment-id", oci_config.get("compartment_id")])
-    
+
     if oci_config.get("endpoint"):
         cmd.extend(["--endpoint", oci_config.get("endpoint")])
 
@@ -173,20 +180,23 @@ Examples:
 
   # Just compare existing results
   python run_benchmark.py --compare-only
-        """
+        """,
     )
-    parser.add_argument("--iterations", type=int, default=default_iterations,
-                       help=f"Number of iterations per prompt (default: {default_iterations})")
-    parser.add_argument("--dry-run", action="store_true",
-                       help="Simulate runs without API calls")
-    parser.add_argument("--parallel", action="store_true",
-                       help="Run OCI models in parallel for faster results")
-    parser.add_argument("--skip-ollama", action="store_true",
-                       help="Skip Ollama benchmark")
-    parser.add_argument("--skip-oci", action="store_true",
-                       help="Skip OCI benchmark")
-    parser.add_argument("--compare-only", action="store_true",
-                       help="Only run comparison on existing results")
+    parser.add_argument(
+        "--iterations",
+        type=int,
+        default=default_iterations,
+        help=f"Number of iterations per prompt (default: {default_iterations})",
+    )
+    parser.add_argument("--dry-run", action="store_true", help="Simulate runs without API calls")
+    parser.add_argument(
+        "--parallel", action="store_true", help="Run OCI models in parallel for faster results"
+    )
+    parser.add_argument("--skip-ollama", action="store_true", help="Skip Ollama benchmark")
+    parser.add_argument("--skip-oci", action="store_true", help="Skip OCI benchmark")
+    parser.add_argument(
+        "--compare-only", action="store_true", help="Only run comparison on existing results"
+    )
 
     args = parser.parse_args()
 
@@ -215,8 +225,7 @@ Examples:
     # Run comparison
     if ollama_file.exists() or oci_file.exists():
         run_comparison(
-            ollama_file if ollama_file.exists() else None,
-            oci_file if oci_file.exists() else None
+            ollama_file if ollama_file.exists() else None, oci_file if oci_file.exists() else None
         )
     else:
         print("\nNo results files found. Run benchmarks first.")
@@ -225,7 +234,7 @@ Examples:
     print("\n" + "=" * 80)
     print("BENCHMARK COMPLETE")
     print("=" * 80)
-    print(f"Results saved to:")
+    print("Results saved to:")
     if ollama_file.exists():
         print(f"  - {ollama_file}")
     if oci_file.exists():
