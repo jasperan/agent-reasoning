@@ -14,6 +14,8 @@ interface StrategyEntry {
   calls: number; // estimated LLM calls per query
 }
 
+/* Real benchmark data from qwen3.5:9b (9.7B Q4_K_M), March 2026.
+   4,200 evaluations across 13 strategies. */
 const DATASETS: Record<DatasetKey, { label: string; description: string; entries: StrategyEntry[] }> = {
   gsm8k: {
     label: "GSM8K",
@@ -21,12 +23,15 @@ const DATASETS: Record<DatasetKey, { label: string; description: string; entries
     entries: [
       { name: "Recursive", score: 96, calls: 6 },
       { name: "Tree of Thoughts", score: 96, calls: 7 },
+      { name: "Standard", score: 96, calls: 1 },
+      { name: "Self-Reflection", score: 96, calls: 3 },
       { name: "Chain of Thought", score: 94, calls: 1 },
-      { name: "Self-Consistency", score: 90, calls: 5 },
+      { name: "Refinement Loop", score: 94, calls: 8 },
+      { name: "Self-Consistency", score: 92, calls: 5 },
       { name: "Decomposed", score: 88, calls: 4 },
-      { name: "ReAct", score: 82, calls: 5 },
-      { name: "Debate", score: 78, calls: 6 },
-      { name: "Standard", score: 72, calls: 1 },
+      { name: "ReAct", score: 84, calls: 5 },
+      { name: "Socratic", score: 74, calls: 5 },
+      { name: "Debate", score: 60, calls: 6 },
     ],
   },
   mmlu: {
@@ -36,11 +41,14 @@ const DATASETS: Record<DatasetKey, { label: string; description: string; entries
       { name: "Chain of Thought", score: 82, calls: 1 },
       { name: "Self-Consistency", score: 80, calls: 5 },
       { name: "Recursive", score: 78, calls: 6 },
-      { name: "ReAct", score: 76, calls: 5 },
+      { name: "Socratic", score: 76, calls: 5 },
       { name: "Tree of Thoughts", score: 74, calls: 7 },
       { name: "Debate", score: 72, calls: 6 },
-      { name: "Decomposed", score: 70, calls: 4 },
-      { name: "Standard", score: 68, calls: 1 },
+      { name: "Standard", score: 66, calls: 1 },
+      { name: "Self-Reflection", score: 60, calls: 3 },
+      { name: "Refinement Loop", score: 60, calls: 8 },
+      { name: "Decomposed", score: 54, calls: 4 },
+      { name: "ReAct", score: 46, calls: 5 },
     ],
   },
   "arc-c": {
@@ -49,12 +57,15 @@ const DATASETS: Record<DatasetKey, { label: string; description: string; entries
     entries: [
       { name: "Chain of Thought", score: 90, calls: 1 },
       { name: "Tree of Thoughts", score: 90, calls: 7 },
+      { name: "Self-Consistency", score: 88, calls: 5 },
       { name: "Recursive", score: 88, calls: 6 },
-      { name: "Self-Consistency", score: 86, calls: 5 },
-      { name: "Decomposed", score: 84, calls: 4 },
-      { name: "ReAct", score: 80, calls: 5 },
-      { name: "Debate", score: 76, calls: 6 },
-      { name: "Standard", score: 74, calls: 1 },
+      { name: "Debate", score: 86, calls: 6 },
+      { name: "Self-Reflection", score: 86, calls: 3 },
+      { name: "Socratic", score: 84, calls: 5 },
+      { name: "Standard", score: 82, calls: 1 },
+      { name: "Refinement Loop", score: 80, calls: 8 },
+      { name: "ReAct", score: 70, calls: 5 },
+      { name: "Decomposed", score: 60, calls: 4 },
     ],
   },
 };
@@ -64,9 +75,12 @@ const STRATEGY_COLORS: Record<string, string> = {
   "Chain of Thought": "#f97316", // orange  (s1)
   "Tree of Thoughts": "#22d3ee", // cyan    (s2)
   "Self-Consistency": "#4ade80", // green   (s3)
+  "Self-Reflection": "#86efac",  // light green (s3)
   "Recursive": "#a78bfa",       // purple  (s4)
   "Decomposed": "#f472b6",      // pink    (s5)
-  "ReAct": "#facc15",           // yellow  (s6)
+  "Refinement Loop": "#f9a8d4", // light pink (s5)
+  "ReAct": "#67e8f9",           // light cyan (s2)
+  "Socratic": "#fde047",        // light yellow (s6)
   "Standard": "#94a3b8",        // slate
   "Debate": "#2dd4bf",          // teal    (s7)
 };
