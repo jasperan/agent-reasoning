@@ -20,17 +20,8 @@ class RecursiveAgent(BaseAgent):
         Allows the agent to call the LLM recursively on data.
         """
         response = ""
-        # We use a new client call effectively (or reuse the existing one's method)
-        # Note: We need to avoid infinite recursion loops on the INTERCEPTOR level
-        # if the prompt triggers another agent.
-        # But here we are calling self.client.generate which goes to Ollama
-        # directly (Client class in client.py),
-        # UNLESS self.client is the Interceptor?
-        # In base.py: self.client = OllamaClient(model=model)
-        # OllamaClient (src/client.py) talks to HTTP API directly.
-        # So this is safe from interceptor recursion logic, it acts as a "base" LLM call.
-        # However, it uses the SAME model as the agent.
-
+        # Bypasses the interceptor: self.client is OllamaClient, so this is a base LLM call
+        # and cannot re-trigger agent routing.
         for chunk in self.client.generate(prompt, stream=True):
             response += chunk
         return response
@@ -200,11 +191,5 @@ Thought:"""
                 yield colored("\nNo code block found. Ending turn.\n", "red")
                 # Append to history, maybe it's just thinking?
                 history += f"Step {step + 1}: {step_response}\n"
-
-                if (
-                    "FINAL_ANSWER" in step_response
-                ):  # Fallback if it just hallucinates "FINAL_ANSWER = ..." without code?
-                    # But we told it to assign to var.
-                    pass
 
         yield colored("\nMax steps reached without FINAL_ANSWER.\n", "red")

@@ -19,7 +19,7 @@ class ConsistencyAgent(BaseAgent):
         return response
 
     def stream(self, query):
-        """Legacy text streaming for backward compatibility."""
+        """Yield text chunks for terminal streaming."""
         for event in self.stream_structured(query):
             if event.event_type == "text":
                 yield event.data

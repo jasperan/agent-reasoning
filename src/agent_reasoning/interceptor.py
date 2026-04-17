@@ -105,9 +105,8 @@ class ReasoningInterceptor:
     def chat(self, model, messages, stream=False, **kwargs):
         """
         Mimics ollama.chat signature.
-        Converst messages list to a single prompt string for the Agents.
+        Flattens the messages list into a single prompt string for the Agents.
         """
-        # Simple conversation flattener
         prompt = ""
         for msg in messages:
             role = msg.get("role", "user")

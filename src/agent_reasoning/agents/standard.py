@@ -10,7 +10,6 @@ class StandardAgent(BaseAgent):
         self.color = "cyan"
 
     def run(self, query):
-        # Keeps legacy run behavior (print to stdout)
         self.log_thought(f"Processing query: {query}")
         print(colored("Answer: ", self.color), end="", flush=True)
         full_response = ""
@@ -21,8 +20,6 @@ class StandardAgent(BaseAgent):
         return full_response
 
     def stream(self, query):
-        # Yields chunks directly from client
-        # Wrap in basic instruction to ensure responsiveness
         prompt = f"Question: {query}\n\nAnswer:"
         for chunk in self.client.generate(prompt):
             yield chunk

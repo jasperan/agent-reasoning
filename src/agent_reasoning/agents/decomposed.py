@@ -15,7 +15,7 @@ class DecomposedAgent(BaseAgent):
         return response
 
     def stream(self, query):
-        """Legacy text streaming for backward compatibility."""
+        """Yield text chunks for terminal streaming."""
         last_task_result_length = {}  # Track result length per task to yield only new content
 
         for event in self.stream_structured(query):
