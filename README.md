@@ -4,7 +4,7 @@
 
 <h1 align="center">Agent Reasoning: The Thinking Layer</h1>
 
-<p align="center"><strong>Transform standard open-source LLMs into robust problem solvers with 16 advanced cognitive architectures. From predicting the next token to predicting the next thought.</strong></p>
+<p align="center"><strong>Transform standard open-source LLMs into reliable problem solvers with 16 advanced cognitive architectures. From predicting the next token to predicting the next thought.</strong></p>
 
 <p align="center">
   <img src="https://img.shields.io/badge/Python-3.10+-blue?style=for-the-badge&logo=python&logoColor=white" alt="Python"/>
@@ -42,7 +42,7 @@
 ## Installation
 
 <!-- one-command-install -->
-> **One-command install** — clone, configure, and run in a single step:
+> **One-command install**: clone, configure, and run in a single step.
 >
 > ```bash
 > curl -fsSL https://raw.githubusercontent.com/jasperan/agent-reasoning/main/install.sh | bash
@@ -68,7 +68,7 @@
 
 The **Reasoning Layer** is the cognitive engine of the AI stack. While traditional LLMs excel at token generation, they often struggle with complex planning, logical deduction, and self-correction.
 
-This repository transforms standard Open Source models (like `gemma3`, `llama3`) into robust problem solvers by wrapping them in advanced cognitive architectures. It implements findings from key research papers (CoT, ToT, ReAct) to give models "agency" over their thinking process.
+This repository transforms standard Open Source models (like `gemma3`, `llama3`) into reliable problem solvers by wrapping them in advanced cognitive architectures. It implements findings from key research papers (CoT, ToT, ReAct) to give models "agency" over their thinking process.
 
 > **"From predicting the next token to predicting the next thought."**
 
@@ -196,7 +196,7 @@ Interactive Jupyter notebooks demonstrating agent reasoning capabilities:
 *   **Model Agnostic**: Works with any model served by Ollama.
 *   **Advanced Architectures**:
     *   🔗 **Chain-of-Thought (CoT)** & **Self-Consistency**: Implements Majority Voting ($k$ samples) with temperature sampling.
-    *   🌳 **Tree of Thoughts (ToT)**: BFS strategy with robust heuristic scoring and pruning.
+    *   🌳 **Tree of Thoughts (ToT)**: BFS strategy with reliable heuristic scoring and pruning.
     *   🛠️ **ReAct (Reason + Act)**: Real-time tool usage (**Web Search** via scraping, Wikipedia API, Calculator) with fallback/mock capabilities. External grounding implemented.
     *   🪞 **Self-Reflection**: Dynamic multi-turn Refinement Loop (Draft -> Critique -> Improve).
     *   🧩 **Decomposition & Least-to-Most**: Planning and sub-task execution.
@@ -583,7 +583,7 @@ class MyNewAgent(BaseAgent):
 
 *   **Model Not Found**: Ensure you have pulled the base model (`ollama pull gemma3:270m`).
 *   **Timeout / Slow**: ToT and Self-Reflection make multiple calls to the LLM. With larger models (Llama3 70b), this can take time.
-*   **Hallucinations**: The default demo uses `gemma3:270m` which is extremely small and prone to logic errors. Switch to `gemma2:9b` or `llama3` for robust results.
+*   **Hallucinations**: The default demo uses `gemma3:270m` which is extremely small and prone to logic errors. Switch to `gemma2:9b` or `llama3` for reliable results.
 
 ---
 

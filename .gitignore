@@ -220,6 +220,7 @@ simulation_demo.py
 # Dogfood / QA output
 dogfood-output/
 .playwright-mcp/
+content/
 
 
 # OpenCode-generated documentation (local reference only)
