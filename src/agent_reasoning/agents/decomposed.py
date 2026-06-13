@@ -3,16 +3,14 @@ from agent_reasoning.visualization.models import StreamEvent, SubTask, TaskStatu
 
 
 class DecomposedAgent(BaseAgent):
+    # Accumulate the stream silently; no terminal echo or log line.
+    run_label = ""
+    run_echo = False
+
     def __init__(self, model="gemma3:270m", **kwargs):
         super().__init__(model, **kwargs)
         self.name = "DecomposedAgent"
         self.color = "red"
-
-    def run(self, query):
-        response = ""
-        for chunk in self.stream(query):
-            response += chunk
-        return response
 
     def stream(self, query):
         """Yield text chunks for terminal streaming."""

@@ -17,8 +17,6 @@ from agent_reasoning.agents.socratic import SocraticAgent
 from agent_reasoning.agents.standard import StandardAgent
 from agent_reasoning.agents.tot import ToTAgent
 
-# Configure basic logging
-logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("ReasoningInterceptor")
 
 AGENT_MAP = {
@@ -128,5 +126,4 @@ class ReasoningInterceptor:
 
 
 # Usage alias to look like the module
-class Client(ReasoningInterceptor):
-    pass
+Client = ReasoningInterceptor

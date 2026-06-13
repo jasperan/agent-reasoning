@@ -418,7 +418,8 @@ for chunk in agent.stream("Explain quantum entanglement step by step"):
 **Using refinement agents for quality content:**
 
 ```python
-from agent_reasoning.agents import RefinementLoopAgent, ComplexRefinementLoopAgent
+from agent_reasoning.agents.refinement_loop import RefinementLoopAgent
+from agent_reasoning.agents.complex_refinement import ComplexRefinementLoopAgent
 
 # Refinement Loop: iteratively improves until score threshold met
 agent = RefinementLoopAgent(model="gemma3:270m", score_threshold=0.9, max_iterations=5)

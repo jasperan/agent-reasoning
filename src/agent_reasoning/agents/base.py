@@ -1,4 +1,4 @@
-from abc import ABC, abstractmethod
+from abc import ABC
 
 from termcolor import colored
 
@@ -6,6 +6,14 @@ from agent_reasoning.client import OllamaClient
 
 
 class BaseAgent(ABC):
+    # run() behaviour, overridable per subclass:
+    #   run_label   -> text shown by log_thought before streaming ("" disables it)
+    #   run_prefix  -> coloured prefix printed inline before the stream (e.g. "Answer: ")
+    #   run_echo    -> when True, stream chunks are printed to the terminal as they arrive
+    run_label = "Processing query with {name}: {query}"
+    run_prefix = None
+    run_echo = True
+
     def __init__(self, model="gemma3:latest", base_url=None, **kwargs):
         self.client = OllamaClient(model=model, base_url=base_url)
         self.name = "BaseAgent"
@@ -34,7 +42,11 @@ class BaseAgent(ABC):
         return query
 
     def _check_budget(self) -> bool:
-        """Check if we're within call budget. Returns True if OK to proceed."""
+        """Check if we're within call budget. Returns True if OK to proceed.
+
+        Tolerates agents constructed via ``__new__`` (as some tests do) that
+        skip ``__init__`` and therefore never set the budget attributes.
+        """
         if not hasattr(self, "_call_count"):
             self._call_count = 0
         if not hasattr(self, "max_calls"):
@@ -51,9 +63,24 @@ class BaseAgent(ABC):
     def log_thought(self, message):
         print(colored(f"[{self.name}]: {message}", self.color))
 
-    @abstractmethod
     def run(self, query):
-        pass
+        """Drive the agent's stream, optionally echoing chunks to the terminal.
+
+        Behaviour is parameterised by the ``run_label``, ``run_prefix`` and
+        ``run_echo`` class attributes so subclasses rarely need to override it.
+        """
+        if self.run_label:
+            self.log_thought(self.run_label.format(name=self.name, query=query))
+        if self.run_echo and self.run_prefix:
+            print(colored(self.run_prefix, self.color), end="", flush=True)
+        full_response = ""
+        for chunk in self.stream(query):
+            if self.run_echo:
+                print(colored(chunk, self.color), end="", flush=True)
+            full_response += chunk
+        if self.run_echo:
+            print()
+        return full_response
 
     def stream(self, query):
         """

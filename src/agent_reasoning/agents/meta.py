@@ -1,7 +1,5 @@
 import re
 
-from termcolor import colored
-
 from agent_reasoning.agents.base import BaseAgent
 from agent_reasoning.visualization.models import MetaClassification, StreamEvent
 
@@ -55,14 +53,7 @@ class MetaReasoningAgent(BaseAgent):
             "reasoning": reason_match.group(1).strip() if reason_match else "",
         }
 
-    def run(self, query):
-        self.log_thought(f"Meta-reasoning on query: {query}")
-        full_response = ""
-        for chunk in self.stream(query):
-            print(colored(chunk, self.color), end="", flush=True)
-            full_response += chunk
-        print()
-        return full_response
+    run_label = "Meta-reasoning on query: {query}"
 
     def stream(self, query):
         """Yield text chunks for terminal streaming."""

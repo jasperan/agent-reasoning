@@ -1,10 +1,10 @@
-import re
 from dataclasses import dataclass
 from typing import Optional
 
 from termcolor import colored
 
 from agent_reasoning.agents.base import BaseAgent
+from agent_reasoning.agents.parsing import parse_feedback, parse_score
 from agent_reasoning.visualization.models import StreamEvent
 
 
@@ -232,14 +232,7 @@ class ComplexRefinementLoopAgent(BaseAgent):
             PipelineStage(**{k: v for k, v in stage.__dict__.items()}) for stage in PIPELINE_STAGES
         ]
 
-    def run(self, query):
-        self.log_thought(f"Processing query with Complex Refinement Pipeline: {query}")
-        full_response = ""
-        for chunk in self.stream(query):
-            print(colored(chunk, self.color), end="", flush=True)
-            full_response += chunk
-        print()
-        return full_response
+    run_label = "Processing query with Complex Refinement Pipeline: {query}"
 
     def stream(self, query):
         """Yield text chunks for terminal streaming."""
@@ -429,25 +422,8 @@ Provide a comprehensive answer suitable for a technical blog:"""
 
     def _extract_score(self, critique: str) -> float:
         """Extract numeric score from critique response."""
-        match = re.search(r"SCORE:\s*(0?\.\d+|1\.0|1|0)", critique, re.IGNORECASE)
-        if match:
-            try:
-                return float(match.group(1))
-            except ValueError:
-                pass
-
-        match = re.search(r"\b(0\.\d+|1\.0)\b", critique)
-        if match:
-            try:
-                return float(match.group(1))
-            except ValueError:
-                pass
-
-        return 0.5
+        return parse_score(critique)
 
     def _extract_feedback(self, critique: str) -> str:
         """Extract feedback from critique response."""
-        match = re.search(r"FEEDBACK:\s*(.+)", critique, re.IGNORECASE | re.DOTALL)
-        if match:
-            return match.group(1).strip()
-        return critique
+        return parse_feedback(critique)

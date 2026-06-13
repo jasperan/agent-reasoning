@@ -2,17 +2,14 @@ from agent_reasoning.agents.base import BaseAgent
 
 
 class LeastToMostAgent(BaseAgent):
+    # Accumulate the stream silently; no terminal echo or log line.
+    run_label = ""
+    run_echo = False
+
     def __init__(self, model="gemma3:270m", **kwargs):
         super().__init__(model, **kwargs)
         self.name = "LeastToMostAgent"
         self.color = "cyan"
-
-    def run(self, query):
-        # Default run implementation accumulating stream
-        response = ""
-        for chunk in self.stream(query):
-            response += chunk
-        return response
 
     def stream(self, query):
         yield f"Processing query via Least-to-Most Prompting: {query}\n"

@@ -1,5 +1,3 @@
-from termcolor import colored
-
 from agent_reasoning.agents.base import BaseAgent
 from agent_reasoning.visualization.models import SocraticExchange, StreamEvent
 
@@ -13,14 +11,7 @@ class SocraticAgent(BaseAgent):
         self.color = "cyan"
         self.max_questions = max_questions
 
-    def run(self, query):
-        self.log_thought(f"Processing query with Socratic Method: {query}")
-        full_response = ""
-        for chunk in self.stream(query):
-            print(colored(chunk, self.color), end="", flush=True)
-            full_response += chunk
-        print()
-        return full_response
+    run_label = "Processing query with Socratic Method: {query}"
 
     def stream(self, query):
         for event in self.stream_structured(query):

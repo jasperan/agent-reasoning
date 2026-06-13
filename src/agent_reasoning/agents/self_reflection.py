@@ -10,14 +10,7 @@ class SelfReflectionAgent(BaseAgent):
         self.name = "SelfReflectionAgent"
         self.color = "green"
 
-    def run(self, query):
-        self.log_thought(f"Processing query with Self-Reflection: {query}")
-        full_response = ""
-        for chunk in self.stream(query):
-            print(colored(chunk, self.color), end="", flush=True)
-            full_response += chunk
-        print()
-        return full_response
+    run_label = "Processing query with Self-Reflection: {query}"
 
     def stream(self, query):
         """Yield text chunks for terminal streaming."""

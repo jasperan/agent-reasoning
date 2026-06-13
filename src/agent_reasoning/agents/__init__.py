@@ -1,16 +1,25 @@
 """
 Reasoning strategy agents.
 
-Available agents:
+Available agents (see ``__all__``):
 - StandardAgent: Direct LLM generation (baseline)
 - CoTAgent: Chain-of-Thought reasoning
 - ToTAgent: Tree of Thoughts exploration
 - ReActAgent: Reason + Act with tools
-- SelfReflectionAgent: Draft → Critique → Refine
+- SelfReflectionAgent: Draft -> Critique -> Refine
 - ConsistencyAgent: Self-consistency voting
 - DecomposedAgent: Problem decomposition
 - LeastToMostAgent: Least-to-most reasoning
 - RecursiveAgent: Recursive processing
+- MCTSAgent: Monte Carlo Tree Search
+- AnalogicalAgent: Structural analogy
+- DebateAgent: Adversarial debate
+- SocraticAgent: Progressive questioning
+- MetaReasoningAgent: Auto-classify and route to a strategy
+
+Refinement agents (RefinementLoopAgent, ComplexRefinementLoopAgent) are
+imported directly from their modules, e.g.
+``from agent_reasoning.agents.refinement_loop import RefinementLoopAgent``.
 """
 
 from agent_reasoning.agents.analogical import AnalogicalAgent

@@ -26,14 +26,7 @@ class RecursiveAgent(BaseAgent):
             response += chunk
         return response
 
-    def run(self, query):
-        self.log_thought("Processing query with RecursiveAgent")
-        full_res = ""
-        for chunk in self.stream(query):
-            print(colored(chunk, self.color), end="", flush=True)
-            full_res += chunk
-        print()
-        return full_res
+    run_label = "Processing query with RecursiveAgent"
 
     def stream(self, query):
         self.log_thought("Initializing Recursive Context.")

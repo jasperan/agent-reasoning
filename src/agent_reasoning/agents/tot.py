@@ -1,7 +1,5 @@
 import re
 
-from termcolor import colored
-
 from agent_reasoning.agents.base import BaseAgent
 from agent_reasoning.visualization.models import StreamEvent, TreeNode
 
@@ -14,14 +12,7 @@ class ToTAgent(BaseAgent):
         self.width = 2
         self.depth = 3
 
-    def run(self, query):
-        self.log_thought(f"Processing query via Tree of Thoughts (BFS): {query}")
-        full_response = ""
-        for chunk in self.stream(query):
-            print(colored(chunk, self.color), end="", flush=True)
-            full_response += chunk
-        print()
-        return full_response
+    run_label = "Processing query via Tree of Thoughts (BFS): {query}"
 
     def stream(self, query):
         """Yield text chunks for terminal streaming."""

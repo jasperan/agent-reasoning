@@ -1,8 +1,6 @@
 import math
 import re
 
-from termcolor import colored
-
 from agent_reasoning.agents.base import BaseAgent
 from agent_reasoning.visualization.models import MCTSNode, StreamEvent
 
@@ -16,14 +14,7 @@ class MCTSAgent(BaseAgent):
         self.exploration_constant = 1.414
         self.max_children = 2
 
-    def run(self, query):
-        self.log_thought(f"Processing query via MCTS: {query}")
-        full_response = ""
-        for chunk in self.stream(query):
-            print(colored(chunk, self.color), end="", flush=True)
-            full_response += chunk
-        print()
-        return full_response
+    run_label = "Processing query via MCTS: {query}"
 
     def stream(self, query):
         """Yield text chunks for terminal streaming."""

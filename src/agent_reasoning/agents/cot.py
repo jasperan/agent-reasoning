@@ -1,26 +1,17 @@
 import re
 
-from termcolor import colored
-
 from agent_reasoning.agents.base import BaseAgent
 from agent_reasoning.visualization.models import ChainStep, StreamEvent
 
 
 class CoTAgent(BaseAgent):
+    run_label = "Processing query with Chain-of-Thought: {query}"
+    run_prefix = "Reasoning: "
+
     def __init__(self, model="gemma3:270m", **kwargs):
         super().__init__(model, **kwargs)
         self.name = "CoTAgent"
         self.color = "blue"
-
-    def run(self, query):
-        self.log_thought(f"Processing query with Chain-of-Thought: {query}")
-        print(colored("Reasoning: ", self.color), end="", flush=True)
-        full_response = ""
-        for chunk in self.stream(query):
-            print(colored(chunk, self.color), end="", flush=True)
-            full_response += chunk
-        print()
-        return full_response
 
     def stream(self, query):
         """Yield text chunks for terminal streaming."""

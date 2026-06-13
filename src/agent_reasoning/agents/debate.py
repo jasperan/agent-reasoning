@@ -1,7 +1,5 @@
 import re
 
-from termcolor import colored
-
 from agent_reasoning.agents.base import BaseAgent
 from agent_reasoning.visualization.models import DebateRound, StreamEvent
 
@@ -13,14 +11,7 @@ class DebateAgent(BaseAgent):
         self.color = "red"
         self.rounds = rounds
 
-    def run(self, query):
-        self.log_thought(f"Processing query with Adversarial Debate: {query}")
-        full_response = ""
-        for chunk in self.stream(query):
-            print(colored(chunk, self.color), end="", flush=True)
-            full_response += chunk
-        print()
-        return full_response
+    run_label = "Processing query with Adversarial Debate: {query}"
 
     def stream(self, query):
         """Yield text chunks for terminal streaming."""

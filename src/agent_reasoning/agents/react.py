@@ -93,14 +93,7 @@ class ReActAgent(BaseAgent):
         else:
             return "Unknown tool"
 
-    def run(self, query):
-        self.log_thought(f"Processing query with ReAct: {query}")
-        full_res = ""
-        for chunk in self.stream(query):
-            print(colored(chunk, self.color), end="", flush=True)
-            full_res += chunk
-        print()
-        return full_res
+    run_label = "Processing query with ReAct: {query}"
 
     def stream(self, query):
         """Yield text chunks for terminal streaming."""

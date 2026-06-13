@@ -1,8 +1,7 @@
-import re
-
 from termcolor import colored
 
 from agent_reasoning.agents.base import BaseAgent
+from agent_reasoning.agents.parsing import parse_feedback, parse_score
 from agent_reasoning.visualization.models import RefinementIteration, StreamEvent
 
 
@@ -26,14 +25,7 @@ class RefinementLoopAgent(BaseAgent):
         self.score_threshold = score_threshold
         self.max_iterations = max_iterations
 
-    def run(self, query):
-        self.log_thought(f"Processing query with Refinement Loop: {query}")
-        full_response = ""
-        for chunk in self.stream(query):
-            print(colored(chunk, self.color), end="", flush=True)
-            full_response += chunk
-        print()
-        return full_response
+    run_label = "Processing query with Refinement Loop: {query}"
 
     def stream(self, query):
         """Yield text chunks for terminal streaming."""
@@ -201,31 +193,8 @@ class RefinementLoopAgent(BaseAgent):
 
     def _extract_score(self, critique: str) -> float:
         """Extract numeric score from critique response."""
-        # Try to find "SCORE: X.X" pattern
-        match = re.search(r"SCORE:\s*(0?\.\d+|1\.0|1|0)", critique, re.IGNORECASE)
-        if match:
-            try:
-                return float(match.group(1))
-            except ValueError:
-                pass
-
-        # Fallback: look for any decimal number
-        match = re.search(r"\b(0\.\d+|1\.0)\b", critique)
-        if match:
-            try:
-                return float(match.group(1))
-            except ValueError:
-                pass
-
-        # Default to low score if parsing fails
-        return 0.5
+        return parse_score(critique)
 
     def _extract_feedback(self, critique: str) -> str:
         """Extract feedback from critique response."""
-        # Try to find "FEEDBACK: ..." pattern
-        match = re.search(r"FEEDBACK:\s*(.+)", critique, re.IGNORECASE | re.DOTALL)
-        if match:
-            return match.group(1).strip()
-
-        # Fallback: return entire critique as feedback
-        return critique
+        return parse_feedback(critique)

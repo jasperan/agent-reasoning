@@ -63,7 +63,6 @@ class OllamaClient:
         except requests.exceptions.RequestException as e:
             error_msg = f"[OllamaClient] Error communicating with Ollama (model={self.model}): {e}"
             print(error_msg, file=sys.stderr)
-            print(error_msg)  # Also print to stdout so it's visible in logs
             yield (
                 f"Error: Could not reach Ollama model '{self.model}'. "
                 "Please check the model is available (ollama list)."
