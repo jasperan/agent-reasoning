@@ -1,9 +1,81 @@
+import ast
 import re
 
 from termcolor import colored
 
 from agent_reasoning.agents.base import BaseAgent
 from agent_reasoning.visualization.models import ReActStep, StreamEvent, TaskStatus
+
+_MAX_EXPRESSION_LENGTH = 500
+
+
+def _eval_math_node(node: ast.AST, names: dict):
+    """Recursively evaluate one arithmetic AST node."""
+    if isinstance(node, ast.Constant):
+        # bool is a subclass of int; excluding it keeps the tool numeric.
+        if isinstance(node.value, (int, float)) and not isinstance(node.value, bool):
+            return node.value
+        raise ValueError("only numeric literals are allowed")
+
+    if isinstance(node, ast.Name):
+        if node.id in names:
+            return names[node.id]
+        raise ValueError(f"unknown name: {node.id}")
+
+    if isinstance(node, ast.UnaryOp):
+        operand = _eval_math_node(node.operand, names)
+        if isinstance(node.op, ast.USub):
+            return -operand
+        if isinstance(node.op, ast.UAdd):
+            return +operand
+        raise ValueError("unsupported unary operator")
+
+    if isinstance(node, ast.BinOp):
+        left = _eval_math_node(node.left, names)
+        right = _eval_math_node(node.right, names)
+        operations = {
+            ast.Add: lambda a, b: a + b,
+            ast.Sub: lambda a, b: a - b,
+            ast.Mult: lambda a, b: a * b,
+            ast.Div: lambda a, b: a / b,
+            ast.FloorDiv: lambda a, b: a // b,
+            ast.Mod: lambda a, b: a % b,
+            ast.Pow: lambda a, b: a ** b,
+        }
+        for op_type, operation in operations.items():
+            if isinstance(node.op, op_type):
+                return operation(left, right)
+        raise ValueError("unsupported binary operator")
+
+    if isinstance(node, ast.Call):
+        if not isinstance(node.func, ast.Name) or node.func.id not in names:
+            raise ValueError("only whitelisted functions may be called")
+        if node.keywords:
+            raise ValueError("keyword arguments are not supported")
+        return names[node.func.id](
+            *[_eval_math_node(arg, names) for arg in node.args]
+        )
+
+    raise ValueError(f"unsupported expression element: {type(node).__name__}")
+
+
+def _safe_math_eval(expression: str, allowed_names: dict):
+    """Evaluate a pure arithmetic expression without ``eval``.
+
+    ``eval(expr, {"__builtins__": {}}, allowed)`` is not a sandbox: removing
+    builtin *names* does not remove attribute *traversal*, so
+    ``().__class__.__base__.__subclasses__()`` still reaches every loaded
+    class and from there ``__globals__``/``__builtins__`` and arbitrary
+    imports. This walks a restricted AST instead, so attribute access and
+    subscripting are unrepresentable and there is nothing to traverse.
+    """
+    if not isinstance(expression, str):
+        raise ValueError("expression must be a string")
+    if len(expression) > _MAX_EXPRESSION_LENGTH:
+        raise ValueError("expression too long")
+
+    tree = ast.parse(expression.strip(), mode="eval")
+    return _eval_math_node(tree.body, allowed_names)
 
 
 class ReActAgent(BaseAgent):
@@ -16,7 +88,7 @@ class ReActAgent(BaseAgent):
         if tool_name == "calculate":
             try:
                 allowed_names = {"abs": abs, "round": round, "min": min, "max": max}
-                return str(eval(tool_input, {"__builtins__": {}}, allowed_names))
+                return str(_safe_math_eval(tool_input, allowed_names))
             except Exception as e:
                 return f"Error calculating: {e}"
 
