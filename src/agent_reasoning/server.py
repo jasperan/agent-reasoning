@@ -102,7 +102,15 @@ def main():
     from agent_reasoning.config import get_ollama_host, set_ollama_host
 
     parser = argparse.ArgumentParser(description="Agent Reasoning Server")
-    parser.add_argument("--host", default="0.0.0.0", help="Host to bind to")
+    # Default to loopback: this server has no authentication, and the
+    # "recursive" strategy executes LLM-authored Python in-process. Binding
+    # every interface by default would expose that code-execution path to the
+    # network. Pass --host explicitly to expose it on purpose.
+    parser.add_argument(
+        "--host",
+        default="127.0.0.1",
+        help="Host to bind to (default: loopback; the API is unauthenticated)",
+    )
     parser.add_argument("--port", type=int, default=8080, help="Port to bind to")
     parser.add_argument(
         "--ollama-host", default=None, help="Ollama API endpoint (overrides config file)"
