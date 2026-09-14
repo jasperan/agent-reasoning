@@ -1,6 +1,6 @@
 package app
 
-import tea "github.com/charmbracelet/bubbletea"
+import tea "charm.land/bubbletea/v2"
 
 // Router manages view switching.
 type Router struct {

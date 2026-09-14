@@ -5,7 +5,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/charmbracelet/lipgloss"
+	"charm.land/lipgloss/v2"
 )
 
 // ArenaStatus represents the status of an agent in arena mode
@@ -30,13 +30,13 @@ type ArenaCell struct {
 
 // Arena represents the arena grid view
 type Arena struct {
-	mu         sync.Mutex
-	cells      []*ArenaCell
-	query      string
-	width      int
-	height     int
-	active     bool
-	completed  int
+	mu        sync.Mutex
+	cells     []*ArenaCell
+	query     string
+	width     int
+	height    int
+	active    bool
+	completed int
 }
 
 // NewArena creates a new arena component

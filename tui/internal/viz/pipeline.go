@@ -7,11 +7,11 @@ import (
 	"agent-reasoning-tui/internal/client"
 	"agent-reasoning-tui/internal/ui"
 
-	"github.com/charmbracelet/lipgloss"
+	"charm.land/lipgloss/v2"
 )
 
 var (
-	pipelineStageStyle = lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#FFFF00"))
+	pipelineStageStyle   = lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#FFFF00"))
 	pipelineContentStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("#CCCCCC"))
 	pipelineScoreStyle   = lipgloss.NewStyle().Foreground(lipgloss.Color("#00FF00"))
 )

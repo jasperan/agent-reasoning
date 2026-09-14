@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/charmbracelet/bubbles/viewport"
-	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss"
+	"charm.land/bubbles/v2/viewport"
+	tea "charm.land/bubbletea/v2"
+	"charm.land/lipgloss/v2"
 )
 
 // ChatMessage represents a single message in the chat
@@ -17,19 +17,19 @@ type ChatMessage struct {
 
 // Chat represents the main chat panel
 type Chat struct {
-	viewport     viewport.Model
-	messages     []ChatMessage
-	streaming    string // Current streaming content
-	isStreaming  bool
-	agentName    string
-	agentID      string
-	width        int
-	height       int
+	viewport    viewport.Model
+	messages    []ChatMessage
+	streaming   string // Current streaming content
+	isStreaming bool
+	agentName   string
+	agentID     string
+	width       int
+	height      int
 }
 
 // NewChat creates a new chat component
 func NewChat() *Chat {
-	vp := viewport.New(60, 20)
+	vp := viewport.New(viewport.WithWidth(60), viewport.WithHeight(20))
 	vp.SetContent("")
 
 	return &Chat{
@@ -56,8 +56,8 @@ func (c *Chat) SetSize(width, height int) {
 	if vpHeight < 1 {
 		vpHeight = 1
 	}
-	c.viewport.Width = vpWidth
-	c.viewport.Height = vpHeight
+	c.viewport.SetWidth(vpWidth)
+	c.viewport.SetHeight(vpHeight)
 	c.updateContent()
 }
 
@@ -132,7 +132,7 @@ func (c *Chat) IsStreaming() bool {
 func (c *Chat) updateContent() {
 	// Show caduceus splash when chat is empty
 	if len(c.messages) == 0 && !c.isStreaming {
-		c.viewport.SetContent(RenderSplash(c.viewport.Width, c.viewport.Height))
+		c.viewport.SetContent(RenderSplash(c.viewport.Width(), c.viewport.Height()))
 		return
 	}
 

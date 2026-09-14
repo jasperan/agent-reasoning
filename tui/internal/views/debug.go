@@ -10,19 +10,19 @@ import (
 	"agent-reasoning-tui/internal/ui"
 	"agent-reasoning-tui/internal/viz"
 
-	"github.com/charmbracelet/bubbles/key"
-	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss"
+	"charm.land/bubbles/v2/key"
+	tea "charm.land/bubbletea/v2"
+	"charm.land/lipgloss/v2"
 )
 
 // DebugPhase tracks the lifecycle of a debug session.
 type DebugPhase int
 
 const (
-	DebugInput     DebugPhase = iota // User types query
-	DebugStepping                    // Stepping through events one by one
-	DebugRunning                     // Running all remaining events
-	DebugComplete                    // Session finished
+	DebugInput    DebugPhase = iota // User types query
+	DebugStepping                   // Stepping through events one by one
+	DebugRunning                    // Running all remaining events
+	DebugComplete                   // Session finished
 )
 
 // DebugMsg types for async operations.
@@ -50,13 +50,13 @@ type DebugView struct {
 	input *ui.Input
 
 	// Stepping phase
-	visualizer  viz.Visualizer
-	history     []client.StructuredEvent
-	historyIdx  int
-	sessionID   string
-	phase       DebugPhase
-	inspectMode bool // false=visualizer, true=raw JSON
-	agentID     string
+	visualizer     viz.Visualizer
+	history        []client.StructuredEvent
+	historyIdx     int
+	sessionID      string
+	phase          DebugPhase
+	inspectMode    bool // false=visualizer, true=raw JSON
+	agentID        string
 	prefilledQuery string // set when entering from ChatView with D key
 
 	// Layout
@@ -165,7 +165,7 @@ func (v *DebugView) Update(msg tea.Msg) (app.View, tea.Cmd) {
 	keys := defaultDebugKeyMap()
 
 	switch msg := msg.(type) {
-	case tea.KeyMsg:
+	case tea.KeyPressMsg:
 		switch v.phase {
 		case DebugInput:
 			return v.handleInputPhaseKey(msg, keys)
@@ -227,7 +227,7 @@ func (v *DebugView) Update(msg tea.Msg) (app.View, tea.Cmd) {
 	return v, nil
 }
 
-func (v *DebugView) handleInputPhaseKey(msg tea.KeyMsg, keys DebugKeyMap) (app.View, tea.Cmd) {
+func (v *DebugView) handleInputPhaseKey(msg tea.KeyPressMsg, keys DebugKeyMap) (app.View, tea.Cmd) {
 	if key.Matches(msg, keys.Quit) {
 		return v, func() tea.Msg { return app.SwitchViewMsg{Target: app.ViewChat} }
 	}
@@ -250,7 +250,7 @@ func (v *DebugView) handleInputPhaseKey(msg tea.KeyMsg, keys DebugKeyMap) (app.V
 	return v, cmd
 }
 
-func (v *DebugView) handleSteppingPhaseKey(msg tea.KeyMsg, keys DebugKeyMap) (app.View, tea.Cmd) {
+func (v *DebugView) handleSteppingPhaseKey(msg tea.KeyPressMsg, keys DebugKeyMap) (app.View, tea.Cmd) {
 	switch {
 	case key.Matches(msg, keys.Quit):
 		if v.sessionID != "" {
@@ -503,7 +503,7 @@ func (v *DebugView) renderRightPanel(w, h int) string {
 			sb.WriteString(stepInfo + "\n")
 			sb.WriteString(typeStr + "\n\n")
 			for k, val := range evt.Data {
-				sb.WriteString(keyStyle.Render(k+": "))
+				sb.WriteString(keyStyle.Render(k + ": "))
 				sb.WriteString(fmt.Sprintf("%v\n", val))
 			}
 			content = sb.String()

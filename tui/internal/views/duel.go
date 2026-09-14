@@ -3,6 +3,7 @@ package views
 import (
 	"context"
 	"fmt"
+	"image/color"
 	"strings"
 	"time"
 
@@ -10,9 +11,9 @@ import (
 	"agent-reasoning-tui/internal/client"
 	"agent-reasoning-tui/internal/ui"
 
-	"github.com/charmbracelet/bubbles/key"
-	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss"
+	"charm.land/bubbles/v2/key"
+	tea "charm.land/bubbletea/v2"
+	"charm.land/lipgloss/v2"
 )
 
 // --- Duel-local message types ---
@@ -150,7 +151,7 @@ func (v *DuelView) Update(msg tea.Msg) (app.View, tea.Cmd) {
 	var cmds []tea.Cmd
 
 	switch msg := msg.(type) {
-	case tea.KeyMsg:
+	case tea.KeyPressMsg:
 		view, cmd := v.handleKey(msg)
 		return view, cmd
 
@@ -214,7 +215,7 @@ func (v *DuelView) Update(msg tea.Msg) (app.View, tea.Cmd) {
 	return v, tea.Batch(cmds...)
 }
 
-func (v *DuelView) handleKey(msg tea.KeyMsg) (app.View, tea.Cmd) {
+func (v *DuelView) handleKey(msg tea.KeyPressMsg) (app.View, tea.Cmd) {
 	switch v.phase {
 	case DuelSelection:
 		switch {
@@ -526,7 +527,7 @@ func (v *DuelView) renderRacing() string {
 	return lipgloss.JoinVertical(lipgloss.Left, title, racePanels, metrics)
 }
 
-func (v *DuelView) renderSidePanel(s *duelSide, width, height int, color lipgloss.Color) string {
+func (v *DuelView) renderSidePanel(s *duelSide, width, height int, color color.Color) string {
 	content := s.content.String()
 	if s.err != "" {
 		content = "[Error: " + s.err + "]"
@@ -560,7 +561,7 @@ func (v *DuelView) renderSidePanel(s *duelSide, width, height int, color lipglos
 
 	return lipgloss.NewStyle().
 		Width(width).
-		Height(height + 2).
+		Height(height+2).
 		Padding(0, 1).
 		Render(body)
 }

@@ -8,8 +8,8 @@ import (
 
 	"agent-reasoning-tui/internal/app"
 
-	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss"
+	tea "charm.land/bubbletea/v2"
+	"charm.land/lipgloss/v2"
 )
 
 // ParamEntry holds one tunable hyperparameter with its current and default values.
@@ -84,7 +84,7 @@ func (h *HyperParams) SetSize(width, height int) {
 
 // Update handles keyboard input when the overlay is active.
 // Returns (applied, values) where applied=true means the user confirmed.
-func (h *HyperParams) Update(msg tea.KeyMsg) (applied bool, values map[string]float64) {
+func (h *HyperParams) Update(msg tea.KeyPressMsg) (applied bool, values map[string]float64) {
 	if !h.active || len(h.params) == 0 {
 		return false, nil
 	}

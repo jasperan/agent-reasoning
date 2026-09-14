@@ -5,7 +5,7 @@ import (
 	"agent-reasoning-tui/internal/config"
 	"agent-reasoning-tui/internal/session"
 
-	tea "github.com/charmbracelet/bubbletea"
+	tea "charm.land/bubbletea/v2"
 )
 
 // ViewID identifies each view in the router.

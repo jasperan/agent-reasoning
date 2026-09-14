@@ -12,7 +12,7 @@ import (
 	"agent-reasoning-tui/internal/server"
 	"agent-reasoning-tui/internal/views"
 
-	tea "github.com/charmbracelet/bubbletea"
+	tea "charm.land/bubbletea/v2"
 )
 
 func main() {
@@ -96,7 +96,7 @@ func main() {
 	sessionsView := views.NewSessionsView(model.Ctx())
 	model.Router().RegisterView(sessionsView)
 
-	p := tea.NewProgram(model, tea.WithAltScreen())
+	p := tea.NewProgram(model) // alt screen is declared on the tea.View returned by Model.View()
 
 	if _, err := p.Run(); err != nil {
 		fmt.Fprintf(os.Stderr, "Error running TUI: %v\n", err)

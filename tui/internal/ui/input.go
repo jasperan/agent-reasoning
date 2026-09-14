@@ -1,8 +1,8 @@
 package ui
 
 import (
-	"github.com/charmbracelet/bubbles/textinput"
-	tea "github.com/charmbracelet/bubbletea"
+	"charm.land/bubbles/v2/textinput"
+	tea "charm.land/bubbletea/v2"
 )
 
 // Input represents the text input component
@@ -17,7 +17,7 @@ func NewInput() *Input {
 	ti := textinput.New()
 	ti.Placeholder = "Enter your query..."
 	ti.CharLimit = 1000
-	ti.Width = 60
+	ti.SetWidth(60)
 
 	return &Input{
 		textInput: ti,
@@ -29,7 +29,7 @@ func NewInput() *Input {
 // SetWidth updates the input width
 func (i *Input) SetWidth(width int) {
 	i.width = width
-	i.textInput.Width = width - 6 // Account for prompt and padding
+	i.textInput.SetWidth(width - 6) // Account for prompt and padding
 }
 
 // Focus focuses the input

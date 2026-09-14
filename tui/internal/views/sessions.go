@@ -10,9 +10,9 @@ import (
 	"agent-reasoning-tui/internal/app"
 	"agent-reasoning-tui/internal/session"
 
-	"github.com/charmbracelet/bubbles/key"
-	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss"
+	"charm.land/bubbles/v2/key"
+	tea "charm.land/bubbletea/v2"
+	"charm.land/lipgloss/v2"
 )
 
 // sessionsLoadedMsg carries sessions from the async load.
@@ -36,7 +36,7 @@ type SessionsView struct {
 
 	filterText  string
 	filterType  session.SessionType // "" means all
-	filterFocus bool               // true = typing in filter box
+	filterFocus bool                // true = typing in filter box
 
 	// Detail / confirmation overlay
 	detailActive  bool
@@ -91,14 +91,14 @@ func (v *SessionsView) Update(msg tea.Msg) (app.View, tea.Cmd) {
 	case sessionsExportedMsg:
 		v.setStatus("Exported to " + msg.path)
 
-	case tea.KeyMsg:
+	case tea.KeyPressMsg:
 		return v.handleKey(msg)
 	}
 
 	return v, nil
 }
 
-func (v *SessionsView) handleKey(msg tea.KeyMsg) (app.View, tea.Cmd) {
+func (v *SessionsView) handleKey(msg tea.KeyPressMsg) (app.View, tea.Cmd) {
 	// Detail overlay — any key closes it.
 	if v.detailActive {
 		v.detailActive = false

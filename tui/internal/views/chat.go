@@ -13,9 +13,9 @@ import (
 	"agent-reasoning-tui/internal/ui"
 	"agent-reasoning-tui/internal/viz"
 
-	"github.com/charmbracelet/bubbles/key"
-	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss"
+	"charm.land/bubbles/v2/key"
+	tea "charm.land/bubbletea/v2"
+	"charm.land/lipgloss/v2"
 	"github.com/charmbracelet/x/ansi"
 )
 
@@ -51,14 +51,14 @@ type (
 
 // KeyMap defines the keybindings for ChatView.
 type KeyMap struct {
-	Up             key.Binding
-	Down           key.Binding
-	Enter          key.Binding
-	Tab            key.Binding
-	Escape         key.Binding
-	Quit           key.Binding
-	ToggleViz      key.Binding
-	Debug          key.Binding
+	Up              key.Binding
+	Down            key.Binding
+	Enter           key.Binding
+	Tab             key.Binding
+	Escape          key.Binding
+	Quit            key.Binding
+	ToggleViz       key.Binding
+	Debug           key.Binding
 	StrategyAdvisor key.Binding
 }
 
@@ -105,12 +105,12 @@ func defaultKeyMap() KeyMap {
 
 // advisorOverlay holds state for the strategy advisor popup.
 type advisorOverlay struct {
-	active            bool
-	loading           bool
-	recommendedID     string
-	recommendedName   string
-	reason            string
-	err               string
+	active          bool
+	loading         bool
+	recommendedID   string
+	recommendedName string
+	reason          string
+	err             string
 }
 
 // advisorResultMsg is sent when the meta-agent response arrives.
@@ -150,7 +150,7 @@ type ChatView struct {
 	streamTTFT      time.Duration
 	tokenCount      int
 	gotFirstChunk   bool
-	lastQuery       string         // saved before input is reset, used for session auto-save
+	lastQuery       string          // saved before input is reset, used for session auto-save
 	streamResponse  strings.Builder // accumulates full response for auto-save
 
 	// Visualization
@@ -216,7 +216,7 @@ func (v *ChatView) Update(msg tea.Msg) (app.View, tea.Cmd) {
 	var cmds []tea.Cmd
 
 	switch msg := msg.(type) {
-	case tea.KeyMsg:
+	case tea.KeyPressMsg:
 		// Hyperparams overlay intercepts all keys when active.
 		if v.hyperParams.Active() {
 			applied, values := v.hyperParams.Update(msg)
@@ -492,7 +492,7 @@ func (v *ChatView) SyncFromContext() {
 
 // --- Key handling ---
 
-func (v *ChatView) handleKeyMsg(msg tea.KeyMsg) (app.View, tea.Cmd) {
+func (v *ChatView) handleKeyMsg(msg tea.KeyPressMsg) (app.View, tea.Cmd) {
 	// Strategy advisor overlay intercepts all keys when active
 	if v.advisor.active && !v.advisor.loading {
 		return v.handleAdvisorKey(msg)
@@ -567,7 +567,7 @@ func (v *ChatView) handleKeyMsg(msg tea.KeyMsg) (app.View, tea.Cmd) {
 	return v.handleInputKey(msg)
 }
 
-func (v *ChatView) handleSidebarKey(msg tea.KeyMsg) (app.View, tea.Cmd) {
+func (v *ChatView) handleSidebarKey(msg tea.KeyPressMsg) (app.View, tea.Cmd) {
 	switch {
 	case key.Matches(msg, v.keys.Up):
 		v.sidebar.MoveUp()
@@ -621,7 +621,7 @@ func (v *ChatView) handleSidebarSelect() (app.View, tea.Cmd) {
 	return v, nil
 }
 
-func (v *ChatView) handleInputKey(msg tea.KeyMsg) (app.View, tea.Cmd) {
+func (v *ChatView) handleInputKey(msg tea.KeyPressMsg) (app.View, tea.Cmd) {
 	switch {
 	case key.Matches(msg, v.keys.StrategyAdvisor):
 		query := v.input.Value()
@@ -668,7 +668,7 @@ func (v *ChatView) handleInputKey(msg tea.KeyMsg) (app.View, tea.Cmd) {
 	}
 }
 
-func (v *ChatView) handleModelSelectorKey(msg tea.KeyMsg) (app.View, tea.Cmd) {
+func (v *ChatView) handleModelSelectorKey(msg tea.KeyPressMsg) (app.View, tea.Cmd) {
 	switch {
 	case key.Matches(msg, v.keys.Up):
 		v.modelSelector.MoveUp()
@@ -687,7 +687,7 @@ func (v *ChatView) handleModelSelectorKey(msg tea.KeyMsg) (app.View, tea.Cmd) {
 	return v, nil
 }
 
-func (v *ChatView) handleArenaKey(msg tea.KeyMsg) (app.View, tea.Cmd) {
+func (v *ChatView) handleArenaKey(msg tea.KeyPressMsg) (app.View, tea.Cmd) {
 	switch {
 	case key.Matches(msg, v.keys.Escape):
 		v.arena.Stop()
@@ -960,7 +960,7 @@ func (v *ChatView) queryStrategyAdvisor(query string) tea.Cmd {
 }
 
 // handleAdvisorKey handles key events when the advisor overlay is visible.
-func (v *ChatView) handleAdvisorKey(msg tea.KeyMsg) (app.View, tea.Cmd) {
+func (v *ChatView) handleAdvisorKey(msg tea.KeyPressMsg) (app.View, tea.Cmd) {
 	switch {
 	case key.Matches(msg, v.keys.Enter):
 		if v.advisor.recommendedID != "" {
@@ -1002,7 +1002,7 @@ func (v *ChatView) renderAdvisorOverlay() string {
 	if v.advisor.loading {
 		body = "Consulting meta-agent..."
 	} else if v.advisor.err != "" {
-		body = lipgloss.NewStyle().Foreground(lipgloss.Color("9")).Render("Error: " + v.advisor.err) +
+		body = lipgloss.NewStyle().Foreground(lipgloss.Color("9")).Render("Error: "+v.advisor.err) +
 			"\n\n" + dimStyle.Render("[Esc] Close")
 	} else {
 		body = recStyle.Render("Recommended: "+v.advisor.recommendedName) +

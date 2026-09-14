@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/charmbracelet/lipgloss"
+	"charm.land/lipgloss/v2"
 )
 
 // Agent represents a reasoning strategy
@@ -33,9 +33,9 @@ func DefaultAgents() []Agent {
 
 // SidebarItem represents an item in the sidebar
 type SidebarItem struct {
-	Label    string
-	Value    string
-	IsAgent  bool
+	Label       string
+	Value       string
+	IsAgent     bool
 	IsSeparator bool
 }
 

@@ -7,7 +7,7 @@ import (
 	"agent-reasoning-tui/internal/client"
 	"agent-reasoning-tui/internal/ui"
 
-	"github.com/charmbracelet/lipgloss"
+	"charm.land/lipgloss/v2"
 )
 
 var (

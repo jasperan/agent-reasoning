@@ -12,9 +12,9 @@ import (
 	"agent-reasoning-tui/internal/app"
 	"agent-reasoning-tui/internal/ui"
 
-	"github.com/charmbracelet/bubbles/key"
-	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss"
+	"charm.land/bubbles/v2/key"
+	tea "charm.land/bubbletea/v2"
+	"charm.land/lipgloss/v2"
 )
 
 // BenchmarkTab identifies which tab is active.
@@ -102,13 +102,13 @@ func (v *BenchmarkView) SetSize(width, height int) {
 
 func (v *BenchmarkView) Update(msg tea.Msg) (app.View, tea.Cmd) {
 	switch msg := msg.(type) {
-	case tea.KeyMsg:
+	case tea.KeyPressMsg:
 		return v.handleKey(msg)
 	}
 	return v, nil
 }
 
-func (v *BenchmarkView) handleKey(msg tea.KeyMsg) (app.View, tea.Cmd) {
+func (v *BenchmarkView) handleKey(msg tea.KeyPressMsg) (app.View, tea.Cmd) {
 	switch {
 	case key.Matches(msg, v.keys.Escape):
 		return v, func() tea.Msg { return app.SwitchViewMsg{Target: app.ViewChat} }

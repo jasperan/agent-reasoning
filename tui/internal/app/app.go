@@ -9,8 +9,8 @@ import (
 	"agent-reasoning-tui/internal/config"
 	"agent-reasoning-tui/internal/session"
 
-	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss"
+	tea "charm.land/bubbletea/v2"
+	"charm.land/lipgloss/v2"
 )
 
 // AgentsLoadedMsg is sent when /api/agents is fetched successfully.
@@ -36,8 +36,8 @@ type Model struct {
 	ctx    *Context
 	router *Router
 
-	quitting    bool
-	retryDelay  time.Duration // current backoff delay
+	quitting   bool
+	retryDelay time.Duration // current backoff delay
 }
 
 // New creates a new application model with default config (backward-compatible).
@@ -86,12 +86,12 @@ func (m *Model) Router() *Router {
 	return m.router
 }
 
-// Init starts connection health check and enters alt screen.
+// Init starts the connection health check. The alt screen is declarative in
+// bubbletea v2: it is set on the tea.View returned by View(), not by a command.
 func (m *Model) Init() tea.Cmd {
 	initCmd := m.router.SwitchTo(ViewChat)
 	return tea.Batch(
 		m.checkConnection(),
-		tea.EnterAltScreen,
 		initCmd,
 	)
 }
@@ -207,8 +207,18 @@ func (m *Model) loadAgents() tea.Cmd {
 	}
 }
 
-// View renders the application. If quitting, show goodbye; otherwise delegate.
-func (m *Model) View() string {
+// View renders the application. In v2 it returns a tea.View, and the terminal
+// features that used to be program options live on that value instead: the alt
+// screen is declared here rather than entered by a command.
+func (m *Model) View() tea.View {
+	v := tea.NewView(m.viewString())
+	v.AltScreen = true
+	return v
+}
+
+// viewString renders the application content. If quitting, show goodbye;
+// otherwise delegate to the active view via the router.
+func (m *Model) viewString() string {
 	if m.quitting {
 		return "Goodbye!\n"
 	}

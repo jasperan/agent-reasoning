@@ -3,6 +3,7 @@ package views
 import (
 	"context"
 	"fmt"
+	"image/color"
 	"sort"
 	"strings"
 	"time"
@@ -11,9 +12,9 @@ import (
 	"agent-reasoning-tui/internal/client"
 	"agent-reasoning-tui/internal/ui"
 
-	"github.com/charmbracelet/bubbles/key"
-	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss"
+	"charm.land/bubbles/v2/key"
+	tea "charm.land/bubbletea/v2"
+	"charm.land/lipgloss/v2"
 )
 
 // --- Arena-local message types ---
@@ -24,9 +25,9 @@ type arenaCellChunkMsg struct {
 }
 
 type arenaCellDoneMsg struct {
-	agentID   string
-	duration  time.Duration
-	tokens    int
+	agentID  string
+	duration time.Duration
+	tokens   int
 }
 
 type arenaCellErrorMsg struct {
@@ -142,7 +143,7 @@ func (v *ArenaView) Update(msg tea.Msg) (app.View, tea.Cmd) {
 	var cmds []tea.Cmd
 
 	switch msg := msg.(type) {
-	case tea.KeyMsg:
+	case tea.KeyPressMsg:
 		view, cmd := v.handleKey(msg)
 		return view, cmd
 
@@ -192,7 +193,7 @@ func (v *ArenaView) Update(msg tea.Msg) (app.View, tea.Cmd) {
 	return v, tea.Batch(cmds...)
 }
 
-func (v *ArenaView) handleKey(msg tea.KeyMsg) (app.View, tea.Cmd) {
+func (v *ArenaView) handleKey(msg tea.KeyPressMsg) (app.View, tea.Cmd) {
 	switch v.phase {
 	case ArenaInput:
 		switch {
@@ -467,7 +468,7 @@ func (v *ArenaView) renderGrid() string {
 }
 
 func (v *ArenaView) renderCell(cell *ArenaCell, width, height int) string {
-	var borderColor lipgloss.Color
+	var borderColor color.Color
 	var statusStr string
 
 	switch cell.Status {
@@ -533,8 +534,8 @@ func (v *ArenaView) renderCell(cell *ArenaCell, width, height int) string {
 	style := lipgloss.NewStyle().
 		Border(lipgloss.RoundedBorder()).
 		BorderForeground(borderColor).
-		Width(width - 2).
-		Height(height - 2).
+		Width(width-2).
+		Height(height-2).
 		Padding(0, 1)
 
 	return style.Render(cellContent)

@@ -2,9 +2,10 @@ package ui
 
 import (
 	"fmt"
+	"image/color"
 	"time"
 
-	"github.com/charmbracelet/lipgloss"
+	"charm.land/lipgloss/v2"
 )
 
 type MetricsBar struct {
@@ -21,7 +22,7 @@ func NewMetricsBar() *MetricsBar {
 	return &MetricsBar{}
 }
 
-func (m *MetricsBar) SetTTFT(d time.Duration)    { m.ttft = d; m.active = true }
+func (m *MetricsBar) SetTTFT(d time.Duration)     { m.ttft = d; m.active = true }
 func (m *MetricsBar) SetTokens(n int)             { m.tokens = n }
 func (m *MetricsBar) SetTPS(tps float64)          { m.tps = tps }
 func (m *MetricsBar) SetDuration(d time.Duration) { m.duration = d }
@@ -50,7 +51,7 @@ func (m *MetricsBar) View() string {
 		return ""
 	}
 
-	tpsColors := map[string]lipgloss.Color{
+	tpsColors := map[string]color.Color{
 		"green":  lipgloss.Color("#00FF00"),
 		"yellow": lipgloss.Color("#FFFF00"),
 		"red":    lipgloss.Color("#FF0000"),
