@@ -3,7 +3,7 @@ package views
 import (
 	"encoding/json"
 	"fmt"
-	"math"
+	"image/color"
 	"os"
 	"path/filepath"
 	"sort"
@@ -13,6 +13,7 @@ import (
 	"agent-reasoning-tui/internal/ui"
 
 	"charm.land/bubbles/v2/key"
+	"charm.land/bubbles/v2/progress"
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
 )
@@ -275,6 +276,42 @@ func (v *BenchmarkView) renderReasoning(height int) string {
 
 // --- Tab 2: Accuracy ---
 
+// renderBar renders a progress bar using bubbles/progress.
+//
+// progress.WithColorFunc is used rather than progress.WithColors: WithColors
+// interpolates between the supplied colours by fill fraction, which would draw a
+// gradient these bars have never had. Every hand-rolled bar here picks ONE colour
+// from a threshold, so the colour function ignores its arguments and returns it.
+//
+// WithoutPercentage is required because every caller already renders its own
+// percentage on the same row; progress would otherwise append a second one.
+// The fill characters are set explicitly because progress defaults to a half
+// block for blending resolution, whereas these bars have always been █/░.
+//
+// The fraction is clamped at the top. progress does not clamp upward, and it
+// reports only total/current, which are already sanitised. It DOES handle a
+// negative or NaN fraction (both render as an empty bar), so no guard is needed
+// there. It does NOT handle over-full correctly: measured, a fraction of +Inf
+// renders an EMPTY bar, which is the wrong direction for a value above 1.
+func renderBar(fraction float64, width int, colorFn func() color.Color) string {
+	if fraction > 1 {
+		fraction = 1
+	}
+	p := progress.New(
+		progress.WithWidth(width),
+		progress.WithFillCharacters(progress.DefaultFullCharFullBlock, progress.DefaultEmptyCharBlock),
+		progress.WithoutPercentage(),
+		progress.WithColorFunc(func(_, _ float64) color.Color { return colorFn() }),
+	)
+	// The empty track keeps the bar's own colour. progress defaults it to a fixed
+	// grey, but the bars this replaces drew the FILLED and EMPTY characters in ONE
+	// colour (lipgloss.NewStyle().Foreground(color).Render(full+empty)), so leaving
+	// the default would silently change the appearance of every bar in this view.
+	// There is no option for this field, so it is set directly.
+	p.EmptyColor = colorFn()
+	return p.ViewAs(fraction)
+}
+
 func (v *BenchmarkView) renderAccuracy(height int) string {
 	if len(v.accuracyData) == 0 {
 		return v.noDataMsg("No accuracy data found.\n\nExpected: benchmarks/accuracy_full_*.json")
@@ -307,18 +344,13 @@ func (v *BenchmarkView) renderAccuracy(height int) string {
 		if s.total > 0 {
 			pct = float64(s.correct) / float64(s.total) * 100
 		}
-		filled := int(math.Round(pct / 100 * float64(barWidth)))
-		if filled > barWidth {
-			filled = barWidth
-		}
-		bar := strings.Repeat("█", filled) + strings.Repeat("░", barWidth-filled)
-		color := ui.ColorError
+		barColor := ui.ColorError
 		if pct >= 70 {
-			color = ui.ColorSuccess
+			barColor = ui.ColorSuccess
 		} else if pct >= 40 {
-			color = ui.ColorWarning
+			barColor = ui.ColorWarning
 		}
-		barRendered := lipgloss.NewStyle().Foreground(color).Render(bar)
+		barRendered := renderBar(pct/100, barWidth, func() color.Color { return barColor })
 		label := fmt.Sprintf(" %-16s", strat)
 		pctStr := fmt.Sprintf("  %.0f%%", pct)
 		rows = append(rows, label+barRendered+pctStr)
@@ -383,12 +415,11 @@ func (v *BenchmarkView) renderSpeed(height int) string {
 		avgLat := a.latSum / float64(a.n)
 		avgTTFT := a.ttftSum / float64(a.n)
 
-		filled := int(math.Round(avgTPS / maxTPS * float64(barWidth)))
-		if filled > barWidth {
-			filled = barWidth
+		frac := 0.0
+		if maxTPS > 0 {
+			frac = avgTPS / maxTPS
 		}
-		bar := strings.Repeat("█", filled) + strings.Repeat("░", barWidth-filled)
-		barRendered := lipgloss.NewStyle().Foreground(ui.ColorPrimary).Render(bar)
+		barRendered := renderBar(frac, barWidth, func() color.Color { return ui.ColorPrimary })
 
 		mLabel := model
 		if len(mLabel) > 22 {
