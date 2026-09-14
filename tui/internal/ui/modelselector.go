@@ -4,8 +4,47 @@ import (
 	"fmt"
 	"strings"
 
+	"charm.land/bubbles/v2/help"
+	"charm.land/bubbles/v2/key"
 	"charm.land/lipgloss/v2"
 )
+
+// selectorKeys describes the keys that are active while the model selector is open.
+// ChatView handles them (MoveUp/MoveDown/Selected), but they are declared here so the
+// hint the user reads is generated from the same list that documents the keys, rather
+// than being a second hand-maintained copy of them.
+var selectorKeys = struct {
+	Navigate key.Binding
+	Select   key.Binding
+	Cancel   key.Binding
+}{
+	Navigate: key.NewBinding(key.WithKeys("up", "down", "k", "j"), key.WithHelp("↑/↓", "navigate")),
+	Select:   key.NewBinding(key.WithKeys("enter"), key.WithHelp("Enter", "select")),
+	Cancel:   key.NewBinding(key.WithKeys("esc"), key.WithHelp("Esc", "cancel")),
+}
+
+func selectorHelpBindings() []key.Binding {
+	return []key.Binding{selectorKeys.Navigate, selectorKeys.Select, selectorKeys.Cancel}
+}
+
+// selectorHint renders the binding hints for the selector.
+//
+// Both halves of the HZ-7 workaround are applied: bubbles/help only truncates when
+// its width is non-zero, so the width is always set, and the result is additionally
+// bounded with MaxWidth because help's own truncation is non-monotonic - it appends
+// an item that does not fit when the ellipsis would not fit either.
+func selectorHint(width int) string {
+	if width < 1 {
+		width = 1
+	}
+	h := help.New()
+	h.ShortSeparator = "  "
+	h.Styles.ShortKey = HelpStyle
+	h.Styles.ShortDesc = HelpStyle
+	h.Styles.ShortSeparator = HelpStyle
+	h.SetWidth(width)
+	return lipgloss.NewStyle().MaxWidth(width).Render(h.ShortHelpView(selectorHelpBindings()))
+}
 
 // ModelSelector represents the model selection popup
 type ModelSelector struct {
@@ -141,7 +180,11 @@ func (m *ModelSelector) View() string {
 	}
 
 	b.WriteString("\n")
-	b.WriteString(HelpStyle.Render("↑/↓: navigate  Enter: select  Esc: cancel"))
+	// The bindings above are the single source for this line. help renders a key,
+	// a space and its description, so it now reads "↑/↓ navigate" where the
+	// hardcoded string read "↑/↓: navigate" - one separator character, which is
+	// the component's canonical spacing rather than a regression.
+	b.WriteString(selectorHint(m.width))
 
 	boxStyle := lipgloss.NewStyle().
 		Border(lipgloss.RoundedBorder()).
