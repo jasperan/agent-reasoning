@@ -14,6 +14,7 @@ import (
 
 	"charm.land/bubbles/v2/key"
 	"charm.land/bubbles/v2/progress"
+	"charm.land/bubbles/v2/table"
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
 )
@@ -482,15 +483,17 @@ func (v *BenchmarkView) renderCompare(height int) string {
 
 	sortedModels := sortedKeys(allStats)
 
-	bold := lipgloss.NewStyle().Bold(true).Foreground(ui.ColorPrimary)
-	muted := lipgloss.NewStyle().Foreground(ui.ColorMuted)
+	title := lipgloss.NewStyle().Bold(true).Foreground(ui.ColorPrimary).Render(" OCI vs Ollama Comparison")
 
-	hdr := fmt.Sprintf("  %-28s  %-8s  %9s  %10s", "Model", "Source", "Avg TPS", "Avg Lat ms")
-	var rows []string
-	rows = append(rows, bold.Render(" OCI vs Ollama Comparison"), "")
-	rows = append(rows, bold.Render(hdr))
-	rows = append(rows, muted.Render("  "+strings.Repeat("─", 60)))
-
+	// table never clips its HEADER to the viewport, so the column widths are kept
+	// within the same budget as the rows rather than assumed to fit.
+	cols := []table.Column{
+		{Title: "Model", Width: 28},
+		{Title: "Source", Width: 8},
+		{Title: "Avg TPS", Width: 10},
+		{Title: "Avg Lat ms", Width: 11},
+	}
+	rows := make([]table.Row, 0, len(sortedModels))
 	for _, name := range sortedModels {
 		s := allStats[name]
 		avgTPS := s.tpsSum / float64(s.n)
@@ -500,28 +503,51 @@ func (v *BenchmarkView) renderCompare(height int) string {
 		if s.source == "OCI" {
 			srcColor = ui.ColorSecondary
 		}
-		srcStr := lipgloss.NewStyle().Foreground(srcColor).Render(fmt.Sprintf("%-8s", s.source))
-
 		tpsColor := ui.ColorSuccess
 		if avgTPS < 30 {
 			tpsColor = ui.ColorWarning
 		}
-		tpsStr := lipgloss.NewStyle().Foreground(tpsColor).Render(fmt.Sprintf("%9.1f", avgTPS))
-
 		latColor := ui.ColorSuccess
 		if avgLat > 5000 {
 			latColor = ui.ColorWarning
 		}
-		latStr := lipgloss.NewStyle().Foreground(latColor).Render(fmt.Sprintf("%10.0f", avgLat))
 
 		mName := name
 		if len(mName) > 26 {
 			mName = mName[:23] + "..."
 		}
-		rows = append(rows, fmt.Sprintf("  %-28s  %s  %s  %s", mName, srcStr, tpsStr, latStr))
+		// Colour is applied to the cell VALUE. table exposes no per-cell style
+		// hook, but renderRow renders the value it is handed and ansi.Truncate
+		// preserves SGR, so a styled value keeps its colour and still truncates
+		// with an ellipsis instead of dropping the escape.
+		rows = append(rows, table.Row{
+			mName,
+			lipgloss.NewStyle().Foreground(srcColor).Render(s.source),
+			lipgloss.NewStyle().Foreground(tpsColor).Render(fmt.Sprintf("%.1f", avgTPS)),
+			lipgloss.NewStyle().Foreground(latColor).Render(fmt.Sprintf("%.0f", avgLat)),
+		})
 	}
 
-	return lipgloss.NewStyle().Padding(1, 1).Render(strings.Join(rows, "\n"))
+	// The width must be set BEFORE the first View: the table's internal viewport
+	// returns "" when its width is 0, so an unsized table silently renders a header
+	// and zero rows. WithWidth covers construction; SetWidth covers later resizes.
+	tw := v.width - 2 // the frame below pads one cell on each side
+	if tw < 20 {
+		tw = 20
+	}
+	tbl := table.New(
+		table.WithColumns(cols),
+		table.WithRows(rows),
+		table.WithWidth(tw),
+		table.WithStyles(table.DefaultStyles()),
+	)
+	// SetHeight already includes the header (View is header + viewport), so the
+	// budget is what is left after the title and its blank line. Without this the
+	// table rendered every row regardless of the space available.
+	if h := height - 2; h > 3 {
+		tbl.SetHeight(h)
+	}
+	return lipgloss.NewStyle().Padding(1, 1).Render(title + "\n\n" + tbl.View())
 }
 
 // --- Data loading ---
