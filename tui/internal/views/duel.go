@@ -2,6 +2,7 @@ package views
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"image/color"
 	"strings"
@@ -9,10 +10,12 @@ import (
 
 	"agent-reasoning-tui/internal/app"
 	"agent-reasoning-tui/internal/client"
+	"agent-reasoning-tui/internal/huhstyle"
 	"agent-reasoning-tui/internal/ui"
 
 	"charm.land/bubbles/v2/key"
 	tea "charm.land/bubbletea/v2"
+	"charm.land/huh/v2"
 	"charm.land/lipgloss/v2"
 )
 
@@ -73,7 +76,7 @@ type duelSide struct {
 type DuelView struct {
 	ctx    *app.Context
 	phase  DuelPhase
-	input  *ui.Input
+	prompt *ui.QueryForm
 	query  string
 	width  int
 	height int
@@ -81,12 +84,11 @@ type DuelView struct {
 
 	// Agent selection
 	agents   []ui.Agent
-	selected [2]int // indices into agents slice, -1 = not set
-	cursor   int    // current cursor in selection list
-
-	// Sides
-	left  duelSide
-	right duelSide
+	pair     *huh.Form // two Selects: left and right combatant
+	left     duelSide
+	right    duelSide
+	leftIdx  int // index into agents, bound to the left Select
+	rightIdx int // index into agents, bound to the right Select
 
 	// Judge
 	judgeContent strings.Builder
@@ -111,14 +113,78 @@ func (v *DuelView) getAgents() []ui.Agent {
 
 func NewDuelView(appCtx *app.Context) *DuelView {
 	v := &DuelView{
-		ctx:      appCtx,
-		phase:    DuelSelection,
-		input:    ui.NewInput(),
-		selected: [2]int{-1, -1},
-		keys:     defaultKeyMap(),
+		ctx: appCtx,
+		prompt: ui.NewQueryForm(
+			"Query",
+			"Both combatants answer this query; the judge compares them.",
+			"Enter your query...",
+		),
+		phase: DuelSelection,
+		keys:  defaultKeyMap(),
 	}
 	v.agents = v.getAgents()
+	v.buildPairForm()
 	return v
+}
+
+// buildPairForm rebuilds the two-agent picker for the current agent list.
+//
+// Options are resolved eagerly into a static slice on purpose: huh's accessible
+// mode reads the option list synchronously and never runs an OptionsFunc, so a
+// lazy option source would render an empty list for screen-reader users.
+func (v *DuelView) buildPairForm() {
+	opts := make([]huh.Option[int], 0, len(v.agents))
+	for i, a := range v.agents {
+		opts = append(opts, huh.NewOption(a.Name, i))
+	}
+
+	v.leftIdx = 0
+	v.rightIdx = 0
+	if len(v.agents) > 1 {
+		v.rightIdx = 1
+	}
+
+	v.pair = huh.NewForm(
+		huh.NewGroup(
+			huh.NewSelect[int]().
+				Key("left").
+				Title("Left agent").
+				Description("First reasoning strategy in the duel.").
+				Options(opts...).
+				Value(&v.leftIdx),
+			huh.NewSelect[int]().
+				Key("right").
+				Title("Right agent").
+				Description("Second reasoning strategy. Must differ from the left.").
+				Options(opts...).
+				Value(&v.rightIdx).
+				Validate(func(right int) error {
+					if right == v.leftIdx {
+						return errors.New("pick a different agent than the left side")
+					}
+					return nil
+				}),
+		),
+	).
+		WithTheme(huh.ThemeFunc(huhstyle.Theme)).
+		WithAccessible(huhstyle.Accessible()).
+		WithWidth(v.formWidth())
+}
+
+// formWidth keeps the bordered form inside the view with a margin.
+func (v *DuelView) formWidth() int {
+	if v.width-4 < 20 {
+		return 20
+	}
+	return v.width - 4
+}
+
+func (v *DuelView) updatePair(msg tea.Msg) tea.Cmd {
+	model, cmd := v.pair.Update(msg)
+	if f, ok := model.(*huh.Form); ok {
+		v.pair = f
+	}
+	return cmd
 }
 
 func (v *DuelView) ID() app.ViewID { return app.ViewDuel }
@@ -126,23 +192,23 @@ func (v *DuelView) ID() app.ViewID { return app.ViewDuel }
 func (v *DuelView) Init() tea.Cmd {
 	v.phase = DuelSelection
 	v.query = ""
-	v.selected = [2]int{-1, -1}
-	v.cursor = 0
 	v.left = duelSide{}
 	v.right = duelSide{}
 	v.judgeContent.Reset()
 	v.judgeRunning = false
 	v.judgeDone = false
-	v.input.Reset()
+	v.prompt.Reset()
 	// Refresh agent list in case ctx.Agents was populated after construction.
 	v.agents = v.getAgents()
-	return nil
+	v.buildPairForm()
+	return v.pair.Init()
 }
 
 func (v *DuelView) SetSize(width, height int) {
 	v.width = width
 	v.height = height
-	v.input.SetWidth(width)
+	v.prompt.SetWidth(v.formWidth())
+	v.pair.WithWidth(v.formWidth())
 }
 
 // --- Update ---
@@ -210,49 +276,73 @@ func (v *DuelView) Update(msg tea.Msg) (app.View, tea.Cmd) {
 
 	case app.ServerConnectedMsg, app.ServerDisconnectedMsg:
 		// no-op
+
+	default:
+		// huh reports a field transition (next field, next group) as an ordinary
+		// message once the bubbletea runtime has run the command the field
+		// returned, so those messages have to reach the active form as well - not
+		// just the key presses that produced them.
+		cmds = append(cmds, v.pumpForm(msg))
 	}
 
 	return v, tea.Batch(cmds...)
 }
 
+// pumpForm routes a message to whichever form is showing and applies the result
+// when a form finishes or is dismissed. Both the key path and the
+// runtime-message path go through here so each transition happens exactly once.
+func (v *DuelView) pumpForm(msg tea.Msg) tea.Cmd {
+	switch v.phase {
+	case DuelSelection:
+		cmd := v.updatePair(msg)
+		if v.pair.State == huh.StateCompleted {
+			v.startFromSelection()
+			v.phase = DuelInput
+			return tea.Sequence(cmd, v.prompt.Activate())
+		}
+		if v.pair.State == huh.StateAborted {
+			// huh owns ctrl+c while a form is focused; keep the documented quit.
+			return tea.Quit
+		}
+		return cmd
+
+	case DuelInput:
+		return v.applyPromptResult(v.prompt.Update(msg))
+	}
+	return nil
+}
+
+// applyPromptResult turns a finished query prompt into a duel run.
+func (v *DuelView) applyPromptResult(cmd tea.Cmd) tea.Cmd {
+	if v.prompt.Done() {
+		q := v.prompt.Value()
+		v.query = q
+		v.prompt.Reset()
+		v.phase = DuelRacing
+		return tea.Batch(cmd, v.startDuel(q))
+	}
+	if v.prompt.Aborted() {
+		return tea.Quit
+	}
+	return cmd
+}
+
 func (v *DuelView) handleKey(msg tea.KeyPressMsg) (app.View, tea.Cmd) {
 	switch v.phase {
 	case DuelSelection:
-		switch {
-		case key.Matches(msg, v.keys.Escape):
+		if key.Matches(msg, v.keys.Escape) {
 			return v, func() tea.Msg { return app.SwitchViewMsg{Target: app.ViewChat} }
-		case key.Matches(msg, v.keys.Up):
-			if v.cursor > 0 {
-				v.cursor--
-			}
-		case key.Matches(msg, v.keys.Down):
-			if v.cursor < len(v.agents)-1 {
-				v.cursor++
-			}
-		case key.Matches(msg, v.keys.Enter):
-			return v.handleSelectionEnter()
 		}
+		return v, v.pumpForm(msg)
 
 	case DuelInput:
-		switch {
-		case key.Matches(msg, v.keys.Escape):
+		if key.Matches(msg, v.keys.Escape) {
 			// Go back to selection
 			v.phase = DuelSelection
-			v.selected = [2]int{-1, -1}
-		case key.Matches(msg, v.keys.Enter):
-			q := v.input.Value()
-			if q == "" {
-				return v, nil
-			}
-			v.query = q
-			v.input.Reset()
-			v.phase = DuelRacing
-			return v, v.startDuel(q)
-		default:
-			var cmd tea.Cmd
-			v.input, cmd = v.input.Update(msg)
-			return v, cmd
+			v.buildPairForm()
+			return v, v.pair.Init()
 		}
+		return v, v.pumpForm(msg)
 
 	case DuelRacing:
 		switch {
@@ -286,21 +376,12 @@ func (v *DuelView) handleKey(msg tea.KeyPressMsg) (app.View, tea.Cmd) {
 	return v, nil
 }
 
-func (v *DuelView) handleSelectionEnter() (app.View, tea.Cmd) {
-	// First press selects left agent, second selects right
-	if v.selected[0] == -1 {
-		v.selected[0] = v.cursor
-	} else if v.selected[1] == -1 && v.cursor != v.selected[0] {
-		v.selected[1] = v.cursor
-		// Both selected, move to input phase
-		leftAgent := v.agents[v.selected[0]]
-		rightAgent := v.agents[v.selected[1]]
-		v.left = duelSide{agentID: leftAgent.ID, agentName: leftAgent.Name}
-		v.right = duelSide{agentID: rightAgent.ID, agentName: rightAgent.Name}
-		v.phase = DuelInput
-		v.input.Focus()
-	}
-	return v, nil
+// startFromSelection copies the chosen agents into the racing sides.
+func (v *DuelView) startFromSelection() {
+	leftAgent := v.agents[v.leftIdx]
+	rightAgent := v.agents[v.rightIdx]
+	v.left = duelSide{agentID: leftAgent.ID, agentName: leftAgent.Name}
+	v.right = duelSide{agentID: rightAgent.ID, agentName: rightAgent.Name}
 }
 
 func (v *DuelView) sidePtr(side int) *duelSide {
@@ -467,29 +548,9 @@ func (v *DuelView) headerStyle() lipgloss.Style {
 
 func (v *DuelView) renderSelection() string {
 	title := v.headerStyle().Render("Head-to-Head Duel  —  Select two agents")
-	hint := lipgloss.NewStyle().Foreground(ui.ColorMuted).Render("  Enter to select  |  Esc → back to chat")
+	hint := lipgloss.NewStyle().Foreground(ui.ColorMuted).Render("  Enter to confirm  |  Esc → back to chat")
 
-	var sb strings.Builder
-	for i, a := range v.agents {
-		var prefix string
-		marker := ""
-
-		if v.selected[0] == i {
-			marker = lipgloss.NewStyle().Foreground(ui.ColorPrimary).Render(" [LEFT]")
-		} else if v.selected[1] == i {
-			marker = lipgloss.NewStyle().Foreground(ui.ColorSecondary).Render(" [RIGHT]")
-		}
-
-		if i == v.cursor {
-			prefix = lipgloss.NewStyle().Foreground(ui.ColorPrimary).Bold(true).Render("  > ")
-		} else {
-			prefix = "    "
-		}
-
-		sb.WriteString(fmt.Sprintf("%s%s%s\n", prefix, a.Name, marker))
-	}
-
-	return lipgloss.JoinVertical(lipgloss.Left, title, "", sb.String(), hint)
+	return lipgloss.JoinVertical(lipgloss.Left, title, "", v.pair.View(), hint)
 }
 
 func (v *DuelView) renderInput() string {
@@ -502,7 +563,7 @@ func (v *DuelView) renderInput() string {
 	return lipgloss.JoinVertical(lipgloss.Left,
 		title,
 		"",
-		"  Query: "+v.input.View(),
+		v.prompt.View(),
 		hint,
 	)
 }

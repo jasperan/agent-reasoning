@@ -47,7 +47,7 @@ type DebugView struct {
 	ctx *app.Context
 
 	// Input phase
-	input *ui.Input
+	prompt *ui.QueryForm
 
 	// Stepping phase
 	visualizer     viz.Visualizer
@@ -108,10 +108,13 @@ func defaultDebugKeyMap() DebugKeyMap {
 
 // NewDebugView creates a new DebugView.
 func NewDebugView(appCtx *app.Context) *DebugView {
-	inp := ui.NewInput()
 	return &DebugView{
-		ctx:   appCtx,
-		input: inp,
+		ctx: appCtx,
+		prompt: ui.NewQueryForm(
+			"Query",
+			"The selected agent's reasoning events are stepped through one at a time.",
+			"Enter your query...",
+		),
 		phase: DebugInput,
 	}
 }
@@ -133,6 +136,7 @@ func (v *DebugView) Init() tea.Cmd {
 	v.sessionID = ""
 	v.statusMsg = ""
 	v.inspectMode = false
+	v.prompt.Reset()
 
 	// Check ctx.PendingQuery first (set by ChatView D key), then fall back to prefilledQuery.
 	if v.ctx.PendingQuery != "" {
@@ -144,7 +148,6 @@ func (v *DebugView) Init() tea.Cmd {
 		}
 		v.agentID = agentID
 		v.prefilledQuery = query
-		v.input.SetValue(query)
 		return v.startDebugSession(agentID, query)
 	}
 
@@ -152,13 +155,15 @@ func (v *DebugView) Init() tea.Cmd {
 		// Auto-start with the pre-filled query
 		return v.startDebugSession(v.agentID, v.prefilledQuery)
 	}
-	return nil
+	return v.prompt.Activate()
 }
 
 func (v *DebugView) SetSize(width, height int) {
 	v.width = width
 	v.height = height
-	v.input.SetWidth(width)
+	// renderInputPhase wraps its content in a (2,4) padding, so reserve room for
+	// that plus the form's own border.
+	v.prompt.SetWidth(width - 12)
 }
 
 func (v *DebugView) Update(msg tea.Msg) (app.View, tea.Cmd) {
@@ -168,7 +173,7 @@ func (v *DebugView) Update(msg tea.Msg) (app.View, tea.Cmd) {
 	case tea.KeyPressMsg:
 		switch v.phase {
 		case DebugInput:
-			return v.handleInputPhaseKey(msg, keys)
+			return v.handleInputPhaseKey(msg)
 		case DebugStepping:
 			return v.handleSteppingPhaseKey(msg, keys)
 		case DebugComplete:
@@ -222,32 +227,51 @@ func (v *DebugView) Update(msg tea.Msg) (app.View, tea.Cmd) {
 		v.historyIdx = len(v.history) - 1
 		v.phase = DebugComplete
 		v.statusMsg = fmt.Sprintf("Complete — %d events total. Press [q] to return.", len(v.history))
+
+	default:
+		// huh reports a field transition (next field, next group) as an ordinary
+		// message once the bubbletea runtime has run the command the field
+		// returned, so the prompt has to receive those as well - not just the key
+		// presses that produced them.
+		return v, v.pumpForm(msg)
 	}
 
 	return v, nil
 }
 
-func (v *DebugView) handleInputPhaseKey(msg tea.KeyPressMsg, keys DebugKeyMap) (app.View, tea.Cmd) {
-	if key.Matches(msg, keys.Quit) {
-		return v, func() tea.Msg { return app.SwitchViewMsg{Target: app.ViewChat} }
+// pumpForm routes a message to the query prompt and starts the debug session
+// once a query is submitted. Both the key path and the runtime-message path go
+// through here so the transition happens exactly once.
+func (v *DebugView) pumpForm(msg tea.Msg) tea.Cmd {
+	if v.phase != DebugInput {
+		return nil
 	}
-	if key.Matches(msg, keys.Enter) {
-		query := v.input.Value()
-		if query == "" {
-			return v, nil
-		}
+	cmd := v.prompt.Update(msg)
+	if v.prompt.Done() {
+		query := v.prompt.Value()
 		agentID := v.ctx.CurrentAgent
 		if agentID == "" {
 			agentID = "cot"
 		}
 		v.agentID = agentID
 		v.statusMsg = "Starting debug session..."
-		v.input.Reset()
-		return v, v.startDebugSession(agentID, query)
+		v.prompt.Reset()
+		return tea.Batch(cmd, v.startDebugSession(agentID, query))
 	}
-	var cmd tea.Cmd
-	v.input, cmd = v.input.Update(msg)
-	return v, cmd
+	if v.prompt.Aborted() {
+		// huh owns ctrl+c while the prompt is focused; keep it as the app quit.
+		return tea.Quit
+	}
+	return cmd
+}
+
+func (v *DebugView) handleInputPhaseKey(msg tea.KeyPressMsg) (app.View, tea.Cmd) {
+	// Only Esc leaves the prompt: the huh field owns the text, so "q" is now an
+	// ordinary character instead of quitting mid-query.
+	if msg.String() == "esc" {
+		return v, func() tea.Msg { return app.SwitchViewMsg{Target: app.ViewChat} }
+	}
+	return v, v.pumpForm(msg)
 }
 
 func (v *DebugView) handleSteppingPhaseKey(msg tea.KeyPressMsg, keys DebugKeyMap) (app.View, tea.Cmd) {
@@ -361,7 +385,7 @@ func (v *DebugView) renderInputPhase() string {
 
 	title := titleStyle.Render("Step-Through Debugger")
 	subtitle := helpStyle.Render("Select an agent in the sidebar, then type your query and press Enter.")
-	inputView := v.input.View()
+	inputView := v.prompt.View()
 
 	var status string
 	if v.statusMsg != "" {

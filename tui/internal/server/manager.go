@@ -12,10 +12,10 @@ import (
 )
 
 const (
-	ServerPort    = 8080
-	ServerHost    = "localhost"
-	StartTimeout  = 10 * time.Second
-	StopTimeout   = 3 * time.Second
+	ServerPort          = 8080
+	ServerHost          = "localhost"
+	StartTimeout        = 10 * time.Second
+	StopTimeout         = 3 * time.Second
 	HealthCheckInterval = 200 * time.Millisecond
 )
 

@@ -75,7 +75,7 @@ type ArenaView struct {
 	cells      []*ArenaCell
 	cellStates map[string]*perCellState
 	query      string
-	input      *ui.Input
+	prompt     *ui.QueryForm
 	phase      ArenaPhase
 	cancels    []context.CancelFunc
 	finished   []string // agent IDs in finish order
@@ -86,8 +86,12 @@ type ArenaView struct {
 
 func NewArenaView(appCtx *app.Context) *ArenaView {
 	return &ArenaView{
-		ctx:        appCtx,
-		input:      ui.NewInput(),
+		ctx: appCtx,
+		prompt: ui.NewQueryForm(
+			"Query",
+			"Every configured agent races the same query simultaneously.",
+			"Enter your query...",
+		),
 		phase:      ArenaInput,
 		keys:       defaultKeyMap(),
 		cellStates: make(map[string]*perCellState),
@@ -101,16 +105,17 @@ func (v *ArenaView) Init() tea.Cmd {
 	v.query = ""
 	v.finished = nil
 	v.cancels = nil
-	v.input.Reset()
-	v.input.Focus()
+	v.prompt.Reset()
 	v.rebuildCells()
-	return nil
+	return v.prompt.Activate()
 }
 
 func (v *ArenaView) SetSize(width, height int) {
 	v.width = width
 	v.height = height
-	v.input.SetWidth(width)
+	// The prompt renders its own bordered box, so leave it a margin instead of
+	// the old inline "  Query: " prefix.
+	v.prompt.SetWidth(width - 4)
 }
 
 // getAgents returns the live agent list from ctx if populated, else defaults.
@@ -186,33 +191,49 @@ func (v *ArenaView) Update(msg tea.Msg) (app.View, tea.Cmd) {
 			v.phase = ArenaSummary
 		}
 
-	case app.ServerConnectedMsg, app.ServerDisconnectedMsg:
-		// no-op for arena
+	default:
+		// huh reports a field transition (next field, next group) as an ordinary
+		// message once the bubbletea runtime has run the command the field
+		// returned, so those messages have to reach the prompt as well - not just
+		// the key presses that produced them.
+		cmds = append(cmds, v.pumpForm(msg))
 	}
 
 	return v, tea.Batch(cmds...)
 }
 
+// pumpForm routes a message to the query prompt and applies the result when the
+// prompt finishes or is dismissed. Both the key path and the runtime-message
+// path go through here so the transition happens exactly once.
+func (v *ArenaView) pumpForm(msg tea.Msg) tea.Cmd {
+	if v.phase != ArenaInput {
+		return nil
+	}
+	cmd := v.prompt.Update(msg)
+	if v.prompt.Done() {
+		q := v.prompt.Value()
+		v.query = q
+		v.prompt.Reset()
+		v.phase = ArenaRacing
+		return tea.Batch(cmd, v.startRace(q))
+	}
+	if v.prompt.Aborted() {
+		// huh swallows ctrl+c as its own abort binding, so forward it to the
+		// application quit the README documents rather than silently eating it.
+		return tea.Quit
+	}
+	return cmd
+}
+
 func (v *ArenaView) handleKey(msg tea.KeyPressMsg) (app.View, tea.Cmd) {
 	switch v.phase {
 	case ArenaInput:
-		switch {
-		case key.Matches(msg, v.keys.Escape):
+		// Esc stays bound to "back to chat" rather than being handed to huh,
+		// which only binds ctrl+c. See README keybindings.
+		if key.Matches(msg, v.keys.Escape) {
 			return v, tea.Cmd(func() tea.Msg { return app.SwitchViewMsg{Target: app.ViewChat} })
-		case key.Matches(msg, v.keys.Enter):
-			q := v.input.Value()
-			if q == "" {
-				return v, nil
-			}
-			v.query = q
-			v.input.Reset()
-			v.phase = ArenaRacing
-			return v, v.startRace(q)
-		default:
-			var cmd tea.Cmd
-			v.input, cmd = v.input.Update(msg)
-			return v, cmd
 		}
+		return v, v.pumpForm(msg)
 
 	case ArenaRacing:
 		switch {
@@ -366,7 +387,7 @@ func (v *ArenaView) View() string {
 		return lipgloss.JoinVertical(lipgloss.Left,
 			title,
 			"",
-			"  Query: "+v.input.View(),
+			v.prompt.View(),
 			hint,
 		)
 
