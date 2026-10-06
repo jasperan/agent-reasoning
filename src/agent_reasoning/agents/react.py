@@ -203,6 +203,7 @@ Instructions:
         yield StreamEvent(event_type="query", data=query)
         messages = f"{system_prompt}\nQuestion: {query}\n"
         max_steps = 5
+        response_chunk = ""
 
         for i in range(max_steps):
             if not self._check_budget():
@@ -238,9 +239,7 @@ Instructions:
                 action_full_str = match.group(0)
                 idx = response_chunk.find(action_full_str)
                 valid_part = response_chunk[: idx + len(action_full_str)]
-                messages = (
-                    messages[: -len(response_chunk)] + valid_part if response_chunk else messages
-                )
+                messages += valid_part
 
                 yield StreamEvent(event_type="text", data=f"\nRunning {tool_name}...")
                 observation = self.perform_tool_call(tool_name, tool_input)
@@ -266,6 +265,10 @@ Instructions:
                 final_answer = final_match.group(1).strip() if final_match else response_chunk
                 yield StreamEvent(event_type="final", data=final_answer)
                 return
+
+            # 3. Neither: keep the model's own thought in the transcript so the next
+            # step continues from it instead of repeating an identical prompt.
+            messages += response_chunk + "\n"
 
         # If we exit the loop without finding final answer
         yield StreamEvent(event_type="final", data=response_chunk)

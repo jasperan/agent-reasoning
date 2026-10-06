@@ -132,3 +132,46 @@ def test_react_max_steps():
 
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])
+
+
+def test_react_transcript_keeps_prompt_and_action_across_steps():
+    """The step-2 prompt must contain the full question, the action, and the observation."""
+    agent = _make_agent()
+    prompts = []
+
+    def mock_generate(prompt, *args, **kwargs):
+        prompts.append(prompt)
+        if len(prompts) == 1:
+            return iter(["Thought: need calc\nAction: calculate[2+2]"])
+        return iter(["Final Answer: 4"])
+
+    agent.client.generate = MagicMock(side_effect=mock_generate)
+    list(agent.stream_structured("What is 2+2?"))
+
+    assert len(prompts) == 2
+    assert "Question: What is 2+2?\n" in prompts[1]
+    assert prompts[1].endswith("Action: calculate[2+2]\nObservation: 4\n")
+
+
+def test_react_budget_exhausted_before_first_step_does_not_crash():
+    agent = _make_agent()
+    agent.max_calls = 0
+    agent._call_count = 0
+    events = list(agent.stream_structured("anything"))
+    assert events[-1].event_type == "final"
+    agent.client.generate.assert_not_called()
+
+
+def test_react_thought_without_action_is_carried_into_next_prompt():
+    agent = _make_agent()
+    prompts = []
+
+    def mock_generate(prompt, *args, **kwargs):
+        prompts.append(prompt)
+        if len(prompts) == 1:
+            return iter(["Thought: hmm, let me think about this"])
+        return iter(["Final Answer: ok"])
+
+    agent.client.generate = MagicMock(side_effect=mock_generate)
+    list(agent.stream_structured("q"))
+    assert "Thought: hmm, let me think about this" in prompts[1]
