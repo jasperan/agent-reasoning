@@ -40,7 +40,7 @@ class MetaReasoningAgent(BaseAgent):
             response += chunk
 
         cat_match = re.search(r"CATEGORY:\s*(\w+)", response, re.IGNORECASE)
-        conf_match = re.search(r"CONFIDENCE:\s*([\d.]+)", response)
+        conf_match = re.search(r"CONFIDENCE:\s*(\d+(?:\.\d+)?|\.\d+)", response)
         reason_match = re.search(r"REASON:\s*(.*?)(?:\n|$)", response)
 
         query_type = cat_match.group(1).lower() if cat_match else "general"

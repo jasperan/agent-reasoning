@@ -1,5 +1,7 @@
 from unittest.mock import MagicMock, patch
 
+import pytest
+
 
 def test_meta_classifies_and_routes():
     with patch("agent_reasoning.agents.meta.BaseAgent.__init__", return_value=None):
@@ -68,3 +70,18 @@ def test_meta_emits_classification_event():
         meta_events = [e for e in events if e.event_type == "meta_classification"]
         assert len(meta_events) >= 1
         assert meta_events[0].data.query_type == "math"
+
+
+@pytest.mark.parametrize(
+    "line,expected", [("0.9.", 0.9), ("0.85", 0.85), ("...", 0.5), ("high", 0.5), (".7", 0.7)]
+)
+def test_meta_confidence_parsing_tolerates_noisy_output(line, expected):
+    with patch("agent_reasoning.agents.meta.BaseAgent.__init__", return_value=None):
+        from agent_reasoning.agents.meta import MetaReasoningAgent
+
+        agent = MetaReasoningAgent.__new__(MetaReasoningAgent)
+        agent.client = MagicMock()
+        agent.client.generate = MagicMock(
+            return_value=iter([f"CATEGORY: math\nCONFIDENCE: {line}\nREASON: x"])
+        )
+        assert agent._classify_query("q")["confidence"] == expected

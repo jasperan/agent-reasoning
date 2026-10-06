@@ -1,3 +1,5 @@
+import re
+
 from termcolor import colored
 
 from agent_reasoning.agents.base import BaseAgent
@@ -68,7 +70,7 @@ class SelfReflectionAgent(BaseAgent):
                 yield StreamEvent(event_type="text", data=chunk)
             yield StreamEvent(event_type="text", data="\n")
 
-            if "CORRECT" in critique.upper() and len(critique) < 20:
+            if re.fullmatch(r"\W*CORRECT\W*", critique.upper()):
                 iteration.is_correct = True
                 yield StreamEvent(event_type="iteration", data=iteration, is_update=True)
                 break

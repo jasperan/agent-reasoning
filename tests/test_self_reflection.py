@@ -181,3 +181,36 @@ def test_reflection_emits_phases():
 
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])
+
+
+@pytest.mark.parametrize("critique", ["INCORRECT", "Incorrect.", "Not correct, the math is wrong"])
+def test_reflection_incorrect_critique_is_not_accepted(critique):
+    agent = _make_agent()
+    calls = [0]
+
+    def mock_generate(*a, **kw):
+        calls[0] += 1
+        if calls[0] == 1:
+            return iter(["Draft"])
+        if calls[0] == 2:
+            return iter([critique])
+        if calls[0] == 3:
+            return iter(["Better answer"])
+        return iter(["CORRECT"])
+
+    agent.client.generate = MagicMock(side_effect=mock_generate)
+    events = list(agent.stream_structured("q"))
+    assert [e.data for e in events if e.event_type == "final"] == ["Better answer"]
+
+
+def test_reflection_accepts_plain_correct():
+    agent = _make_agent()
+    calls = [0]
+
+    def mock_generate(*a, **kw):
+        calls[0] += 1
+        return iter(["Draft"] if calls[0] == 1 else [" correct. "])
+
+    agent.client.generate = MagicMock(side_effect=mock_generate)
+    events = list(agent.stream_structured("q"))
+    assert [e.data for e in events if e.event_type == "final"] == ["Draft"]
