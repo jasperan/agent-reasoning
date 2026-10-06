@@ -8,7 +8,6 @@ from termcolor import colored
 
 from agent_reasoning.agents.base import BaseAgent
 
-
 _RESERVED_ENV_KEYS = frozenset(
     {
         "__builtins__",
