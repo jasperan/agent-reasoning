@@ -131,7 +131,10 @@ func (c *ServerClient) GenerateSync(ctx context.Context, model, prompt string) (
 		select {
 		case resp, ok := <-respChan:
 			if !ok {
-				return fullResponse, nil
+				// Generate closes errChan before respChan, so any buffered
+				// error is available here; selecting on respChan alone would
+				// silently drop it.
+				return fullResponse, <-errChan
 			}
 			fullResponse += resp.Response
 			if resp.Done {
@@ -257,6 +260,9 @@ func (c *ServerClient) GenerateStructured(ctx context.Context, model, prompt str
 				return
 			}
 		}
+		if err := scanner.Err(); err != nil && ctx.Err() == nil {
+			errCh <- fmt.Errorf("error reading response: %w", err)
+		}
 	}()
 
 	return eventCh, errCh
@@ -300,6 +306,11 @@ func (c *ServerClient) GenerateWithParams(ctx context.Context, model, prompt str
 		}
 		defer resp.Body.Close()
 
+		if resp.StatusCode != http.StatusOK {
+			errCh <- fmt.Errorf("server returned status %d", resp.StatusCode)
+			return
+		}
+
 		scanner := bufio.NewScanner(resp.Body)
 		scanner.Buffer(make([]byte, 1024*1024), 1024*1024)
 
@@ -317,6 +328,9 @@ func (c *ServerClient) GenerateWithParams(ctx context.Context, model, prompt str
 			case <-ctx.Done():
 				return
 			}
+		}
+		if err := scanner.Err(); err != nil && ctx.Err() == nil {
+			errCh <- fmt.Errorf("error reading response: %w", err)
 		}
 	}()
 

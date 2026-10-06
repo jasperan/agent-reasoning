@@ -1,7 +1,10 @@
 package client
 
 import (
+	"context"
 	"encoding/json"
+	"net/http"
+	"net/http/httptest"
 	"testing"
 )
 
@@ -77,5 +80,46 @@ func TestParseStructuredEventDone(t *testing.T) {
 	}
 	if event.EventType != "done" {
 		t.Errorf("expected done, got %s", event.EventType)
+	}
+}
+
+func TestGenerateSyncReportsServerError(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		http.Error(w, "boom", http.StatusInternalServerError)
+	}))
+	defer srv.Close()
+	c := &ServerClient{baseURL: srv.URL, client: srv.Client()}
+
+	for i := 0; i < 50; i++ { // the old select race was nondeterministic
+		got, err := c.GenerateSync(context.Background(), "m+cot", "q")
+		if err == nil {
+			t.Fatalf("iteration %d: expected an error, got response %q", i, got)
+		}
+	}
+}
+
+func TestGenerateSyncReturnsStreamedText(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte("{\"response\":\"he\",\"done\":false}\n{\"response\":\"llo\",\"done\":true}\n"))
+	}))
+	defer srv.Close()
+	c := &ServerClient{baseURL: srv.URL, client: srv.Client()}
+	got, err := c.GenerateSync(context.Background(), "m", "q")
+	if err != nil || got != "hello" {
+		t.Fatalf("got %q, %v", got, err)
+	}
+}
+
+func TestGenerateWithParamsReportsNon200(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		http.Error(w, "nope", http.StatusBadGateway)
+	}))
+	defer srv.Close()
+	c := &ServerClient{baseURL: srv.URL, client: srv.Client()}
+	respCh, errCh := c.GenerateWithParams(context.Background(), "m", "q", nil)
+	for range respCh {
+	}
+	if err := <-errCh; err == nil {
+		t.Fatal("expected an error for a 502 response")
 	}
 }
