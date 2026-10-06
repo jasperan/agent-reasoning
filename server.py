@@ -1,5 +1,6 @@
 import asyncio
 import json
+import os
 import queue
 import threading
 import time
@@ -242,6 +243,8 @@ async def debug_step(request: Request):
         return JSONResponse({"error": "Timeout waiting for event"}, status_code=408)
 
     if event is None:
+        with debug_sessions_lock:
+            debug_sessions.pop(session_id, None)
         return {"event": None, "done": True}
 
     # Signal agent to continue to next step
@@ -304,4 +307,6 @@ async def debug_cancel(session_id: str):
 if __name__ == "__main__":
     import uvicorn
 
-    uvicorn.run(app, host="0.0.0.0", port=8080)
+    # Loopback by default: the API is unauthenticated and the "recursive" strategy
+    # executes LLM-authored code. Set AGENT_REASONING_HOST to expose it on purpose.
+    uvicorn.run(app, host=os.environ.get("AGENT_REASONING_HOST", "127.0.0.1"), port=8080)
