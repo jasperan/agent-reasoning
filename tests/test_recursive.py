@@ -158,3 +158,60 @@ def test_recursive_code_error_is_reported_not_raised():
     out = "".join(agent.stream("q"))
     assert "Error: division by zero" in out
     assert out.endswith("ok")
+
+
+def _run_steps(agent, blocks):
+    steps = iter(blocks)
+    agent.client.generate = MagicMock(side_effect=lambda *a, **kw: iter([next(steps)]))
+    return "".join(agent.stream("q"))
+
+
+def test_recursive_function_defined_in_one_step_is_callable_later():
+    agent = _make_agent()
+    out = _run_steps(
+        agent,
+        [
+            "```python\ndef g(n):\n    return n * 3\n\nh = lambda n: g(n) + 1\nk = 7\n```",
+            "```python\nprint('mid')\n```",
+            "```python\nFINAL_ANSWER = str(h(k))\n```",
+        ],
+    )
+    assert out.endswith("22")
+
+
+def test_recursive_timeout_resets_state_and_next_step_works():
+    agent = _make_agent()
+    agent.exec_timeout = 1
+    out = _run_steps(
+        agent,
+        [
+            "```python\nx = 5\n```",
+            "```python\nwhile True:\n    pass\n```",
+            "```python\nprint(x)\n```",
+            "```python\nFINAL_ANSWER = 'alive'\n```",
+        ],
+    )
+    assert "TimeoutError" in out and "state was reset" in out
+    assert "name 'x' is not defined" in out  # the old namespace is gone
+    assert out.endswith("alive")  # a fresh worker serves the following step
+
+
+def test_recursive_worker_is_reaped_when_run_ends():
+    import multiprocessing
+
+    agent = _make_agent()
+    before = {p.pid for p in multiprocessing.active_children()}
+    _run_steps(agent, ["```python\nFINAL_ANSWER = 'done'\n```"])
+    assert {p.pid for p in multiprocessing.active_children()} <= before
+
+    # Abandoned mid-run (generator closed early) must also clean up.
+    agent2 = _make_agent()
+    steps = iter(["```python\ny = 1\n```", "```python\ny = 2\n```"])
+    agent2.client.generate = MagicMock(side_effect=lambda *a, **kw: iter([next(steps)]))
+    gen = agent2.stream("q")
+    for chunk in gen:
+        if "Observation" in chunk:
+            break
+    assert {p.pid for p in multiprocessing.active_children()} - before
+    gen.close()
+    assert {p.pid for p in multiprocessing.active_children()} <= before

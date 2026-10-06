@@ -1,6 +1,5 @@
 import io
 import multiprocessing
-import pickle
 import re
 import sys
 
@@ -8,33 +7,20 @@ from termcolor import colored
 
 from agent_reasoning.agents.base import BaseAgent
 
-_RESERVED_ENV_KEYS = frozenset(
-    {
-        "__builtins__",
-        "INPUT",
-        "sub_llm",
-        "print",
-        "len",
-        "range",
-        "str",
-        "int",
-        "list",
-        "dict",
-        "set",
-        "min",
-        "max",
-        "sum",
-        "sorted",
-        "enumerate",
-    }
-)
 
+def _worker_loop(conn, env):
+    """Child-process body: exec each received code block against one persistent namespace.
 
-def _exec_child(conn, code, env):
-    """Child-process body: exec ``code`` and send back (result, picklable new state)."""
-    buffer = io.StringIO()
-    sys.stdout = buffer
-    try:
+    Replies with ``(observation, final_answer_or_None)`` per block. ``final_answer`` is
+    the ``str()`` of ``FINAL_ANSWER`` once the code has set it.
+    """
+    while True:
+        try:
+            code = conn.recv()
+        except EOFError:
+            return
+        buffer = io.StringIO()
+        sys.stdout = buffer
         try:
             exec(code, env)
             result = buffer.getvalue()
@@ -42,51 +28,73 @@ def _exec_child(conn, code, env):
             result = f"RecursionError: {e}"
         except MemoryError as e:
             result = f"MemoryError: {e}"
-        except Exception as e:
+        except BaseException as e:  # noqa: BLE001 - a SystemExit must not kill the worker
             result = f"Error: {e}"
-        state = {}
-        for key, value in env.items():
-            if key in _RESERVED_ENV_KEYS:
-                continue
+        finally:
+            sys.stdout = sys.__stdout__
+        final = None
+        if "FINAL_ANSWER" in env:
             try:
-                pickle.dumps(value)
-            except Exception:
-                continue
-            state[key] = value
-        conn.send((result, state))
-    finally:
-        conn.close()
+                final = str(env["FINAL_ANSWER"])
+            except Exception as e:
+                final = f"<unprintable FINAL_ANSWER: {e}>"
+        conn.send((result, final))
+
+
+class _CodeWorker:
+    """A forked interpreter that keeps its namespace across code blocks.
+
+    Running the model's code in a child process gives a hard wall-clock timeout
+    that works from any thread (``SIGALRM`` is main-thread only). Because the child
+    keeps one namespace, functions, classes and other unpicklable values defined in
+    one step stay usable in later steps. On timeout the child is killed and a fresh
+    one is forked from the pristine ``env``, so the next step starts with reset state.
+    """
+
+    def __init__(self, env, timeout):
+        self._env = env  # never exec'd into in this process; each fork gets a copy
+        self.timeout = timeout
+        self._proc = None
+        self._conn = None
+        self._start()
+
+    def _start(self):
+        ctx = multiprocessing.get_context("fork")
+        self._conn, child_conn = ctx.Pipe(duplex=True)
+        self._proc = ctx.Process(target=_worker_loop, args=(child_conn, self._env), daemon=True)
+        self._proc.start()
+        child_conn.close()
+
+    def _kill(self):
+        if self._proc is not None:
+            if self._proc.is_alive():
+                self._proc.kill()
+            self._proc.join()
+            self._proc = None
+        if self._conn is not None:
+            self._conn.close()
+            self._conn = None
+
+    def run(self, code):
+        """Execute ``code``; returns ``(observation, final_answer_or_None)``."""
+        try:
+            self._conn.send(code)
+            if self._conn.poll(self.timeout):
+                return self._conn.recv()
+            message = "TimeoutError: Code execution timed out (interpreter state was reset)"
+        except (EOFError, OSError):
+            message = "Error: code execution process exited (interpreter state was reset)"
+        self._kill()
+        self._start()
+        return message, None
+
+    def close(self):
+        self._kill()
 
 
 class RecursiveAgent(BaseAgent):
     # Hard wall-clock limit (seconds) for one code block.
     exec_timeout = 30
-
-    def _run_code(self, code, env):
-        """Run ``code`` against ``env`` in a forked child; kill it after ``exec_timeout``.
-
-        Variables the code defines (if picklable) are merged back into ``env`` so
-        later steps can see them, e.g. ``FINAL_ANSWER``. Returns the observation text.
-        """
-        ctx = multiprocessing.get_context("fork")
-        parent_conn, child_conn = ctx.Pipe(duplex=False)
-        proc = ctx.Process(target=_exec_child, args=(child_conn, code, env), daemon=True)
-        proc.start()
-        child_conn.close()
-        try:
-            if parent_conn.poll(self.exec_timeout):
-                try:
-                    result, state = parent_conn.recv()
-                except EOFError:
-                    return "Error: code execution process exited unexpectedly"
-                env.update(state)
-                return result
-            return "TimeoutError: Code execution timed out"
-        finally:
-            if proc.is_alive():
-                proc.kill()
-            proc.join()
-            parent_conn.close()
 
     def __init__(self, model="gemma3:270m", **kwargs):
         super().__init__(model, **kwargs)
@@ -165,78 +173,86 @@ FINAL_ANSWER = answer
 
         max_steps = 8
 
-        for step in range(max_steps):
-            if not self._check_budget():
-                yield f"\n{self._budget_exceeded_msg}\n"
-                break
+        worker = None
+        try:
+            for step in range(max_steps):
+                if not self._check_budget():
+                    yield f"\n{self._budget_exceeded_msg}\n"
+                    break
 
-            # Construct prompt for this step
-            full_input = env["INPUT"]
-            if step == 0:
-                current_prompt = f"""{messages}
+                # Construct prompt for this step
+                full_input = env["INPUT"]
+                if step == 0:
+                    current_prompt = f"""{messages}
 
-USER'S QUESTION: {full_input}
+    USER'S QUESTION: {full_input}
 
-Write Python code to answer this question. Set FINAL_ANSWER when done.
+    Write Python code to answer this question. Set FINAL_ANSWER when done.
 
-Thought:"""
-            else:
-                current_prompt = f"""{messages}
+    Thought:"""
+                else:
+                    current_prompt = f"""{messages}
 
-USER'S QUESTION: {full_input}
+    USER'S QUESTION: {full_input}
 
-Previous steps:
-{history}
+    Previous steps:
+    {history}
 
-Continue. Set FINAL_ANSWER when you have the answer.
+    Continue. Set FINAL_ANSWER when you have the answer.
 
-Thought:"""
+    Thought:"""
 
-            yield f"\n\n--- Step {step + 1} ---\nAgent: "
+                yield f"\n\n--- Step {step + 1} ---\nAgent: "
 
-            # Stream the thought/code generation
-            step_response = ""
-            # We yield chunks to the user
-            # Stop at "Observation:" locally if the model hallucinates it?
-            # But the model might write code then "Observation" comes from US.
-            # So stopping at ```output``` or similar might be good, but let's just parse.
+                # Stream the thought/code generation
+                step_response = ""
+                # We yield chunks to the user
+                # Stop at "Observation:" locally if the model hallucinates it?
+                # But the model might write code then "Observation" comes from US.
+                # So stopping at ```output``` or similar might be good, but let's just parse.
 
-            for chunk in self.client.generate(current_prompt, stream=True, stop=["Observation:"]):
-                yield chunk
-                step_response += chunk
+                for chunk in self.client.generate(
+                    current_prompt, stream=True, stop=["Observation:"]
+                ):
+                    yield chunk
+                    step_response += chunk
 
-            # Parse code
-            code_match = re.search(r"```python(.*?)```", step_response, re.DOTALL)
-            if not code_match:
-                code_match = re.search(r"```(.*?)```", step_response, re.DOTALL)
+                # Parse code
+                code_match = re.search(r"```python(.*?)```", step_response, re.DOTALL)
+                if not code_match:
+                    code_match = re.search(r"```(.*?)```", step_response, re.DOTALL)
 
-            if code_match:
-                code = code_match.group(1).strip()
-                if (
-                    "python" in code.lower() and len(code) < 10
-                ):  # Handle ```python\n code``` edge case parsing
-                    pass  # rudimentary check
+                if code_match:
+                    code = code_match.group(1).strip()
+                    if (
+                        "python" in code.lower() and len(code) < 10
+                    ):  # Handle ```python\n code``` edge case parsing
+                        pass  # rudimentary check
 
-                yield colored("\nExecuting Code...", "yellow")
+                    yield colored("\nExecuting Code...", "yellow")
 
-                # Execute in a child process so the timeout is a hard kill that works
-                # from any thread (SIGALRM only works on the main thread).
-                result = self._run_code(code, env)
+                    # Execute in a persistent child process: the timeout is a hard kill that
+                    # works from any thread, and the namespace survives between steps.
+                    if worker is None:
+                        worker = _CodeWorker(env, self.exec_timeout)
+                    result, final_ans = worker.run(code)
 
-                obs_str = f"\nObservation:\n{result}\n"
-                yield colored(obs_str, "blue")
+                    obs_str = f"\nObservation:\n{result}\n"
+                    yield colored(obs_str, "blue")
 
-                history += f"Step {step + 1}:\n{step_response}\n{obs_str}\n"
+                    history += f"Step {step + 1}:\n{step_response}\n{obs_str}\n"
 
-                if "FINAL_ANSWER" in env:
-                    yield colored("\nFINAL ANSWER FOUND\n", "green")
-                    final_ans = str(env["FINAL_ANSWER"])
-                    yield final_ans
-                    # Break the generator
-                    return
-            else:
-                yield colored("\nNo code block found. Ending turn.\n", "red")
-                # Append to history, maybe it's just thinking?
-                history += f"Step {step + 1}: {step_response}\n"
+                    if final_ans is not None:
+                        yield colored("\nFINAL ANSWER FOUND\n", "green")
+                        yield final_ans
+                        # Break the generator
+                        return
+                else:
+                    yield colored("\nNo code block found. Ending turn.\n", "red")
+                    # Append to history, maybe it's just thinking?
+                    history += f"Step {step + 1}: {step_response}\n"
 
-        yield colored("\nMax steps reached without FINAL_ANSWER.\n", "red")
+            yield colored("\nMax steps reached without FINAL_ANSWER.\n", "red")
+        finally:
+            if worker is not None:
+                worker.close()
