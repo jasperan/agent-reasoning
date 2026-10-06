@@ -99,3 +99,19 @@ def test_recursive_sub_llm():
 
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])
+
+
+def test_recursive_runs_code_from_worker_thread():
+    """The debug server iterates agents in worker threads, where SIGALRM can't be installed."""
+    import threading
+
+    agent = _make_agent()
+    agent.client.generate = MagicMock(
+        side_effect=lambda *a, **kw: iter(["```python\nFINAL_ANSWER = 'forty-two'\n```"])
+    )
+    out = []
+    t = threading.Thread(target=lambda: out.extend(agent.stream("q")))
+    t.start()
+    t.join(10)
+    assert "FINAL ANSWER FOUND" in "".join(out)
+    assert out[-1] == "forty-two"

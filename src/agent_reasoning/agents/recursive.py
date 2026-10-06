@@ -2,6 +2,7 @@ import io
 import re
 import signal
 import sys
+import threading
 
 from termcolor import colored
 
@@ -150,11 +151,15 @@ Thought:"""
                 def _timeout_handler(signum, frame):
                     raise TimeoutError("Code execution timed out")
 
+                # SIGALRM handlers can only be installed from the main thread; the
+                # debug server runs agents in worker threads.
+                use_alarm = threading.current_thread() is threading.main_thread()
+                old_handler = None
                 try:
-                    old_handler = signal.signal(signal.SIGALRM, _timeout_handler)
-                    signal.alarm(exec_timeout)
+                    if use_alarm:
+                        old_handler = signal.signal(signal.SIGALRM, _timeout_handler)
+                        signal.alarm(exec_timeout)
                     exec(code, env)
-                    signal.alarm(0)
                     result = output_buffer.getvalue()
                 except RecursionError as e:
                     result = f"RecursionError: {e}"
@@ -165,8 +170,9 @@ Thought:"""
                 except Exception as e:
                     result = f"Error: {e}"
                 finally:
-                    signal.alarm(0)
-                    signal.signal(signal.SIGALRM, old_handler)
+                    if use_alarm:
+                        signal.alarm(0)
+                        signal.signal(signal.SIGALRM, old_handler)
                     sys.stdout = original_stdout
 
                 obs_str = f"\nObservation:\n{result}\n"
