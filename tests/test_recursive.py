@@ -115,3 +115,46 @@ def test_recursive_runs_code_from_worker_thread():
     t.join(10)
     assert "FINAL ANSWER FOUND" in "".join(out)
     assert out[-1] == "forty-two"
+
+
+def test_recursive_infinite_loop_times_out_from_worker_thread():
+    import threading
+    import time
+
+    agent = _make_agent()
+    agent.exec_timeout = 1
+    agent.client.generate = MagicMock(
+        side_effect=lambda *a, **kw: iter(["```python\nwhile True:\n    pass\n```"])
+    )
+    agent.max_calls = 1  # second step is refused so the stream ends after the timeout
+    out = []
+    t = threading.Thread(target=lambda: out.extend(agent.stream("q")))
+    start = time.time()
+    t.start()
+    t.join(15)
+    assert not t.is_alive()
+    assert time.time() - start < 10
+    assert "TimeoutError" in "".join(out)
+
+
+def test_recursive_state_persists_across_steps_and_stdout_is_observed():
+    agent = _make_agent()
+    steps = iter(
+        [
+            "```python\nx = 21\nprint('hello')\n```",
+            "```python\nFINAL_ANSWER = str(x * 2)\n```",
+        ]
+    )
+    agent.client.generate = MagicMock(side_effect=lambda *a, **kw: iter([next(steps)]))
+    out = "".join(agent.stream("q"))
+    assert "hello" in out
+    assert out.endswith("42")
+
+
+def test_recursive_code_error_is_reported_not_raised():
+    agent = _make_agent()
+    steps = iter(["```python\n1/0\n```", "```python\nFINAL_ANSWER = 'ok'\n```"])
+    agent.client.generate = MagicMock(side_effect=lambda *a, **kw: iter([next(steps)]))
+    out = "".join(agent.stream("q"))
+    assert "Error: division by zero" in out
+    assert out.endswith("ok")

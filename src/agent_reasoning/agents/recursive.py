@@ -1,15 +1,94 @@
 import io
+import multiprocessing
+import pickle
 import re
-import signal
 import sys
-import threading
 
 from termcolor import colored
 
 from agent_reasoning.agents.base import BaseAgent
 
 
+_RESERVED_ENV_KEYS = frozenset(
+    {
+        "__builtins__",
+        "INPUT",
+        "sub_llm",
+        "print",
+        "len",
+        "range",
+        "str",
+        "int",
+        "list",
+        "dict",
+        "set",
+        "min",
+        "max",
+        "sum",
+        "sorted",
+        "enumerate",
+    }
+)
+
+
+def _exec_child(conn, code, env):
+    """Child-process body: exec ``code`` and send back (result, picklable new state)."""
+    buffer = io.StringIO()
+    sys.stdout = buffer
+    try:
+        try:
+            exec(code, env)
+            result = buffer.getvalue()
+        except RecursionError as e:
+            result = f"RecursionError: {e}"
+        except MemoryError as e:
+            result = f"MemoryError: {e}"
+        except Exception as e:
+            result = f"Error: {e}"
+        state = {}
+        for key, value in env.items():
+            if key in _RESERVED_ENV_KEYS:
+                continue
+            try:
+                pickle.dumps(value)
+            except Exception:
+                continue
+            state[key] = value
+        conn.send((result, state))
+    finally:
+        conn.close()
+
+
 class RecursiveAgent(BaseAgent):
+    # Hard wall-clock limit (seconds) for one code block.
+    exec_timeout = 30
+
+    def _run_code(self, code, env):
+        """Run ``code`` against ``env`` in a forked child; kill it after ``exec_timeout``.
+
+        Variables the code defines (if picklable) are merged back into ``env`` so
+        later steps can see them, e.g. ``FINAL_ANSWER``. Returns the observation text.
+        """
+        ctx = multiprocessing.get_context("fork")
+        parent_conn, child_conn = ctx.Pipe(duplex=False)
+        proc = ctx.Process(target=_exec_child, args=(child_conn, code, env), daemon=True)
+        proc.start()
+        child_conn.close()
+        try:
+            if parent_conn.poll(self.exec_timeout):
+                try:
+                    result, state = parent_conn.recv()
+                except EOFError:
+                    return "Error: code execution process exited unexpectedly"
+                env.update(state)
+                return result
+            return "TimeoutError: Code execution timed out"
+        finally:
+            if proc.is_alive():
+                proc.kill()
+            proc.join()
+            parent_conn.close()
+
     def __init__(self, model="gemma3:270m", **kwargs):
         super().__init__(model, **kwargs)
         self.name = "RecursiveAgent"
@@ -141,39 +220,9 @@ Thought:"""
 
                 yield colored("\nExecuting Code...", "yellow")
 
-                # Execute
-                output_buffer = io.StringIO()
-                original_stdout = sys.stdout
-                sys.stdout = output_buffer
-
-                exec_timeout = 30  # seconds
-
-                def _timeout_handler(signum, frame):
-                    raise TimeoutError("Code execution timed out")
-
-                # SIGALRM handlers can only be installed from the main thread; the
-                # debug server runs agents in worker threads.
-                use_alarm = threading.current_thread() is threading.main_thread()
-                old_handler = None
-                try:
-                    if use_alarm:
-                        old_handler = signal.signal(signal.SIGALRM, _timeout_handler)
-                        signal.alarm(exec_timeout)
-                    exec(code, env)
-                    result = output_buffer.getvalue()
-                except RecursionError as e:
-                    result = f"RecursionError: {e}"
-                except MemoryError as e:
-                    result = f"MemoryError: {e}"
-                except TimeoutError as e:
-                    result = f"TimeoutError: {e}"
-                except Exception as e:
-                    result = f"Error: {e}"
-                finally:
-                    if use_alarm:
-                        signal.alarm(0)
-                        signal.signal(signal.SIGALRM, old_handler)
-                    sys.stdout = original_stdout
+                # Execute in a child process so the timeout is a hard kill that works
+                # from any thread (SIGALRM only works on the main thread).
+                result = self._run_code(code, env)
 
                 obs_str = f"\nObservation:\n{result}\n"
                 yield colored(obs_str, "blue")
