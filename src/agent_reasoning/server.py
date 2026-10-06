@@ -8,31 +8,11 @@ from fastapi import FastAPI
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
-from agent_reasoning.agents import (
-    ConsistencyAgent,
-    CoTAgent,
-    DecomposedAgent,
-    LeastToMostAgent,
-    ReActAgent,
-    RecursiveAgent,
-    SelfReflectionAgent,
-    StandardAgent,
-    ToTAgent,
-)
+# Single source of truth for strategy names (all strategies, incl. aliases).
+from agent_reasoning.agent_metadata import PRIMARY_AGENT_IDS
+from agent_reasoning.interceptor import AGENT_MAP
 
 app = FastAPI(title="Agent Reasoning Gateway")
-
-AGENT_MAP = {
-    "standard": StandardAgent,
-    "cot": CoTAgent,
-    "reflection": SelfReflectionAgent,
-    "react": ReActAgent,
-    "tot": ToTAgent,
-    "consistency": ConsistencyAgent,
-    "decomposed": DecomposedAgent,
-    "least_to_most": LeastToMostAgent,
-    "recursive": RecursiveAgent,
-}
 
 
 class GenerateRequest(BaseModel):
@@ -94,7 +74,8 @@ async def generate(request: GenerateRequest):
 @app.get("/api/tags")
 async def tags():
     """Return list of available virtual models."""
-    return {"models": [{"name": f"gemma3:270m+{strategy}"} for strategy in AGENT_MAP.keys()]}
+    strategies = sorted(s for s in PRIMARY_AGENT_IDS if s in AGENT_MAP)
+    return {"models": [{"name": f"gemma3:270m+{strategy}"} for strategy in strategies]}
 
 
 def main():
