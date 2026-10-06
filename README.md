@@ -439,7 +439,8 @@ Run a proxy server that impersonates Ollama. This allows **any** Ollama-compatib
 # If installed via pip:
 agent-reasoning-server --port 8080
 
-# Or from source:
+# Or from source (binds 127.0.0.1:8080; the API is unauthenticated, so set
+# AGENT_REASONING_HOST=0.0.0.0 only if you really want to expose it):
 python server.py
 ```
 
