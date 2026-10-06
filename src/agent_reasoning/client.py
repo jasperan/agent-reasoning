@@ -31,13 +31,17 @@ class OllamaClient:
             "model": self.model,
             "prompt": prompt,
             "stream": stream,
-            "temperature": temperature,
-            "top_k": top_k,
-            "top_p": top_p,
-            "num_predict": num_predict,
+            # Ollama only honours sampling parameters (and stop sequences)
+            # inside "options"; top-level copies are silently ignored.
+            "options": {
+                "temperature": temperature,
+                "top_k": top_k,
+                "top_p": top_p,
+                "num_predict": num_predict,
+            },
         }
         if stop:
-            data["stop"] = stop
+            data["options"]["stop"] = stop
         if system:
             data["system"] = system
         if self.think is not None:

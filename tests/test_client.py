@@ -67,7 +67,8 @@ class TestOllamaClient:
 
         list(client.generate("test", stream=False, stop=["Observation:"]))
         call_data = mock_req.post.call_args[1]["json"]
-        assert call_data["stop"] == ["Observation:"]
+        assert call_data["options"]["stop"] == ["Observation:"]
+        assert "stop" not in call_data
 
     @patch("agent_reasoning.client.requests")
     def test_generate_passes_system_prompt(self, mock_req):
@@ -93,10 +94,10 @@ class TestOllamaClient:
 
         list(client.generate("test", stream=False))
         call_data = mock_req.post.call_args[1]["json"]
-        assert call_data["temperature"] == 0.7
-        assert call_data["top_k"] == 40
-        assert call_data["top_p"] == 0.9
-        assert call_data["num_predict"] == 2048
+        assert call_data["options"]["temperature"] == 0.7
+        assert call_data["options"]["top_k"] == 40
+        assert call_data["options"]["top_p"] == 0.9
+        assert call_data["options"]["num_predict"] == 2048
 
     @patch("agent_reasoning.client.requests")
     def test_generate_no_stop_when_none(self, mock_req):
@@ -109,7 +110,7 @@ class TestOllamaClient:
 
         list(client.generate("test", stream=False))
         call_data = mock_req.post.call_args[1]["json"]
-        assert "stop" not in call_data
+        assert "stop" not in call_data["options"]
 
     @patch("agent_reasoning.client.requests")
     def test_generate_no_system_when_none(self, mock_req):
@@ -205,7 +206,7 @@ class TestOllamaClient:
 
         list(client.generate("test", stream=False, temperature=0.2))
         call_data = mock_req.post.call_args[1]["json"]
-        assert call_data["temperature"] == 0.2
+        assert call_data["options"]["temperature"] == 0.2
 
     @patch("agent_reasoning.client.requests")
     def test_generate_http_error(self, mock_req):
