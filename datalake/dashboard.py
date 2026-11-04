@@ -4,7 +4,7 @@ FastAPI web dashboard for browsing and replaying reasoning session traces.
 Provides a rich web UI for:
   - Viewing recent sessions with aggregate stats
   - Filtering and searching sessions by strategy, model, status
-  - Detailed event timeline with color-coded event types
+  - Detailed event timeline with a sequence gutter
   - Step-by-step replay of reasoning sessions
   - Side-by-side session comparison
   - Aggregate metrics and strategy performance breakdowns
@@ -63,19 +63,15 @@ def _format_duration(ms):
     return f"{ms / 60000:.1f}m"
 
 
-# Event type colors for the timeline
-EVENT_COLORS = {
-    "node": "#3b82f6",  # blue
-    "task": "#8b5cf6",  # violet
-    "sample": "#06b6d4",  # cyan
-    "iteration": "#f59e0b",  # amber
-    "refinement": "#10b981",  # emerald
-    "pipeline": "#ec4899",  # pink
-    "react_step": "#ef4444",  # red
-    "chain_step": "#6366f1",  # indigo
-    "text": "#94a3b8",  # slate
-    "final": "#22c55e",  # green
-}
+def _compare_title(comparison):
+    """Name a comparison by the traces in it."""
+    sessions = (comparison or {}).get("sessions") or []
+    ids = [str(s.get("id", ""))[:8] for s in sessions]
+    if len(ids) == 2:
+        return f"Compare {ids[0]} and {ids[1]}"
+    if len(ids) > 2:
+        return f"Compare {len(ids)} traces"
+    return "Compare"
 
 
 def create_app(store: Optional[ReasoningStore] = None) -> FastAPI:
@@ -98,7 +94,6 @@ def create_app(store: Optional[ReasoningStore] = None) -> FastAPI:
     templates.env.filters["json_pretty"] = _json_pretty
     templates.env.filters["truncate_text"] = _truncate
     templates.env.filters["format_duration"] = _format_duration
-    templates.env.globals["event_colors"] = EVENT_COLORS
 
     # Lazy store initialization
     _store = store
@@ -125,7 +120,7 @@ def create_app(store: Optional[ReasoningStore] = None) -> FastAPI:
                 "request": request,
                 "stats": stats,
                 "recent_sessions": recent["sessions"],
-                "page_title": "Dashboard",
+                "page_title": "Overview",
             },
         )
 
@@ -180,7 +175,7 @@ def create_app(store: Optional[ReasoningStore] = None) -> FastAPI:
                     "status": status,
                     "q": q,
                 },
-                "page_title": "Sessions",
+                "page_title": "Traces",
             },
         )
 
@@ -203,8 +198,7 @@ def create_app(store: Optional[ReasoningStore] = None) -> FastAPI:
                 "session": session,
                 "events": session.get("events", []),
                 "metrics": session.get("metrics"),
-                "event_colors": EVENT_COLORS,
-                "page_title": f"Session {session_id[:8]}...",
+                "page_title": f"Run {session_id[:8]} · {session.get('strategy', '')}",
             },
         )
 
@@ -229,9 +223,8 @@ def create_app(store: Optional[ReasoningStore] = None) -> FastAPI:
                 "session": session,
                 "events": events,
                 "metrics": session.get("metrics"),
-                "event_colors": EVENT_COLORS,
                 "replay_mode": True,
-                "page_title": f"Replay {session_id[:8]}...",
+                "page_title": f"Replay {session_id[:8]} · {session.get('strategy', '')}",
             },
         )
 
@@ -271,7 +264,7 @@ def create_app(store: Optional[ReasoningStore] = None) -> FastAPI:
                 "comparison": comparison,
                 "compare_sessions": sessions,
                 "compare_mode": True,
-                "page_title": "Compare Sessions",
+                "page_title": _compare_title(comparison),
             },
         )
 

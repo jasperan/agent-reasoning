@@ -20,21 +20,21 @@ import {
 } from "./components/widgets";
 
 const sections = [
-  { id: "cot", num: "01", title: "Chain of Thought", color: "text-s1" },
-  { id: "tot", num: "02", title: "Tree of Thoughts", color: "text-s2" },
-  { id: "react", num: "03", title: "ReAct", color: "text-s2" },
-  { id: "reflection", num: "04", title: "Self-Reflection", color: "text-s3" },
-  { id: "consistency", num: "05", title: "Self-Consistency", color: "text-s3" },
-  { id: "decomposed", num: "06", title: "Decomposition", color: "text-s4" },
-  { id: "ltm", num: "07", title: "Least-to-Most", color: "text-s4" },
-  { id: "refinement", num: "08", title: "Refinement", color: "text-s5" },
-  { id: "debate", num: "09", title: "Debate", color: "text-s6" },
-  { id: "mcts", num: "10", title: "MCTS", color: "text-s6" },
-  { id: "analogical", num: "11", title: "Analogical", color: "text-s6" },
-  { id: "socratic", num: "12", title: "Socratic", color: "text-s6" },
-  { id: "meta", num: "13", title: "Meta-Reasoning", color: "text-s7" },
-  { id: "benchmarks", num: "14", title: "Benchmarks", color: "text-s7" },
-  { id: "architecture", num: "15", title: "Architecture", color: "text-s7" },
+  { id: "cot", num: "01", title: "Chain of Thought" },
+  { id: "tot", num: "02", title: "Tree of Thoughts" },
+  { id: "react", num: "03", title: "ReAct" },
+  { id: "reflection", num: "04", title: "Self-Reflection" },
+  { id: "consistency", num: "05", title: "Self-Consistency" },
+  { id: "decomposed", num: "06", title: "Decomposition" },
+  { id: "ltm", num: "07", title: "Least-to-Most" },
+  { id: "refinement", num: "08", title: "Refinement" },
+  { id: "debate", num: "09", title: "Debate" },
+  { id: "mcts", num: "10", title: "MCTS" },
+  { id: "analogical", num: "11", title: "Analogical" },
+  { id: "socratic", num: "12", title: "Socratic" },
+  { id: "meta", num: "13", title: "Meta-Reasoning" },
+  { id: "benchmarks", num: "14", title: "Benchmarks" },
+  { id: "architecture", num: "15", title: "Architecture" },
 ];
 
 export default function Home() {
@@ -55,12 +55,12 @@ export default function Home() {
       {/* ---- Nav ---- */}
       <nav className="sticky top-0 z-50 backdrop-blur-xl bg-background/80 border-b border-border">
         <div className="max-w-5xl mx-auto px-4 py-2 flex items-center gap-1 overflow-x-auto scrollbar-hide">
-          <a href="#top" className="nav-link font-bold text-foreground mr-2">
+          <a href="#top" className="nav-link font-medium text-foreground mr-2">
             Agent<span className="text-muted-foreground font-normal">.reason</span>
           </a>
           {sections.map((s) => (
             <a key={s.id} href={`#${s.id}`} className="nav-link">
-              <span className={s.color}>{s.num}</span>
+              <span className="text-muted-foreground">{s.num}</span>
               <span className="hidden lg:inline ml-1">{s.title}</span>
             </a>
           ))}
@@ -69,27 +69,16 @@ export default function Home() {
 
       {/* ---- Hero ---- */}
       <header id="top" className="relative overflow-hidden py-24 md:py-32">
-        <div className="hero-glow bg-orange-500 top-[-200px] left-[10%]" />
-        <div className="hero-glow bg-cyan-500 top-[-100px] right-[15%]" />
-        <div className="hero-glow bg-purple-500 bottom-[-200px] left-[40%]" />
         <div className="max-w-5xl mx-auto px-4 relative z-10">
-          <p className="font-mono text-xs text-muted-foreground tracking-widest uppercase mb-4">
-            Interactive Explorer
-          </p>
-          <h1 className="text-4xl md:text-6xl font-bold tracking-tight leading-tight mb-6">
-            From{" "}
-            <span className="text-s1">Next Token</span>{" "}
-            to{" "}
-            <span className="text-s2">Next Thought</span>
+          <p className="font-mono text-xs text-muted-foreground mb-4">Interactive explorer</p>
+          <h1 className="text-4xl md:text-6xl font-medium tracking-tight leading-tight mb-6">
+            From Next Token to{" "}
+            <span className="text-s1">Next Thought</span>
           </h1>
           <p className="text-lg md:text-xl text-muted-foreground max-w-2xl leading-relaxed">
             Fifteen interactive widgets exploring <strong>16 reasoning strategies</strong> that
-            transform standard LLMs into problem-solving agents.{" "}
-            <span className="text-s1">Chain of Thought</span>,{" "}
-            <span className="text-s2">Tree of Thoughts</span>,{" "}
-            <span className="text-s3">Self-Reflection</span>,{" "}
-            <span className="text-s6">Adversarial Debate</span>,{" "}
-            <span className="text-s7">Monte Carlo Tree Search</span>, and more.
+            transform standard LLMs into problem-solving agents. Chain of Thought, Tree of Thoughts,
+            Self-Reflection, Adversarial Debate, Monte Carlo Tree Search, and more.
           </p>
           <p className="text-sm text-muted-foreground mt-4 font-mono">
             Every concept below is interactive. Click buttons, drag sliders, explore reasoning architectures.
@@ -100,35 +89,35 @@ export default function Home() {
       {/* ---- Table of Contents ---- */}
       <div className="max-w-5xl mx-auto px-4 mb-16">
         <div className="bg-card border border-border rounded-xl p-6">
-          <h2 className="text-sm font-mono text-muted-foreground uppercase tracking-wider mb-4">
-            Reasoning Strategies
+          <h2 className="text-sm font-mono text-muted-foreground mb-4">
+            Reasoning strategies
           </h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
             {[
-              { id: "cot", color: "text-s1", border: "border-l-[#f97316]", title: "Chain of Thought", desc: "Step-by-step reasoning" },
-              { id: "tot", color: "text-s2", border: "border-l-[#22d3ee]", title: "Tree of Thoughts", desc: "BFS tree exploration" },
-              { id: "react", color: "text-s2", border: "border-l-[#22d3ee]", title: "ReAct", desc: "Reason + Act with tools" },
-              { id: "reflection", color: "text-s3", border: "border-l-[#4ade80]", title: "Self-Reflection", desc: "Draft, critique, improve" },
-              { id: "consistency", color: "text-s3", border: "border-l-[#4ade80]", title: "Self-Consistency", desc: "Majority vote sampling" },
-              { id: "decomposed", color: "text-s4", border: "border-l-[#a78bfa]", title: "Decomposition", desc: "Break into sub-tasks" },
-              { id: "ltm", color: "text-s4", border: "border-l-[#a78bfa]", title: "Least-to-Most", desc: "Easy-to-hard progression" },
-              { id: "refinement", color: "text-s5", border: "border-l-[#f472b6]", title: "Refinement Loop", desc: "Score-based iteration" },
-              { id: "debate", color: "text-s6", border: "border-l-[#facc15]", title: "Adversarial Debate", desc: "Pro vs Con with judge" },
-              { id: "mcts", color: "text-s6", border: "border-l-[#facc15]", title: "MCTS", desc: "Monte Carlo Tree Search" },
-              { id: "analogical", color: "text-s6", border: "border-l-[#facc15]", title: "Analogical", desc: "Cross-domain analogy" },
-              { id: "socratic", color: "text-s6", border: "border-l-[#facc15]", title: "Socratic Method", desc: "Progressive questioning" },
-              { id: "meta", color: "text-s7", border: "border-l-[#2dd4bf]", title: "Meta-Reasoning", desc: "Auto-classify & route" },
-              { id: "benchmarks", color: "text-s7", border: "border-l-[#2dd4bf]", title: "Benchmarks", desc: "Strategy comparison" },
-              { id: "architecture", color: "text-s7", border: "border-l-[#2dd4bf]", title: "Architecture", desc: "System overview" },
+              { id: "cot", title: "Chain of Thought", desc: "Step-by-step reasoning" },
+              { id: "tot", title: "Tree of Thoughts", desc: "BFS tree exploration" },
+              { id: "react", title: "ReAct", desc: "Reason + Act with tools" },
+              { id: "reflection", title: "Self-Reflection", desc: "Draft, critique, improve" },
+              { id: "consistency", title: "Self-Consistency", desc: "Majority vote sampling" },
+              { id: "decomposed", title: "Decomposition", desc: "Break into sub-tasks" },
+              { id: "ltm", title: "Least-to-Most", desc: "Easy-to-hard progression" },
+              { id: "refinement", title: "Refinement Loop", desc: "Score-based iteration" },
+              { id: "debate", title: "Adversarial Debate", desc: "Pro vs Con with judge" },
+              { id: "mcts", title: "MCTS", desc: "Monte Carlo Tree Search" },
+              { id: "analogical", title: "Analogical", desc: "Cross-domain analogy" },
+              { id: "socratic", title: "Socratic Method", desc: "Progressive questioning" },
+              { id: "meta", title: "Meta-Reasoning", desc: "Auto-classify & route" },
+              { id: "benchmarks", title: "Benchmarks", desc: "Strategy comparison" },
+              { id: "architecture", title: "Architecture", desc: "System overview" },
             ].map((item) => (
               <a
                 key={item.id}
                 href={`#${item.id}`}
                 className="flex items-center gap-3 p-3 rounded-lg border border-border hover:bg-[rgba(255,255,255,0.03)] transition-all group"
               >
-                <div className={`w-1 h-8 rounded-full bg-current ${item.color}`} />
+                <div className="w-1 h-8 rounded-full bg-s1 opacity-70" />
                 <div>
-                  <div className={`text-sm font-semibold ${item.color} group-hover:underline`}>{item.title}</div>
+                  <div className="text-sm font-medium text-foreground group-hover:underline">{item.title}</div>
                   <div className="text-xs text-muted-foreground">{item.desc}</div>
                 </div>
               </a>
@@ -488,19 +477,18 @@ export default function Home() {
           </p>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 my-8">
             {[
-              { color: "#f97316", label: "CoT", desc: "Externalizes intermediate reasoning" },
-              { color: "#22d3ee", label: "ToT / ReAct", desc: "Explores alternatives & uses tools" },
-              { color: "#4ade80", label: "Reflection / Consistency", desc: "Self-corrects and validates" },
-              { color: "#a78bfa", label: "Decomposition", desc: "Divides and conquers complexity" },
-              { color: "#f472b6", label: "Refinement", desc: "Iterates toward quality targets" },
-              { color: "#facc15", label: "Debate / MCTS / Socratic", desc: "Challenges assumptions deeply" },
+              { label: "CoT", desc: "Externalizes intermediate reasoning" },
+              { label: "ToT / ReAct", desc: "Explores alternatives and uses tools" },
+              { label: "Reflection / Consistency", desc: "Self-corrects and validates" },
+              { label: "Decomposition", desc: "Divides and conquers complexity" },
+              { label: "Refinement", desc: "Iterates toward quality targets" },
+              { label: "Debate / MCTS / Socratic", desc: "Challenges assumptions deeply" },
             ].map((item) => (
               <div
                 key={item.label}
                 className="bg-card border border-border rounded-lg p-4"
-                style={{ borderLeftColor: item.color, borderLeftWidth: 3 }}
               >
-                <div className="text-sm font-bold mb-1" style={{ color: item.color }}>
+                <div className="text-sm font-medium mb-1 text-foreground">
                   {item.label}
                 </div>
                 <div className="text-xs text-muted-foreground">{item.desc}</div>
