@@ -59,12 +59,9 @@ function getSamples(k: number): Sample[] {
   return SAMPLE_POOL[k - 3] ?? SAMPLE_POOL[2];
 }
 
-/* Color for an answer dot / bar */
-function answerColor(answer: number, isWinner: boolean): string {
-  if (isWinner) return "#4ade80";
-  if (answer === 82) return "#f59e0b";
-  if (answer === 88) return "#f472b6";
-  return "#a1a1aa";
+/* The majority answer carries the accent; the dissent stays neutral. */
+function answerColor(_answer: number, isWinner: boolean): string {
+  return isWinner ? "var(--accent)" : "var(--fg-3)";
 }
 
 /* ------------------------------------------------------------------ */
@@ -139,8 +136,7 @@ export function ConsistencyWidget() {
   const maxCount = sortedAnswers[0]?.count ?? 1;
 
   return (
-    <div className="widget-container s3">
-      <div className="widget-label">Interactive &middot; Self-Consistency Voting</div>
+    <div className="widget-shell">
 
       {/* ---- Problem Statement ---- */}
       <div
@@ -153,13 +149,13 @@ export function ConsistencyWidget() {
           lineHeight: 1.7,
         }}
       >
-        <span style={{ color: "#a1a1aa", fontSize: "0.78rem", fontFamily: "var(--font-mono), monospace" }}>
+        <span style={{ color: "var(--fg-2)", fontSize: "12px", fontFamily: "var(--font-mono), monospace" }}>
           Problem:
         </span>
-        <p style={{ margin: "0.35rem 0 0", color: "#e4e4e7", fontSize: "0.92rem" }}>
-          A farmer has <strong style={{ color: "#4ade80" }}>3</strong> fields. Each field has{" "}
-          <strong style={{ color: "#4ade80" }}>4</strong> rows of corn with{" "}
-          <strong style={{ color: "#4ade80" }}>7</strong> stalks per row. How many corn stalks total?
+        <p style={{ margin: "0.35rem 0 0", color: "var(--fg)", fontSize: "14px" }}>
+          A farmer has <strong>3</strong> fields. Each field has{" "}
+          <strong>4</strong> rows of corn with{" "}
+          <strong>7</strong> stalks per row. How many corn stalks total?
         </p>
       </div>
 
@@ -178,8 +174,8 @@ export function ConsistencyWidget() {
           <span
             style={{
               fontFamily: "var(--font-mono), monospace",
-              fontSize: "0.75rem",
-              color: "#a1a1aa",
+              fontSize: "12px",
+              color: "var(--fg-2)",
               whiteSpace: "nowrap",
             }}
           >
@@ -196,8 +192,8 @@ export function ConsistencyWidget() {
           <span
             style={{
               fontFamily: "var(--font-mono), monospace",
-              fontSize: "0.85rem",
-              color: "#e4e4e7",
+              fontSize: "13px",
+              color: "var(--fg)",
               minWidth: 18,
               textAlign: "center",
             }}
@@ -210,12 +206,8 @@ export function ConsistencyWidget() {
         <span
           style={{
             fontFamily: "var(--font-mono), monospace",
-            fontSize: "0.7rem",
-            color: "#f97316",
-            background: "rgba(249,115,22,0.12)",
-            border: "1px solid rgba(249,115,22,0.25)",
-            borderRadius: 4,
-            padding: "0.2rem 0.5rem",
+            fontSize: "12px",
+            color: "var(--fg-3)",
           }}
         >
           T = 0.7
@@ -227,9 +219,8 @@ export function ConsistencyWidget() {
           onClick={handleSample}
           disabled={sampling}
           style={{
-            background: sampling ? "rgba(255,255,255,0.04)" : "rgba(74,222,128,0.1)",
-            borderColor: sampling ? "rgba(255,255,255,0.08)" : "rgba(74,222,128,0.3)",
-            color: sampling ? "#a1a1aa" : "#4ade80",
+            borderColor: sampling ? "var(--line)" : "var(--accent)",
+            color: sampling ? "var(--fg-3)" : "var(--accent)",
             cursor: sampling ? "wait" : "pointer",
           }}
         >
@@ -256,7 +247,7 @@ export function ConsistencyWidget() {
                 style={{
                   animationDelay: `${idx * 0.06}s`,
                   background: "rgba(0,0,0,0.3)",
-                  border: `1px solid ${isWinner ? "rgba(74,222,128,0.3)" : "rgba(255,255,255,0.06)"}`,
+                  border: `1px solid ${isWinner ? "rgba(224,162,83,0.35)" : "rgba(255,255,255,0.06)"}`,
                   borderRadius: 8,
                   padding: "0.7rem 0.8rem",
                   display: "flex",
@@ -270,8 +261,8 @@ export function ConsistencyWidget() {
                   <span
                     style={{
                       fontFamily: "var(--font-mono), monospace",
-                      fontSize: "0.65rem",
-                      color: "#a1a1aa",
+                      fontSize: "11px",
+                      color: "var(--fg-2)",
                       background: "rgba(255,255,255,0.06)",
                       borderRadius: 4,
                       padding: "0.1rem 0.4rem",
@@ -285,8 +276,6 @@ export function ConsistencyWidget() {
                       height: 8,
                       borderRadius: "50%",
                       background: answerColor(sample.answer, isWinner),
-                      boxShadow: isWinner ? "0 0 6px rgba(74,222,128,0.6)" : "none",
-                      transition: "box-shadow 0.4s",
                       flexShrink: 0,
                     }}
                   />
@@ -296,8 +285,8 @@ export function ConsistencyWidget() {
                 <p
                   style={{
                     fontFamily: "var(--font-mono), monospace",
-                    fontSize: "0.73rem",
-                    color: "#b4b4bc",
+                    fontSize: "12px",
+                    color: "var(--fg-2)",
                     lineHeight: 1.55,
                     margin: 0,
                   }}
@@ -309,9 +298,8 @@ export function ConsistencyWidget() {
                 <div
                   style={{
                     fontFamily: "var(--font-mono), monospace",
-                    fontSize: "0.72rem",
-                    color: isWinner ? "#4ade80" : sample.answer === 84 ? "#e4e4e7" : "#f59e0b",
-                    fontWeight: 600,
+                    fontSize: "12px",
+                    color: isWinner ? "var(--accent)" : "var(--fg-2)",
                     borderTop: "1px solid rgba(255,255,255,0.06)",
                     paddingTop: "0.35rem",
                     marginTop: "auto",
@@ -332,10 +320,8 @@ export function ConsistencyWidget() {
           <div
             style={{
               fontFamily: "var(--font-mono), monospace",
-              fontSize: "0.72rem",
-              color: "#a1a1aa",
-              textTransform: "uppercase",
-              letterSpacing: "0.08em",
+              fontSize: "12px",
+              color: "var(--fg-2)",
               marginBottom: "0.65rem",
             }}
           >
@@ -353,9 +339,8 @@ export function ConsistencyWidget() {
                   <span
                     style={{
                       fontFamily: "var(--font-mono), monospace",
-                      fontSize: "0.78rem",
-                      color: isWin ? "#4ade80" : "#a1a1aa",
-                      fontWeight: isWin ? 700 : 400,
+                      fontSize: "12px",
+                      color: isWin ? "var(--fg)" : "var(--fg-3)",
                       minWidth: 28,
                       textAlign: "right",
                     }}
@@ -379,10 +364,9 @@ export function ConsistencyWidget() {
                       style={{
                         width: `${pct}%`,
                         background: isWin
-                          ? "linear-gradient(90deg, rgba(74,222,128,0.35), rgba(74,222,128,0.18))"
-                          : "rgba(255,255,255,0.08)",
-                        boxShadow: isWin ? "0 0 12px rgba(74,222,128,0.25)" : "none",
-                        color: isWin ? "#4ade80" : "#a1a1aa",
+                          ? "var(--accent)"
+                          : "rgba(255,255,255,0.10)",
+                        color: isWin ? "#1a1207" : "var(--fg-2)",
                       }}
                     >
                       {count} vote{count !== 1 ? "s" : ""}
@@ -399,30 +383,28 @@ export function ConsistencyWidget() {
               display: "flex",
               alignItems: "center",
               gap: "0.75rem",
-              background: "rgba(74,222,128,0.08)",
-              border: "1px solid rgba(74,222,128,0.2)",
+              background: "transparent",
+              border: "1px solid rgba(255,255,255,0.08)",
               borderRadius: 8,
-              padding: "0.65rem 1rem",
-              boxShadow: "0 0 20px rgba(74,222,128,0.08)",
+              padding: "12px 16px",
             }}
           >
             <span
               style={{
                 fontFamily: "var(--font-mono), monospace",
-                fontSize: "1.15rem",
-                fontWeight: 700,
-                color: "#4ade80",
+                fontSize: "18px",
+                color: "var(--accent)",
               }}
             >
               {winnerAnswer}
             </span>
             <div style={{ display: "flex", flexDirection: "column", gap: "0.1rem" }}>
-              <span style={{ fontSize: "0.8rem", color: "#e4e4e7" }}>Majority Vote Winner</span>
+              <span style={{ fontSize: "13px", color: "var(--fg)" }}>Majority Vote Winner</span>
               <span
                 style={{
                   fontFamily: "var(--font-mono), monospace",
-                  fontSize: "0.7rem",
-                  color: "#a1a1aa",
+                  fontSize: "12px",
+                  color: "var(--fg-2)",
                 }}
               >
                 {winnerCount}/{totalVotes} samples agree &middot; {confidence}% confidence

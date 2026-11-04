@@ -159,17 +159,10 @@ function buildTree(width: number, depth: number): TreeNode {
 /* ------------------------------------------------------------------ */
 
 function scoreColor(score: number | null): string {
-  if (score === null) return "#a1a1aa";
-  if (score > 0.7) return "#4ade80";
-  if (score >= 0.4) return "#facc15";
-  return "#f87171";
-}
-
-function scoreColorBg(score: number | null): string {
-  if (score === null) return "rgba(161,161,170,0.15)";
-  if (score > 0.7) return "rgba(74,222,128,0.15)";
-  if (score >= 0.4) return "rgba(250,204,21,0.15)";
-  return "rgba(248,113,113,0.15)";
+  if (score === null) return "var(--fg-3)";
+  if (score > 0.7) return "var(--accent)";
+  if (score >= 0.4) return "var(--fg-2)";
+  return "var(--fg-4)";
 }
 
 /** Flatten tree into a list of nodes per depth level */
@@ -356,7 +349,7 @@ export function ToTTreeWidget() {
   /* Node visibility logic */
   const isNodeVisible = useCallback(
     (node: TreeNode): boolean => {
-      if (phase === "idle") return node.depth === 0;
+      if (phase === "idle") return true;
       if (phase === "done") return true;
       /* exploring */
       return node.depth <= revealedDepth;
@@ -390,24 +383,23 @@ export function ToTTreeWidget() {
   /* ---------------------------------------------------------------- */
 
   return (
-    <div className="widget-container s2">
-      <div className="widget-label">Interactive &middot; Tree of Thoughts (BFS)</div>
+    <div className="widget-shell">
 
       {/* Problem statement */}
       <div
         style={{
-          background: "rgba(34,211,238,0.06)",
-          border: "1px solid rgba(34,211,238,0.15)",
+          background: "rgba(125,148,171,0.06)",
+          border: "1px solid rgba(125,148,171,0.15)",
           borderRadius: 8,
           padding: "0.75rem 1rem",
           marginBottom: "1rem",
           fontFamily: "var(--font-mono), monospace",
-          fontSize: "0.8rem",
-          color: "#e4e4e7",
+          fontSize: "13px",
+          color: "var(--fg)",
           lineHeight: 1.6,
         }}
       >
-        <span style={{ color: "#22d3ee", fontWeight: 600, marginRight: 6 }}>
+        <span style={{ color: "var(--accent-2)", fontWeight: 600, marginRight: 6 }}>
           Puzzle:
         </span>
         Arrange the numbers 1&ndash;9 in a 3&times;3 grid so each row, column,
@@ -447,8 +439,8 @@ export function ToTTreeWidget() {
             alignItems: "center",
             gap: 8,
             fontFamily: "var(--font-mono), monospace",
-            fontSize: "0.72rem",
-            color: "#a1a1aa",
+            fontSize: "12px",
+            color: "var(--fg-2)",
           }}
         >
           Width
@@ -460,7 +452,7 @@ export function ToTTreeWidget() {
             onChange={(e) => setWidth(Number(e.target.value))}
             style={{ width: 80 }}
           />
-          <span style={{ color: "#e4e4e7", minWidth: 14, textAlign: "center" }}>
+          <span style={{ color: "var(--fg)", minWidth: 14, textAlign: "center" }}>
             {width}
           </span>
         </label>
@@ -472,8 +464,8 @@ export function ToTTreeWidget() {
             alignItems: "center",
             gap: 8,
             fontFamily: "var(--font-mono), monospace",
-            fontSize: "0.72rem",
-            color: "#a1a1aa",
+            fontSize: "12px",
+            color: "var(--fg-2)",
           }}
         >
           Depth
@@ -485,7 +477,7 @@ export function ToTTreeWidget() {
             onChange={(e) => setDepth(Number(e.target.value))}
             style={{ width: 80 }}
           />
-          <span style={{ color: "#e4e4e7", minWidth: 14, textAlign: "center" }}>
+          <span style={{ color: "var(--fg)", minWidth: 14, textAlign: "center" }}>
             {depth}
           </span>
         </label>
@@ -554,7 +546,7 @@ export function ToTTreeWidget() {
                   y1={parent.y + 24}
                   x2={pn.x}
                   y2={pn.y - 24}
-                  stroke={isBest ? "#22d3ee" : "rgba(255,255,255,0.2)"}
+                  stroke={isBest ? "var(--accent)" : "rgba(255,255,255,0.16)"}
                   strokeWidth={isBest ? 2.5 : 1}
                   opacity={dimmed ? 0.15 : 1}
                   className={isBest ? "best-edge" : undefined}
@@ -571,10 +563,10 @@ export function ToTTreeWidget() {
               const dimmed = isPruningVisible(node) && node.pruned;
               const isBest = showBestPath && node.onBestPath;
               const fillColor = showScore
-                ? scoreColorBg(node.score)
-                : "rgba(255,255,255,0.05)";
+                ? "rgba(255,255,255,0.05)"
+                : "rgba(255,255,255,0.02)";
               const strokeColor = isBest
-                ? "#22d3ee"
+                ? "var(--accent)"
                 : showScore
                   ? scoreColor(node.score)
                   : "rgba(255,255,255,0.15)";
@@ -609,7 +601,7 @@ export function ToTTreeWidget() {
                       y1={pn.y}
                       x2={pn.x + 18}
                       y2={pn.y}
-                      stroke="#f87171"
+                      stroke="var(--negative)"
                       strokeWidth={1.5}
                       opacity={0.7}
                     />
@@ -620,9 +612,9 @@ export function ToTTreeWidget() {
                     x={pn.x}
                     y={pn.y - 30}
                     textAnchor="middle"
-                    fill={dimmed ? "#52525b" : "#e4e4e7"}
+                    fill={dimmed ? "var(--fg-3)" : "var(--fg)"}
                     fontFamily="var(--font-mono), monospace"
-                    fontSize={10}
+                    fontSize={11}
                     style={{ pointerEvents: "none" }}
                   >
                     {shortLabel}
@@ -653,42 +645,15 @@ export function ToTTreeWidget() {
                       x={pn.x}
                       y={pn.y + 3}
                       textAnchor="middle"
-                      fill="#a1a1aa"
+                      fill="var(--fg-2)"
                       fontFamily="var(--font-mono), monospace"
-                      fontSize={9}
+                      fontSize={11}
                       style={{ pointerEvents: "none" }}
                     >
                       root
                     </text>
                   )}
 
-                  {/* Score badge below circle */}
-                  {showScore && node.score !== null && (
-                    <g className="score-appear">
-                      <rect
-                        x={pn.x - 18}
-                        y={pn.y + 28}
-                        width={36}
-                        height={18}
-                        rx={4}
-                        fill={scoreColorBg(node.score)}
-                        stroke={scoreColor(node.score)}
-                        strokeWidth={0.5}
-                        opacity={0.9}
-                      />
-                      <text
-                        x={pn.x}
-                        y={pn.y + 40}
-                        textAnchor="middle"
-                        fill={scoreColor(node.score)}
-                        fontFamily="var(--font-mono), monospace"
-                        fontSize={9}
-                        fontWeight={600}
-                      >
-                        {node.score.toFixed(2)}
-                      </text>
-                    </g>
-                  )}
                 </g>
               );
             })}
@@ -700,15 +665,15 @@ export function ToTTreeWidget() {
       <div
         style={{
           fontFamily: "var(--font-mono), monospace",
-          fontSize: "0.72rem",
-          color: "#a1a1aa",
+          fontSize: "12px",
+          color: "var(--fg-2)",
           marginBottom: phase === "done" ? "0.75rem" : 0,
           minHeight: 20,
         }}
       >
         {phase === "idle" && (
           <span>
-            Press <strong style={{ color: "#e4e4e7" }}>Explore</strong> to begin
+            Press <strong style={{ color: "var(--fg)" }}>Explore</strong> to begin
             BFS tree search
           </span>
         )}
@@ -722,8 +687,8 @@ export function ToTTreeWidget() {
           </span>
         )}
         {phase === "done" && (
-          <span style={{ color: "#4ade80" }}>
-            Search complete &mdash; best path highlighted in cyan
+          <span style={{ color: "var(--positive)" }}>
+            Search complete &mdash; best path in amber
           </span>
         )}
       </div>
@@ -732,8 +697,8 @@ export function ToTTreeWidget() {
       {phase === "done" && (
         <div
           style={{
-            background: "rgba(34,211,238,0.05)",
-            border: "1px solid rgba(34,211,238,0.12)",
+            background: "rgba(125,148,171,0.05)",
+            border: "1px solid rgba(125,148,171,0.12)",
             borderRadius: 8,
             padding: "0.75rem 1rem",
           }}
@@ -741,10 +706,8 @@ export function ToTTreeWidget() {
           <div
             style={{
               fontFamily: "var(--font-mono), monospace",
-              fontSize: "0.7rem",
-              textTransform: "uppercase",
-              letterSpacing: "0.08em",
-              color: "#22d3ee",
+              fontSize: "12px",
+              color: "var(--accent-2)",
               marginBottom: "0.5rem",
               fontWeight: 600,
             }}
@@ -758,8 +721,8 @@ export function ToTTreeWidget() {
               alignItems: "center",
               gap: "0.4rem",
               fontFamily: "var(--font-mono), monospace",
-              fontSize: "0.78rem",
-              color: "#e4e4e7",
+              fontSize: "12px",
+              color: "var(--fg)",
               lineHeight: 1.8,
             }}
           >
@@ -767,8 +730,8 @@ export function ToTTreeWidget() {
               <span key={i} style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}>
                 <span
                   style={{
-                    background: "rgba(34,211,238,0.12)",
-                    border: "1px solid rgba(34,211,238,0.2)",
+                    background: "rgba(125,148,171,0.12)",
+                    border: "1px solid rgba(125,148,171,0.2)",
                     borderRadius: 4,
                     padding: "2px 8px",
                   }}
@@ -776,7 +739,7 @@ export function ToTTreeWidget() {
                   {label}
                 </span>
                 {i < bestPath.length - 1 && (
-                  <span style={{ color: "#52525b" }}>&rarr;</span>
+                  <span style={{ color: "var(--fg-3)" }}>&rarr;</span>
                 )}
               </span>
             ))}
@@ -784,18 +747,18 @@ export function ToTTreeWidget() {
           <div
             style={{
               fontFamily: "var(--font-mono), monospace",
-              fontSize: "0.72rem",
-              color: "#a1a1aa",
+              fontSize: "12px",
+              color: "var(--fg-2)",
               marginTop: "0.5rem",
               lineHeight: 1.6,
             }}
           >
             The BFS exploration evaluated{" "}
-            <strong style={{ color: "#e4e4e7" }}>
+            <strong style={{ color: "var(--fg)" }}>
               {positioned.length}
             </strong>{" "}
             candidate thoughts across{" "}
-            <strong style={{ color: "#e4e4e7" }}>{levels.length - 1}</strong>{" "}
+            <strong style={{ color: "var(--fg)" }}>{levels.length - 1}</strong>{" "}
             depth levels, pruning low-scoring branches at each step to arrive at
             the optimal solution path.
           </div>
@@ -810,8 +773,8 @@ export function ToTTreeWidget() {
           marginTop: "0.75rem",
           flexWrap: "wrap",
           fontFamily: "var(--font-mono), monospace",
-          fontSize: "0.68rem",
-          color: "#a1a1aa",
+          fontSize: "11px",
+          color: "var(--fg-2)",
         }}
       >
         <span style={{ display: "flex", alignItems: "center", gap: 4 }}>
@@ -820,7 +783,7 @@ export function ToTTreeWidget() {
               width: 8,
               height: 8,
               borderRadius: "50%",
-              background: "#4ade80",
+              background: "var(--accent)",
               display: "inline-block",
             }}
           />
@@ -832,7 +795,7 @@ export function ToTTreeWidget() {
               width: 8,
               height: 8,
               borderRadius: "50%",
-              background: "#facc15",
+              background: "var(--fg-2)",
               display: "inline-block",
             }}
           />
@@ -844,7 +807,7 @@ export function ToTTreeWidget() {
               width: 8,
               height: 8,
               borderRadius: "50%",
-              background: "#f87171",
+              background: "var(--fg-4)",
               display: "inline-block",
             }}
           />
@@ -855,7 +818,7 @@ export function ToTTreeWidget() {
             style={{
               width: 16,
               height: 2,
-              background: "#22d3ee",
+              background: "var(--accent)",
               display: "inline-block",
               borderRadius: 1,
             }}

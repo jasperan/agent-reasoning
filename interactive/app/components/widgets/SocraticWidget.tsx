@@ -107,9 +107,9 @@ const TOPICS: Topic[] = [
 
 const MONO = "var(--font-mono), monospace";
 
-const TEAL = "#2dd4bf";
-const TEAL_DIM = "rgba(45,212,191,0.12)";
-const TEAL_BORDER = "rgba(45,212,191,0.3)";
+const TEAL = "var(--accent-2)";
+const TEAL_DIM = "rgba(125,148,171,0.12)";
+const TEAL_BORDER = "rgba(125,148,171,0.3)";
 
 /* ------------------------------------------------------------------ */
 /*  Component                                                          */
@@ -248,16 +248,14 @@ export function SocraticWidget() {
 
   if (!mounted) {
     return (
-      <div className="widget-container s6">
-        <div className="widget-label">Interactive &middot; Socratic Method</div>
-        <div style={{ minHeight: 300 }} />
+      <div className="widget-shell">
+        <div style={{ minHeight: 160 }} />
       </div>
     );
   }
 
   return (
-    <div className="widget-container s6">
-      <div className="widget-label">Interactive &middot; Socratic Method</div>
+    <div className="widget-shell">
 
       {/* ---- Topic selector ---- */}
       <div className="flex flex-wrap items-center gap-2 mb-4">
@@ -276,16 +274,14 @@ export function SocraticWidget() {
       <div
         className="rounded-lg p-4 mb-5"
         style={{
-          background: "rgba(45,212,191,0.04)",
+          background: "rgba(125,148,171,0.04)",
           border: `1px solid ${TEAL_BORDER}`,
         }}
       >
         <span
           style={{
             fontFamily: MONO,
-            fontSize: "0.7rem",
-            textTransform: "uppercase",
-            letterSpacing: "0.08em",
+            fontSize: "12px",
             color: TEAL,
             fontWeight: 600,
             display: "block",
@@ -294,7 +290,7 @@ export function SocraticWidget() {
         >
           Topic
         </span>
-        <p style={{ color: "#e4e4e7", margin: 0, lineHeight: 1.7, fontSize: "0.95rem" }}>
+        <p style={{ color: "var(--fg)", margin: 0, lineHeight: 1.7, fontSize: "14px" }}>
           {topic.prompt}
         </p>
       </div>
@@ -306,9 +302,8 @@ export function SocraticWidget() {
           onClick={startQuestioning}
           disabled={phase === "running"}
           style={{
-            background: phase === "running" ? "transparent" : TEAL_DIM,
-            borderColor: phase === "running" ? "rgba(255,255,255,0.08)" : TEAL_BORDER,
-            color: phase === "running" ? "#a1a1aa" : TEAL,
+            borderColor: phase === "running" ? "var(--line)" : "var(--accent)",
+            color: phase === "running" ? "var(--fg-3)" : "var(--accent)",
             cursor: phase === "running" ? "not-allowed" : "pointer",
           }}
         >
@@ -323,8 +318,8 @@ export function SocraticWidget() {
           <span
             style={{
               fontFamily: MONO,
-              fontSize: "0.75rem",
-              color: "#a1a1aa",
+              fontSize: "12px",
+              color: "var(--fg-2)",
               background: "rgba(255,255,255,0.05)",
               borderRadius: 4,
               padding: "0.2rem 0.55rem",
@@ -350,16 +345,19 @@ export function SocraticWidget() {
         {/* Placeholder when idle */}
         {phase === "idle" && visiblePairs === 0 && (
           <div
-            className="rounded-lg flex items-center justify-center"
-            style={{
-              height: 100,
-              border: "1px dashed rgba(255,255,255,0.1)",
-              color: "#a1a1aa",
-              fontFamily: MONO,
-              fontSize: "0.78rem",
-            }}
+            className="flex items-baseline gap-3 border-t py-3"
+            style={{ borderColor: "var(--line)" }}
           >
-            Press &ldquo;Begin Questioning&rdquo; to start the Socratic dialogue
+            <span className="seq w-6 shrink-0">—</span>
+            <span
+              style={{
+                fontFamily: "var(--font-mono), monospace",
+                fontSize: "12px",
+                color: "var(--fg-3)",
+              }}
+            >
+              Press &ldquo;Begin Questioning&rdquo; to start the Socratic dialogue
+            </span>
           </div>
         )}
 
@@ -385,10 +383,8 @@ export function SocraticWidget() {
               {/* Question */}
               <div
                 style={{
-                  background: "rgba(45,212,191,0.03)",
-                  borderLeft: `3px solid ${TEAL}`,
-                  borderRadius: "0 8px 8px 0",
-                  padding: "0.7rem 0.85rem",
+                  padding: "10px 0",
+                  borderTop: "1px solid var(--line)",
                   display: "flex",
                   gap: "0.65rem",
                   alignItems: "flex-start",
@@ -398,26 +394,24 @@ export function SocraticWidget() {
                 <span
                   style={{
                     fontFamily: MONO,
-                    fontSize: "0.6rem",
+                    fontSize: "11px",
                     fontWeight: 700,
-                    color: "#12131a",
+                    color: "var(--surface)",
                     background: TEAL,
                     borderRadius: 4,
                     padding: "2px 7px",
                     flexShrink: 0,
                     marginTop: 2,
-                    letterSpacing: "0.04em",
                   }}
                 >
                   Q
                 </span>
                 <p
                   style={{
-                    color: TEAL,
+                    color: "var(--fg)",
                     margin: 0,
-                    fontSize: "0.88rem",
+                    fontSize: "14px",
                     lineHeight: 1.65,
-                    fontWeight: 500,
                   }}
                 >
                   {pair.question}
@@ -429,11 +423,7 @@ export function SocraticWidget() {
                 <div
                   className="animate-fade-in"
                   style={{
-                    background: "rgba(255,255,255,0.03)",
-                    border: "1px solid rgba(255,255,255,0.06)",
-                    borderRadius: 8,
-                    padding: "0.7rem 0.85rem",
-                    marginLeft: 8,
+                    padding: "0 0 10px",
                     display: "flex",
                     gap: "0.65rem",
                     alignItems: "flex-start",
@@ -443,24 +433,23 @@ export function SocraticWidget() {
                   <span
                     style={{
                       fontFamily: MONO,
-                      fontSize: "0.6rem",
+                      fontSize: "11px",
                       fontWeight: 700,
-                      color: "#12131a",
-                      background: "#a1a1aa",
+                      color: "var(--surface)",
+                      background: "var(--fg-2)",
                       borderRadius: 4,
                       padding: "2px 7px",
                       flexShrink: 0,
                       marginTop: 2,
-                      letterSpacing: "0.04em",
                     }}
                   >
                     A
                   </span>
                   <p
                     style={{
-                      color: "#d4d4d8",
+                      color: "var(--fg)",
                       margin: 0,
-                      fontSize: "0.84rem",
+                      fontSize: "13px",
                       lineHeight: 1.65,
                     }}
                   >
@@ -469,42 +458,30 @@ export function SocraticWidget() {
                 </div>
               )}
 
-              {/* Insight badge */}
+              {/* Insight */}
               {vis.insightVisible && (
                 <div
                   className="animate-fade-in"
                   style={{
-                    marginLeft: 8,
                     display: "flex",
-                    alignItems: "center",
-                    gap: "0.45rem",
+                    gap: "0.65rem",
+                    alignItems: "baseline",
+                    paddingBottom: 10,
                   }}
                 >
-                  <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-                    <circle cx="6" cy="6" r="5" stroke={TEAL} strokeWidth="1" fill="none" />
-                    <path
-                      d="M4 6 L5.5 7.5 L8 4.5"
-                      stroke={TEAL}
-                      strokeWidth="1"
-                      fill="none"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                  </svg>
                   <span
                     style={{
                       fontFamily: MONO,
-                      fontSize: "0.62rem",
-                      fontWeight: 600,
-                      letterSpacing: "0.06em",
-                      textTransform: "uppercase",
-                      color: TEAL,
-                      background: TEAL_DIM,
-                      padding: "2px 10px",
-                      borderRadius: 999,
+                      fontSize: "11px",
+                      color: "var(--fg-4)",
+                      width: 16,
+                      flexShrink: 0,
                     }}
                   >
-                    Insight extracted: {pair.insight}
+                    &rarr;
+                  </span>
+                  <span style={{ fontFamily: MONO, fontSize: "11px", color: "var(--fg-3)" }}>
+                    insight: {pair.insight}
                   </span>
                 </div>
               )}
@@ -519,11 +496,10 @@ export function SocraticWidget() {
           className="animate-fade-in"
           style={{
             marginTop: "1.25rem",
-            background: "rgba(45,212,191,0.05)",
-            border: `1px solid ${TEAL_BORDER}`,
-            borderRadius: 10,
-            padding: "1rem 1.15rem",
-            boxShadow: "0 0 24px rgba(45,212,191,0.08)",
+            background: "transparent",
+            border: "1px solid var(--line)",
+            borderRadius: 8,
+            padding: "16px 18px",
           }}
         >
           {/* Synthesis header */}
@@ -535,23 +511,11 @@ export function SocraticWidget() {
               marginBottom: "0.65rem",
             }}
           >
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-              <path
-                d="M8 1 L9.5 5.5 L14 6 L10.5 9.5 L11.5 14 L8 11.5 L4.5 14 L5.5 9.5 L2 6 L6.5 5.5 Z"
-                stroke={TEAL}
-                strokeWidth="1"
-                fill="rgba(45,212,191,0.15)"
-                strokeLinejoin="round"
-              />
-            </svg>
             <span
               style={{
                 fontFamily: MONO,
-                fontSize: "0.72rem",
-                color: TEAL,
-                fontWeight: 700,
-                textTransform: "uppercase",
-                letterSpacing: "0.08em",
+                fontSize: "11px",
+                color: "var(--fg-3)",
               }}
             >
               Synthesis
@@ -572,14 +536,9 @@ export function SocraticWidget() {
                 key={`synth-insight-${i}`}
                 style={{
                   fontFamily: MONO,
-                  fontSize: "0.58rem",
-                  fontWeight: 600,
-                  letterSpacing: "0.04em",
-                  color: TEAL,
-                  background: TEAL_DIM,
-                  border: `1px solid rgba(45,212,191,0.18)`,
-                  padding: "2px 8px",
-                  borderRadius: 999,
+                  fontSize: "11px",
+                  color: "var(--fg-3)",
+                  paddingRight: 12,
                 }}
               >
                 {pair.insight}
@@ -590,9 +549,9 @@ export function SocraticWidget() {
           {/* Synthesized conclusion */}
           <p
             style={{
-              color: "#d4d4d8",
+              color: "var(--fg)",
               margin: 0,
-              fontSize: "0.84rem",
+              fontSize: "13px",
               lineHeight: 1.75,
             }}
           >
@@ -606,8 +565,8 @@ export function SocraticWidget() {
         <span
           style={{
             fontFamily: MONO,
-            fontSize: "0.7rem",
-            color: "#a1a1aa",
+            fontSize: "12px",
+            color: "var(--fg-2)",
           }}
         >
           {displayedQuestion}/{totalPairs} questions
@@ -629,7 +588,7 @@ export function SocraticWidget() {
               background:
                 showSynthesis
                   ? TEAL
-                  : "rgba(45,212,191,0.5)",
+                  : "rgba(125,148,171,0.5)",
               transition: "width 0.35s ease-out",
             }}
           />

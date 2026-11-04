@@ -41,16 +41,14 @@ const EXAMPLE_QUERIES: ExampleQuery[] = [
 /* ------------------------------------------------------------------ */
 
 const MONO = "var(--font-mono), monospace";
-const TEAL = "#2dd4bf";
-const TEAL_DIM = "rgba(45,212,191,0.15)";
-const TEAL_GLOW = "rgba(45,212,191,0.25)";
+const TEAL = "var(--accent-2)";
+const TEAL_DIM = "rgba(125,148,171,0.15)";
+const TEAL_GLOW = "rgba(125,148,171,0.25)";
 
 function monoLabel(color: string, mb?: number): React.CSSProperties {
   return {
     fontFamily: MONO,
-    fontSize: "0.7rem",
-    textTransform: "uppercase",
-    letterSpacing: "0.08em",
+    fontSize: "12px",
     color,
     fontWeight: 600,
     marginBottom: mb ?? 0,
@@ -194,9 +192,9 @@ export function MetaReasoningWidget() {
   /* --- Confidence bar color -------------------------------------- */
   const confidenceColor = (conf: number): string => {
     if (conf >= 90) return TEAL;
-    if (conf >= 80) return "#5eead4";
-    if (conf >= 70) return "#99f6e4";
-    return "#a1a1aa";
+    if (conf >= 80) return "var(--accent-2)";
+    if (conf >= 70) return "var(--accent-2)";
+    return "var(--fg-2)";
   };
 
   /* ---------------------------------------------------------------- */
@@ -204,8 +202,7 @@ export function MetaReasoningWidget() {
   /* ---------------------------------------------------------------- */
 
   return (
-    <div className="widget-container s7">
-      <div className="widget-label">Interactive &middot; Meta-Reasoning Router</div>
+    <div className="widget-shell">
 
       {/* ---- Input area ---- */}
       <div
@@ -228,14 +225,14 @@ export function MetaReasoningWidget() {
             border: "1px solid rgba(255,255,255,0.12)",
             borderRadius: 6,
             padding: "0.55rem 0.75rem",
-            color: "#e4e4e7",
+            color: "var(--fg)",
             fontFamily: MONO,
-            fontSize: "0.84rem",
+            fontSize: "13px",
             outline: "none",
             transition: "border-color 0.2s",
           }}
           onFocus={(e) => {
-            e.currentTarget.style.borderColor = "rgba(45,212,191,0.4)";
+            e.currentTarget.style.borderColor = "rgba(125,148,171,0.4)";
           }}
           onBlur={(e) => {
             e.currentTarget.style.borderColor = "rgba(255,255,255,0.12)";
@@ -247,8 +244,8 @@ export function MetaReasoningWidget() {
           disabled={!query.trim() || phase === "analyzing"}
           style={{
             background: !query.trim() || phase === "analyzing" ? "transparent" : TEAL_DIM,
-            borderColor: !query.trim() || phase === "analyzing" ? "rgba(255,255,255,0.08)" : "rgba(45,212,191,0.35)",
-            color: !query.trim() || phase === "analyzing" ? "#a1a1aa" : TEAL,
+            borderColor: !query.trim() || phase === "analyzing" ? "rgba(255,255,255,0.08)" : "rgba(125,148,171,0.35)",
+            color: !query.trim() || phase === "analyzing" ? "var(--fg-2)" : TEAL,
             cursor: !query.trim() || phase === "analyzing" ? "not-allowed" : "pointer",
             paddingLeft: "1rem",
             paddingRight: "1rem",
@@ -271,7 +268,7 @@ export function MetaReasoningWidget() {
             className="btn-mono"
             onClick={() => handleExample(ex)}
             style={{
-              fontSize: "0.72rem",
+              fontSize: "12px",
               padding: "0.25rem 0.6rem",
             }}
           >
@@ -309,21 +306,21 @@ export function MetaReasoningWidget() {
                   viewBox="0 0 16 16"
                   style={{ animation: "spin 1s linear infinite", flexShrink: 0 }}
                 >
-                  <circle cx="8" cy="8" r="6" stroke="rgba(45,212,191,0.3)" strokeWidth="2" fill="none" />
+                  <circle cx="8" cy="8" r="6" stroke="rgba(125,148,171,0.3)" strokeWidth="2" fill="none" />
                   <path d="M8 2 A6 6 0 0 1 14 8" stroke={TEAL} strokeWidth="2" fill="none" strokeLinecap="round" />
                 </svg>
               )
             ) : analysisStep >= 2 ? (
               mounted && (
                 <svg width="16" height="16" viewBox="0 0 16 16" style={{ flexShrink: 0 }}>
-                  <circle cx="8" cy="8" r="6" stroke={TEAL} strokeWidth="1.5" fill="rgba(45,212,191,0.1)" />
+                  <circle cx="8" cy="8" r="6" stroke={TEAL} strokeWidth="1.5" fill="rgba(125,148,171,0.1)" />
                   <path d="M5 8 L7 10 L11 6" stroke={TEAL} strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
               )
             ) : (
               <div style={{ width: 16, height: 16, flexShrink: 0 }} />
             )}
-            <span style={{ fontFamily: MONO, fontSize: "0.78rem", color: analysisStep >= 2 ? TEAL : "#a1a1aa" }}>
+            <span style={{ fontFamily: MONO, fontSize: "12px", color: analysisStep >= 2 ? TEAL : "var(--fg-2)" }}>
               Query analyzed
             </span>
           </div>
@@ -346,24 +343,24 @@ export function MetaReasoningWidget() {
                   viewBox="0 0 16 16"
                   style={{ animation: "spin 1s linear infinite", flexShrink: 0 }}
                 >
-                  <circle cx="8" cy="8" r="6" stroke="rgba(45,212,191,0.3)" strokeWidth="2" fill="none" />
+                  <circle cx="8" cy="8" r="6" stroke="rgba(125,148,171,0.3)" strokeWidth="2" fill="none" />
                   <path d="M8 2 A6 6 0 0 1 14 8" stroke={TEAL} strokeWidth="2" fill="none" strokeLinecap="round" />
                 </svg>
               )
             ) : analysisStep >= 3 ? (
               mounted && (
                 <svg width="16" height="16" viewBox="0 0 16 16" style={{ flexShrink: 0 }}>
-                  <circle cx="8" cy="8" r="6" stroke={TEAL} strokeWidth="1.5" fill="rgba(45,212,191,0.1)" />
+                  <circle cx="8" cy="8" r="6" stroke={TEAL} strokeWidth="1.5" fill="rgba(125,148,171,0.1)" />
                   <path d="M5 8 L7 10 L11 6" stroke={TEAL} strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
               )
             ) : (
               <div style={{ width: 16, height: 16, flexShrink: 0 }} />
             )}
-            <span style={{ fontFamily: MONO, fontSize: "0.78rem", color: analysisStep >= 3 ? TEAL : "#a1a1aa" }}>
+            <span style={{ fontFamily: MONO, fontSize: "12px", color: analysisStep >= 3 ? TEAL : "var(--fg-2)" }}>
               Category: {result ? result.category : "\u2026"}
               {result && (
-                <span style={{ color: "#a1a1aa", marginLeft: "0.5rem" }}>
+                <span style={{ color: "var(--fg-2)", marginLeft: "0.5rem" }}>
                   ({result.confidence}% confidence)
                 </span>
               )}
@@ -383,7 +380,7 @@ export function MetaReasoningWidget() {
             {analysisStep >= 3 && phase === "done" ? (
               mounted && (
                 <svg width="16" height="16" viewBox="0 0 16 16" style={{ flexShrink: 0 }}>
-                  <circle cx="8" cy="8" r="6" stroke={TEAL} strokeWidth="1.5" fill="rgba(45,212,191,0.1)" />
+                  <circle cx="8" cy="8" r="6" stroke={TEAL} strokeWidth="1.5" fill="rgba(125,148,171,0.1)" />
                   <path d="M5 8 L7 10 L11 6" stroke={TEAL} strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
               )
@@ -395,14 +392,14 @@ export function MetaReasoningWidget() {
                   viewBox="0 0 16 16"
                   style={{ animation: "spin 1s linear infinite", flexShrink: 0 }}
                 >
-                  <circle cx="8" cy="8" r="6" stroke="rgba(45,212,191,0.3)" strokeWidth="2" fill="none" />
+                  <circle cx="8" cy="8" r="6" stroke="rgba(125,148,171,0.3)" strokeWidth="2" fill="none" />
                   <path d="M8 2 A6 6 0 0 1 14 8" stroke={TEAL} strokeWidth="2" fill="none" strokeLinecap="round" />
                 </svg>
               )
             ) : (
               <div style={{ width: 16, height: 16, flexShrink: 0 }} />
             )}
-            <span style={{ fontFamily: MONO, fontSize: "0.78rem", color: phase === "done" ? TEAL : "#a1a1aa" }}>
+            <span style={{ fontFamily: MONO, fontSize: "12px", color: phase === "done" ? TEAL : "var(--fg-2)" }}>
               Strategy: {result ? result.strategy : "\u2026"}
             </span>
           </div>
@@ -413,11 +410,11 @@ export function MetaReasoningWidget() {
       {result && analysisStep >= 2 && (
         <div className="animate-fade-in" style={{ marginBottom: "1.25rem" }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "0.35rem" }}>
-            <span style={monoLabel("#a1a1aa")}>Confidence</span>
+            <span style={monoLabel("var(--fg-2)")}>Confidence</span>
             <span
               style={{
                 fontFamily: MONO,
-                fontSize: "0.85rem",
+                fontSize: "13px",
                 fontWeight: 700,
                 color: confidenceColor(result.confidence),
               }}
@@ -438,9 +435,9 @@ export function MetaReasoningWidget() {
                 width: `${result.confidence}%`,
                 height: "100%",
                 borderRadius: 4,
-                background: `linear-gradient(90deg, rgba(45,212,191,0.4), ${TEAL})`,
+                background: `linear-gradient(90deg, rgba(125,148,171,0.4), ${TEAL})`,
                 transition: "width 0.6s ease-out",
-                boxShadow: `0 0 12px rgba(45,212,191,0.3)`,
+                boxShadow: `0 0 12px rgba(125,148,171,0.3)`,
               }}
             />
           </div>
@@ -449,7 +446,7 @@ export function MetaReasoningWidget() {
 
       {/* ---- Routing table ---- */}
       <div style={{ marginBottom: "1.25rem" }}>
-        <span style={{ ...monoLabel("#a1a1aa"), display: "block", marginBottom: "0.55rem" }}>
+        <span style={{ ...monoLabel("var(--fg-2)"), display: "block", marginBottom: "0.55rem" }}>
           Routing Table
         </span>
         <div
@@ -471,7 +468,7 @@ export function MetaReasoningWidget() {
               borderRight: "1px solid rgba(255,255,255,0.08)",
             }}
           >
-            <span style={monoLabel("#a1a1aa")}>Category</span>
+            <span style={monoLabel("var(--fg-2)")}>Category</span>
           </div>
           <div
             style={{
@@ -480,7 +477,7 @@ export function MetaReasoningWidget() {
               borderBottom: "1px solid rgba(255,255,255,0.08)",
             }}
           >
-            <span style={monoLabel("#a1a1aa")}>Strategy</span>
+            <span style={monoLabel("var(--fg-2)")}>Strategy</span>
           </div>
 
           {/* Rows */}
@@ -510,8 +507,8 @@ export function MetaReasoningWidget() {
                   <span
                     style={{
                       fontFamily: MONO,
-                      fontSize: "0.78rem",
-                      color: isActive ? TEAL : "#e4e4e7",
+                      fontSize: "12px",
+                      color: isActive ? TEAL : "var(--fg)",
                       fontWeight: isActive ? 700 : 400,
                     }}
                   >
@@ -530,8 +527,8 @@ export function MetaReasoningWidget() {
                   <span
                     style={{
                       fontFamily: MONO,
-                      fontSize: "0.78rem",
-                      color: isActive ? TEAL : "#a1a1aa",
+                      fontSize: "12px",
+                      color: isActive ? TEAL : "var(--fg-2)",
                       fontWeight: isActive ? 700 : 400,
                     }}
                   >
@@ -550,12 +547,12 @@ export function MetaReasoningWidget() {
           className="animate-fade-in"
           style={{
             background: TEAL_DIM,
-            border: `1px solid rgba(45,212,191,0.3)`,
+            border: `1px solid rgba(125,148,171,0.3)`,
             borderLeftWidth: 3,
             borderLeftColor: TEAL,
             borderRadius: 8,
             padding: "0.85rem 1rem",
-            boxShadow: `0 0 24px rgba(45,212,191,0.08)`,
+            boxShadow: `0 0 24px rgba(125,148,171,0.08)`,
           }}
         >
           <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.4rem" }}>
@@ -565,7 +562,7 @@ export function MetaReasoningWidget() {
                   d="M8 1 L10 5.5 L15 6 L11.5 9.5 L12.5 14.5 L8 12 L3.5 14.5 L4.5 9.5 L1 6 L6 5.5 Z"
                   stroke={TEAL}
                   strokeWidth="1"
-                  fill="rgba(45,212,191,0.15)"
+                  fill="rgba(125,148,171,0.15)"
                   strokeLinejoin="round"
                 />
               </svg>
@@ -573,11 +570,9 @@ export function MetaReasoningWidget() {
             <span
               style={{
                 fontFamily: MONO,
-                fontSize: "0.72rem",
+                fontSize: "12px",
                 color: TEAL,
                 fontWeight: 700,
-                textTransform: "uppercase",
-                letterSpacing: "0.08em",
               }}
             >
               Selected Strategy
@@ -586,9 +581,9 @@ export function MetaReasoningWidget() {
           <p
             style={{
               fontFamily: MONO,
-              fontSize: "0.95rem",
+              fontSize: "14px",
               fontWeight: 700,
-              color: "#e4e4e7",
+              color: "var(--fg)",
               margin: "0 0 0.35rem",
             }}
           >
@@ -596,9 +591,9 @@ export function MetaReasoningWidget() {
           </p>
           <p
             style={{
-              color: "#b4b4bc",
+              color: "var(--fg-2)",
               margin: 0,
-              fontSize: "0.82rem",
+              fontSize: "13px",
               lineHeight: 1.7,
             }}
           >
@@ -610,17 +605,13 @@ export function MetaReasoningWidget() {
       {/* ---- Idle placeholder ---- */}
       {phase === "idle" && (
         <div
-          className="rounded-lg flex items-center justify-center"
-          style={{
-            height: 80,
-            border: "1px dashed rgba(255,255,255,0.1)",
-            color: "#a1a1aa",
-            fontFamily: MONO,
-            fontSize: "0.78rem",
-            marginTop: "0.25rem",
-          }}
+          className="flex items-baseline gap-3 border-t py-3"
+          style={{ borderColor: "var(--line)" }}
         >
-          Type a query or pick an example to classify
+          <span className="seq w-6 shrink-0">&mdash;</span>
+          <span style={{ fontFamily: MONO, fontSize: "12px", color: "var(--fg-3)" }}>
+            Type a query or pick an example to classify
+          </span>
         </div>
       )}
 

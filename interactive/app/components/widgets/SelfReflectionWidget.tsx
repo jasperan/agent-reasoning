@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback, useRef, useEffect } from "react";
+import { FlowCycle } from "./FlowCycle";
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                              */
@@ -154,18 +155,18 @@ function phaseBadgeColor(type: Phase["type"]): {
 } {
   switch (type) {
     case "draft":
-      return { bg: "rgba(59,130,246,0.15)", text: "#60a5fa", label: "DRAFT" };
+      return { bg: "rgba(125,148,171,0.15)", text: "var(--accent-2)", label: "Draft" };
     case "critique":
       return {
-        bg: "rgba(249,115,22,0.15)",
-        text: "#fb923c",
-        label: "CRITIQUE",
+        bg: "rgba(224,162,83,0.15)",
+        text: "var(--accent)",
+        label: "Critique",
       };
     case "improvement":
       return {
-        bg: "rgba(74,222,128,0.15)",
-        text: "#4ade80",
-        label: "IMPROVEMENT",
+        bg: "rgba(76,195,138,0.15)",
+        text: "var(--positive)",
+        label: "Improve",
       };
   }
 }
@@ -173,25 +174,25 @@ function phaseBadgeColor(type: Phase["type"]): {
 function statusBadge(status: Iteration["status"]) {
   if (status === "correct") {
     return {
-      bg: "rgba(74,222,128,0.12)",
-      border: "rgba(74,222,128,0.3)",
-      text: "#4ade80",
-      label: "CORRECT",
+      bg: "rgba(76,195,138,0.12)",
+      border: "rgba(76,195,138,0.3)",
+      text: "var(--positive)",
+      label: "Correct",
     };
   }
   if (status === "needs_improvement") {
     return {
-      bg: "rgba(239,68,68,0.12)",
-      border: "rgba(239,68,68,0.3)",
-      text: "#f87171",
-      label: "NEEDS IMPROVEMENT",
+      bg: "rgba(229,72,77,0.12)",
+      border: "rgba(229,72,77,0.3)",
+      text: "var(--negative)",
+      label: "Needs improvement",
     };
   }
   return {
     bg: "transparent",
     border: "rgba(255,255,255,0.08)",
-    text: "#a1a1aa",
-    label: "PENDING",
+    text: "var(--fg-2)",
+    label: "Pending",
   };
 }
 
@@ -211,116 +212,6 @@ function wordDiff(
 /* ------------------------------------------------------------------ */
 /*  Sub-components                                                     */
 /* ------------------------------------------------------------------ */
-
-/** Circular flow diagram: Draft -> Critique -> Improve */
-function FlowDiagram({ activeStage }: { activeStage: string | null }) {
-  const stages = [
-    { id: "draft", label: "Draft", color: "#60a5fa" },
-    { id: "critique", label: "Critique", color: "#fb923c" },
-    { id: "improvement", label: "Improve", color: "#4ade80" },
-  ];
-
-  // We lay three nodes on a circle with arrows between them
-  const r = 52;
-  const cx = 80;
-  const cy = 68;
-  const positions = stages.map((_, i) => {
-    const angle = (i * 2 * Math.PI) / 3 - Math.PI / 2;
-    return { x: cx + r * Math.cos(angle), y: cy + r * Math.sin(angle) };
-  });
-
-  return (
-    <svg
-      viewBox="0 0 160 140"
-      style={{ width: 200, height: 175, display: "block", margin: "0 auto" }}
-    >
-      <defs>
-        <marker
-          id="arrowSR"
-          viewBox="0 0 10 10"
-          refX="9"
-          refY="5"
-          markerWidth="6"
-          markerHeight="6"
-          orient="auto-start-reverse"
-        >
-          <path d="M 0 0 L 10 5 L 0 10 z" fill="#a1a1aa" />
-        </marker>
-      </defs>
-
-      {/* Arrows */}
-      {positions.map((from, i) => {
-        const to = positions[(i + 1) % 3];
-        const dx = to.x - from.x;
-        const dy = to.y - from.y;
-        const len = Math.sqrt(dx * dx + dy * dy);
-        const offsetFrom = 22;
-        const offsetTo = 22;
-        const x1 = from.x + (dx / len) * offsetFrom;
-        const y1 = from.y + (dy / len) * offsetFrom;
-        const x2 = to.x - (dx / len) * offsetTo;
-        const y2 = to.y - (dy / len) * offsetTo;
-        return (
-          <line
-            key={`arrow-${i}`}
-            x1={x1}
-            y1={y1}
-            x2={x2}
-            y2={y2}
-            stroke="#a1a1aa"
-            strokeWidth={1}
-            markerEnd="url(#arrowSR)"
-            opacity={0.5}
-          />
-        );
-      })}
-
-      {/* Nodes */}
-      {stages.map((s, i) => {
-        const pos = positions[i];
-        const isActive = activeStage === s.id;
-        return (
-          <g key={s.id}>
-            <circle
-              cx={pos.x}
-              cy={pos.y}
-              r={20}
-              fill={isActive ? s.color + "22" : "rgba(255,255,255,0.03)"}
-              stroke={isActive ? s.color : "rgba(255,255,255,0.12)"}
-              strokeWidth={isActive ? 2 : 1}
-            />
-            <text
-              x={pos.x}
-              y={pos.y + 1}
-              textAnchor="middle"
-              dominantBaseline="middle"
-              fill={isActive ? s.color : "#a1a1aa"}
-              fontSize={9}
-              fontFamily="var(--font-mono), monospace"
-              fontWeight={isActive ? 600 : 400}
-            >
-              {s.label}
-            </text>
-          </g>
-        );
-      })}
-
-      {/* "repeat" label in center */}
-      <text
-        x={cx}
-        y={cy}
-        textAnchor="middle"
-        dominantBaseline="middle"
-        fill="#a1a1aa"
-        fontSize={7}
-        fontFamily="var(--font-mono), monospace"
-        opacity={0.5}
-      >
-        repeat
-      </text>
-    </svg>
-  );
-}
 
 /** Phase card inside an iteration */
 function PhaseCard({
@@ -346,7 +237,7 @@ function PhaseCard({
       style={{
         animationDelay: `${delay}ms`,
         background: isCritique
-          ? "rgba(249,115,22,0.04)"
+          ? "rgba(224,162,83,0.04)"
           : "rgba(255,255,255,0.02)",
         border: "1px solid rgba(255,255,255,0.06)",
         borderRadius: 8,
@@ -354,19 +245,14 @@ function PhaseCard({
         marginBottom: "0.5rem",
       }}
     >
-      {/* Badge */}
+      {/* Stage */}
       <span
         style={{
-          display: "inline-block",
-          fontSize: "0.6rem",
+          display: "block",
+          fontSize: "11px",
           fontFamily: "var(--font-mono), monospace",
-          fontWeight: 600,
-          letterSpacing: "0.08em",
-          background: badge.bg,
           color: badge.text,
-          padding: "2px 8px",
-          borderRadius: 999,
-          marginBottom: 8,
+          marginBottom: 6,
         }}
       >
         {badge.label}
@@ -378,9 +264,9 @@ function PhaseCard({
           fontFamily: isCritique
             ? "var(--font-mono), monospace"
             : "var(--font-sans), system-ui, sans-serif",
-          fontSize: isCritique ? "0.78rem" : "0.85rem",
+          fontSize: "13px",
           lineHeight: 1.7,
-          color: isCritique ? "#d4a574" : "#e4e4e7",
+          color: isCritique ? "var(--fg-2)" : "var(--fg)",
           whiteSpace: "pre-wrap",
         }}
       >
@@ -389,11 +275,11 @@ function PhaseCard({
               <span
                 key={i}
                 style={{
-                  color: t.changed ? "#4ade80" : "#e4e4e7",
+                  color: t.changed ? "var(--accent)" : "var(--fg)",
                   textDecoration: t.changed ? "none" : "none",
                   fontWeight: t.changed ? 600 : 400,
                   background: t.changed
-                    ? "rgba(74,222,128,0.08)"
+                    ? "rgba(224,162,83,0.12)"
                     : "transparent",
                   borderRadius: t.changed ? 2 : 0,
                   padding: t.changed ? "0 2px" : 0,
@@ -444,9 +330,9 @@ function IterationCard({
         <span
           style={{
             fontFamily: "var(--font-mono), monospace",
-            fontSize: "0.75rem",
+            fontSize: "12px",
             fontWeight: 600,
-            color: "#e4e4e7",
+            color: "var(--fg)",
           }}
         >
           Iteration {iteration.number}
@@ -455,16 +341,9 @@ function IterationCard({
         {iteration.status !== "pending" && (
           <span
             style={{
-              display: "inline-block",
-              fontSize: "0.6rem",
+              fontSize: "11px",
               fontFamily: "var(--font-mono), monospace",
-              fontWeight: 600,
-              letterSpacing: "0.06em",
-              background: sBadge.bg,
-              border: `1px solid ${sBadge.border}`,
               color: sBadge.text,
-              padding: "2px 8px",
-              borderRadius: 999,
             }}
           >
             {sBadge.label}
@@ -495,7 +374,7 @@ function IterationArrow() {
         display: "flex",
         justifyContent: "center",
         padding: "0.5rem 0",
-        color: "#a1a1aa",
+        color: "var(--fg-2)",
         opacity: 0.5,
       }}
     >
@@ -609,11 +488,8 @@ export function SelfReflectionWidget() {
 
   if (!mounted) {
     return (
-      <div className="widget-container s4">
-        <div className="widget-label">
-          Interactive &middot; Self-Reflection (Reflexion)
-        </div>
-        <div style={{ minHeight: 300 }} />
+      <div className="widget-shell">
+        <div style={{ minHeight: 160 }} />
       </div>
     );
   }
@@ -629,16 +505,13 @@ export function SelfReflectionWidget() {
   }
 
   return (
-    <div className="widget-container s4">
-      <div className="widget-label">
-        Interactive &middot; Self-Reflection (Reflexion)
-      </div>
+    <div className="widget-shell">
 
       {/* Task prompt */}
       <div
         style={{
-          background: "rgba(167,139,250,0.06)",
-          border: "1px solid rgba(167,139,250,0.15)",
+          background: "rgba(125,148,171,0.06)",
+          border: "1px solid rgba(125,148,171,0.15)",
           borderRadius: 8,
           padding: "0.75rem 1rem",
           marginBottom: "1.25rem",
@@ -649,12 +522,10 @@ export function SelfReflectionWidget() {
       >
         <span
           style={{
-            fontSize: "0.65rem",
+            fontSize: "11px",
             fontFamily: "var(--font-mono), monospace",
             fontWeight: 600,
-            color: "#a78bfa",
-            textTransform: "uppercase",
-            letterSpacing: "0.08em",
+            color: "var(--accent-2)",
             whiteSpace: "nowrap",
           }}
         >
@@ -662,8 +533,8 @@ export function SelfReflectionWidget() {
         </span>
         <span
           style={{
-            fontSize: "0.9rem",
-            color: "#e4e4e7",
+            fontSize: "14px",
+            color: "var(--fg)",
             lineHeight: 1.5,
           }}
         >
@@ -671,74 +542,55 @@ export function SelfReflectionWidget() {
         </span>
       </div>
 
-      {/* Flow Diagram + Controls row */}
+      {/* Loop diagram + controls */}
+      <div className="mb-4 flex items-baseline justify-between">
+        <span className="field-label mb-0">Draft, critique, improve</span>
+        <span className="seq">
+          turn {currentTurn}/{MAX_TURNS}
+        </span>
+      </div>
       <div
         style={{
           display: "flex",
           flexWrap: "wrap",
           alignItems: "center",
-          gap: "1rem",
-          marginBottom: "1.25rem",
+          gap: 24,
+          marginBottom: 24,
         }}
       >
-        <FlowDiagram activeStage={activeFlowStage} />
+        <FlowCycle
+          markerId="arrowSR"
+          activeStage={activeFlowStage}
+          note="repeat until correct"
+          stages={[
+            { id: "draft", label: "Draft" },
+            { id: "critique", label: "Critique" },
+            { id: "improve", label: "Improve" },
+          ]}
+        />
 
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            gap: "0.75rem",
-            flex: 1,
-            minWidth: 200,
-          }}
-        >
-          {/* Turn counter */}
-          <div
-            style={{
-              fontFamily: "var(--font-mono), monospace",
-              fontSize: "0.75rem",
-              color: "#a1a1aa",
-            }}
-          >
-            Turn{" "}
-            <span style={{ color: "#e4e4e7", fontWeight: 600 }}>
-              {currentTurn}
-            </span>
-            /{MAX_TURNS}
-          </div>
-
-          {/* Run button */}
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
           <button
             className="btn-mono"
             onClick={runReflection}
             disabled={running}
             style={{
-              opacity: running ? 0.5 : 1,
-              cursor: running ? "not-allowed" : "pointer",
-              borderColor: running
-                ? "rgba(255,255,255,0.08)"
-                : "rgba(167,139,250,0.3)",
-              color: running ? "#a1a1aa" : "#c4b5fd",
-              maxWidth: 180,
+              borderColor: running ? "var(--line)" : "var(--accent)",
+              color: running ? "var(--fg-3)" : "var(--accent)",
             }}
           >
-            {running ? "Reflecting..." : "Run Reflection"}
+            {running ? "Reflecting\u2026" : "Run reflection"}
           </button>
-
-          {/* Prompt switcher */}
-          <div style={{ display: "flex", flexWrap: "wrap", gap: "0.4rem" }}>
-            {PROMPTS.map((p, i) => (
-              <button
-                key={i}
-                className={`btn-mono${i === promptIndex ? " active" : ""}`}
-                onClick={() => handlePromptSwitch(i)}
-                style={{ fontSize: "0.68rem" }}
-                disabled={running}
-              >
-                Prompt {i + 1}
-              </button>
-            ))}
-          </div>
+          {PROMPTS.map((p, i) => (
+            <button
+              key={i}
+              className={`btn-mono${i === promptIndex ? " active" : ""}`}
+              onClick={() => handlePromptSwitch(i)}
+              disabled={running}
+            >
+              Prompt {i + 1}
+            </button>
+          ))}
         </div>
       </div>
 
@@ -749,9 +601,9 @@ export function SelfReflectionWidget() {
             style={{
               textAlign: "center",
               padding: "2rem 1rem",
-              color: "#a1a1aa",
+              color: "var(--fg-2)",
               fontFamily: "var(--font-mono), monospace",
-              fontSize: "0.78rem",
+              fontSize: "12px",
               opacity: 0.6,
             }}
           >
@@ -781,12 +633,12 @@ export function SelfReflectionWidget() {
             style={{
               marginTop: "1rem",
               padding: "0.75rem 1rem",
-              background: "rgba(74,222,128,0.04)",
-              border: "1px solid rgba(74,222,128,0.12)",
+              background: "transparent",
+              border: "1px solid var(--line)",
               borderRadius: 8,
               fontFamily: "var(--font-mono), monospace",
-              fontSize: "0.75rem",
-              color: "#4ade80",
+              fontSize: "12px",
+              color: "var(--fg-2)",
               textAlign: "center",
             }}
           >

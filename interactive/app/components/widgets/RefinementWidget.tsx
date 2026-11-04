@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback, useRef, useEffect } from "react";
+import { FlowCycle } from "./FlowCycle";
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                              */
@@ -59,56 +60,34 @@ const TASK = "Explain quantum entanglement to a 10-year-old";
 /*  Helpers                                                            */
 /* ------------------------------------------------------------------ */
 
-/** Return a CSS color along the red-yellow-green gradient for 0..1 */
-function scoreColor(score: number): string {
-  if (score < 0.5) {
-    // red to yellow
-    const t = score / 0.5;
-    const r = 239;
-    const g = Math.round(68 + (190 - 68) * t);
-    const b = Math.round(68 * (1 - t));
-    return `rgb(${r},${g},${b})`;
-  }
-  // yellow to green
-  const t = (score - 0.5) / 0.5;
-  const r = Math.round(239 - (239 - 74) * t);
-  const g = Math.round(190 + (222 - 190) * t);
-  const b = Math.round(0 + 128 * t);
-  return `rgb(${r},${g},${b})`;
-}
-
-function scoreGradient(score: number): string {
-  const endColor = scoreColor(score);
-  return `linear-gradient(90deg, ${scoreColor(0)}, ${endColor})`;
+/** A score is a number, not a colour: only a passing score takes the accent. */
+function scoreColor(score: number, threshold: number): string {
+  return score >= threshold ? "var(--accent)" : "var(--fg-3)";
 }
 
 function roleBadge(role: IterationData["role"]): {
   bg: string;
   text: string;
   label: string;
-  icon: string;
 } {
   switch (role) {
     case "generator":
       return {
-        bg: "rgba(59,130,246,0.15)",
-        text: "#60a5fa",
-        label: "GENERATOR",
-        icon: "\u270D",
+        bg: "transparent",
+        text: "var(--accent-2)",
+        label: "Generator",
       };
     case "critic":
       return {
-        bg: "rgba(249,115,22,0.15)",
-        text: "#fb923c",
-        label: "CRITIC",
-        icon: "\uD83D\uDD0D",
+        bg: "transparent",
+        text: "var(--accent)",
+        label: "Critic",
       };
     case "refiner":
       return {
-        bg: "rgba(74,222,128,0.15)",
-        text: "#4ade80",
-        label: "REFINER",
-        icon: "\u2728",
+        bg: "transparent",
+        text: "var(--fg-2)",
+        label: "Refiner",
       };
   }
 }
@@ -135,14 +114,12 @@ function RoleBadges() {
               border: `1px solid ${b.text}33`,
               borderRadius: 999,
               padding: "0.25rem 0.7rem",
-              fontSize: "0.68rem",
+              fontSize: "11px",
               fontFamily: "var(--font-mono), monospace",
               fontWeight: 600,
               color: b.text,
-              letterSpacing: "0.05em",
             }}
           >
-            <span style={{ fontSize: "0.8rem" }}>{b.icon}</span>
             {b.label}
           </div>
         );
@@ -161,10 +138,10 @@ function Sparkline({
 }) {
   if (scores.length === 0) return null;
 
-  const w = 160;
-  const h = 48;
-  const padX = 12;
-  const padY = 6;
+  const w = 320;
+  const h = 96;
+  const padX = 24;
+  const padY = 20;
   const innerW = w - padX * 2;
   const innerH = h - padY * 2;
 
@@ -187,16 +164,26 @@ function Sparkline({
         y1={thresholdY}
         x2={w - padX}
         y2={thresholdY}
-        stroke="#f472b6"
+        stroke="var(--accent)"
         strokeWidth={1}
         strokeDasharray="4 3"
-        opacity={0.7}
+        opacity={0.6}
       />
+      <text
+        x={w - padX}
+        y={thresholdY - 5}
+        textAnchor="end"
+        fill="var(--accent)"
+        fontSize={11}
+        fontFamily="var(--font-mono), monospace"
+      >
+        threshold {threshold.toFixed(2)}
+      </text>
 
       {/* Score line */}
       <polyline
         fill="none"
-        stroke="#e4e4e7"
+        stroke="var(--fg-2)"
         strokeWidth={1.5}
         points={polyline}
         strokeLinejoin="round"
@@ -209,9 +196,7 @@ function Sparkline({
           cx={p.x}
           cy={p.y}
           r={3}
-          fill={scoreColor(scores[i])}
-          stroke="rgba(0,0,0,0.5)"
-          strokeWidth={0.5}
+          fill={scoreColor(scores[i], threshold)}
         />
       ))}
 
@@ -222,8 +207,8 @@ function Sparkline({
           x={p.x}
           y={p.y - 7}
           textAnchor="middle"
-          fill={scoreColor(scores[i])}
-          fontSize={7}
+          fill="var(--fg-2)"
+          fontSize={11}
           fontFamily="var(--font-mono), monospace"
           fontWeight={600}
         >
@@ -242,7 +227,7 @@ function IterationArrow() {
         display: "flex",
         justifyContent: "center",
         padding: "0.35rem 0",
-        color: "#a1a1aa",
+        color: "var(--fg-2)",
         opacity: 0.5,
       }}
     >
@@ -286,16 +271,16 @@ function IterationCard({
       style={{
         animationDelay: `${animDelay}ms`,
         background: meetsThreshold
-          ? "rgba(74,222,128,0.04)"
+          ? "rgba(76,195,138,0.04)"
           : "rgba(255,255,255,0.015)",
         border: meetsThreshold
-          ? "1px solid rgba(74,222,128,0.25)"
+          ? "1px solid rgba(76,195,138,0.25)"
           : "1px solid rgba(255,255,255,0.06)",
         borderRadius: 10,
         padding: "1rem",
         position: "relative",
         boxShadow: meetsThreshold
-          ? "0 0 20px rgba(74,222,128,0.1), inset 0 0 20px rgba(74,222,128,0.03)"
+          ? "0 0 20px rgba(76,195,138,0.1), inset 0 0 20px rgba(76,195,138,0.03)"
           : "none",
         transition: "border-color 0.3s, box-shadow 0.3s, background 0.3s",
       }}
@@ -315,29 +300,20 @@ function IterationCard({
           <span
             style={{
               fontFamily: "var(--font-mono), monospace",
-              fontSize: "0.75rem",
+              fontSize: "12px",
               fontWeight: 600,
-              color: "#e4e4e7",
+              color: "var(--fg)",
             }}
           >
             Iteration {iteration.number}
           </span>
           <span
             style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: "0.25rem",
-              fontSize: "0.6rem",
+              fontSize: "11px",
               fontFamily: "var(--font-mono), monospace",
-              fontWeight: 600,
-              letterSpacing: "0.06em",
-              background: badge.bg,
               color: badge.text,
-              padding: "2px 8px",
-              borderRadius: 999,
             }}
           >
-            <span style={{ fontSize: "0.7rem" }}>{badge.icon}</span>
             {badge.label}
           </span>
         </div>
@@ -346,9 +322,9 @@ function IterationCard({
         <span
           style={{
             fontFamily: "var(--font-mono), monospace",
-            fontSize: "0.8rem",
+            fontSize: "13px",
             fontWeight: 700,
-            color: scoreColor(iteration.score),
+            color: iteration.score >= threshold ? "var(--accent)" : "var(--fg-2)",
           }}
         >
           {iteration.score.toFixed(2)}
@@ -363,9 +339,9 @@ function IterationCard({
           borderRadius: 8,
           padding: "0.7rem 0.85rem",
           marginBottom: "0.65rem",
-          fontSize: "0.83rem",
+          fontSize: "13px",
           lineHeight: 1.7,
-          color: "#e4e4e7",
+          color: "var(--fg)",
         }}
       >
         {iteration.draft}
@@ -376,9 +352,9 @@ function IterationCard({
         <div
           style={{
             position: "relative",
-            height: 10,
+            height: 4,
             background: "rgba(255,255,255,0.06)",
-            borderRadius: 5,
+            borderRadius: 2,
             overflow: "visible",
           }}
         >
@@ -390,20 +366,21 @@ function IterationCard({
               left: 0,
               height: "100%",
               width: `${barWidth}%`,
-              background: scoreGradient(iteration.score),
-              borderRadius: 5,
-              transition: "width 0.6s ease-out",
+              background:
+                iteration.score >= threshold ? "var(--accent)" : "var(--fg-3)",
+              borderRadius: 2,
+              transition: "width 400ms var(--ease)",
             }}
           />
           {/* Threshold marker */}
           <div
             style={{
               position: "absolute",
-              top: -3,
+              top: -4,
               left: `${Math.round(threshold * 100)}%`,
               width: 0,
-              height: 16,
-              borderLeft: "2px dashed #f472b6",
+              height: 12,
+              borderLeft: "1px dashed var(--accent)",
               transform: "translateX(-1px)",
               opacity: 0.8,
             }}
@@ -414,13 +391,13 @@ function IterationCard({
             display: "flex",
             justifyContent: "space-between",
             marginTop: 4,
-            fontSize: "0.6rem",
+            fontSize: "11px",
             fontFamily: "var(--font-mono), monospace",
-            color: "#a1a1aa",
+            color: "var(--fg-2)",
           }}
         >
           <span>0.0</span>
-          <span style={{ color: "#f472b6", opacity: 0.8 }}>
+          <span style={{ color: "var(--accent-2)", opacity: 0.8 }}>
             threshold: {threshold.toFixed(2)}
           </span>
           <span>1.0</span>
@@ -430,10 +407,8 @@ function IterationCard({
       {/* Critic feedback */}
       <div
         style={{
-          background: "rgba(249,115,22,0.04)",
-          border: "1px solid rgba(249,115,22,0.1)",
-          borderRadius: 8,
-          padding: "0.6rem 0.85rem",
+          borderTop: "1px solid var(--line)",
+          paddingTop: 10,
         }}
       >
         <div
@@ -446,29 +421,20 @@ function IterationCard({
         >
           <span
             style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: "0.2rem",
-              fontSize: "0.58rem",
+              fontSize: "11px",
               fontFamily: "var(--font-mono), monospace",
-              fontWeight: 600,
-              letterSpacing: "0.06em",
-              background: criticBadge.bg,
               color: criticBadge.text,
-              padding: "2px 6px",
-              borderRadius: 999,
             }}
           >
-            <span style={{ fontSize: "0.65rem" }}>{criticBadge.icon}</span>
-            FEEDBACK
+            Critique
           </span>
         </div>
         <div
           style={{
             fontFamily: "var(--font-mono), monospace",
-            fontSize: "0.76rem",
+            fontSize: "12px",
             lineHeight: 1.6,
-            color: "#d4a574",
+            color: "var(--fg-2)",
           }}
         >
           {iteration.feedback}
@@ -482,18 +448,13 @@ function IterationCard({
             position: "absolute",
             top: 8,
             right: 8,
-            fontSize: "0.58rem",
+            fontSize: "11px",
             fontFamily: "var(--font-mono), monospace",
             fontWeight: 700,
-            letterSpacing: "0.08em",
-            background: "rgba(74,222,128,0.12)",
-            border: "1px solid rgba(74,222,128,0.3)",
-            color: "#4ade80",
-            padding: "2px 8px",
-            borderRadius: 999,
+            color: "var(--accent)",
           }}
         >
-          PASSED
+          Passed
         </div>
       )}
     </div>
@@ -503,114 +464,6 @@ function IterationCard({
 /* ------------------------------------------------------------------ */
 /*  Flow Diagram: Generator -> Critic -> Refiner                       */
 /* ------------------------------------------------------------------ */
-
-function FlowDiagram({ activeStage }: { activeStage: string | null }) {
-  const stages = [
-    { id: "generator", label: "Generator", color: "#60a5fa", icon: "\u270D" },
-    { id: "critic", label: "Critic", color: "#fb923c", icon: "\uD83D\uDD0D" },
-    { id: "refiner", label: "Refiner", color: "#4ade80", icon: "\u2728" },
-  ];
-
-  const r = 52;
-  const cx = 80;
-  const cy = 68;
-  const positions = stages.map((_, i) => {
-    const angle = (i * 2 * Math.PI) / 3 - Math.PI / 2;
-    return { x: cx + r * Math.cos(angle), y: cy + r * Math.sin(angle) };
-  });
-
-  return (
-    <svg
-      viewBox="0 0 160 140"
-      style={{ width: 200, height: 175, display: "block", flexShrink: 0 }}
-    >
-      <defs>
-        <marker
-          id="arrowRW"
-          viewBox="0 0 10 10"
-          refX="9"
-          refY="5"
-          markerWidth="6"
-          markerHeight="6"
-          orient="auto-start-reverse"
-        >
-          <path d="M 0 0 L 10 5 L 0 10 z" fill="#a1a1aa" />
-        </marker>
-      </defs>
-
-      {/* Arrows */}
-      {positions.map((from, i) => {
-        const to = positions[(i + 1) % 3];
-        const dx = to.x - from.x;
-        const dy = to.y - from.y;
-        const len = Math.sqrt(dx * dx + dy * dy);
-        const offsetFrom = 22;
-        const offsetTo = 22;
-        const x1 = from.x + (dx / len) * offsetFrom;
-        const y1 = from.y + (dy / len) * offsetFrom;
-        const x2 = to.x - (dx / len) * offsetTo;
-        const y2 = to.y - (dy / len) * offsetTo;
-        return (
-          <line
-            key={`arrow-${i}`}
-            x1={x1}
-            y1={y1}
-            x2={x2}
-            y2={y2}
-            stroke="#a1a1aa"
-            strokeWidth={1}
-            markerEnd="url(#arrowRW)"
-            opacity={0.5}
-          />
-        );
-      })}
-
-      {/* Nodes */}
-      {stages.map((s, i) => {
-        const pos = positions[i];
-        const isActive = activeStage === s.id;
-        return (
-          <g key={s.id}>
-            <circle
-              cx={pos.x}
-              cy={pos.y}
-              r={20}
-              fill={isActive ? s.color + "22" : "rgba(255,255,255,0.03)"}
-              stroke={isActive ? s.color : "rgba(255,255,255,0.12)"}
-              strokeWidth={isActive ? 2 : 1}
-            />
-            <text
-              x={pos.x}
-              y={pos.y + 1}
-              textAnchor="middle"
-              dominantBaseline="middle"
-              fill={isActive ? s.color : "#a1a1aa"}
-              fontSize={8}
-              fontFamily="var(--font-mono), monospace"
-              fontWeight={isActive ? 600 : 400}
-            >
-              {s.label}
-            </text>
-          </g>
-        );
-      })}
-
-      {/* Center label */}
-      <text
-        x={cx}
-        y={cy}
-        textAnchor="middle"
-        dominantBaseline="middle"
-        fill="#a1a1aa"
-        fontSize={7}
-        fontFamily="var(--font-mono), monospace"
-        opacity={0.5}
-      >
-        score loop
-      </text>
-    </svg>
-  );
-}
 
 /* ------------------------------------------------------------------ */
 /*  Main Widget                                                        */
@@ -707,26 +560,20 @@ export function RefinementWidget() {
 
   if (!mounted) {
     return (
-      <div className="widget-container s5">
-        <div className="widget-label">
-          Interactive &middot; Iterative Refinement Loop
-        </div>
-        <div style={{ minHeight: 300 }} />
+      <div className="widget-shell">
+        <div style={{ minHeight: 160 }} />
       </div>
     );
   }
 
   return (
-    <div className="widget-container s5">
-      <div className="widget-label">
-        Interactive &middot; Iterative Refinement Loop
-      </div>
+    <div className="widget-shell">
 
       {/* Task prompt */}
       <div
         style={{
-          background: "rgba(244,114,182,0.06)",
-          border: "1px solid rgba(244,114,182,0.15)",
+          background: "rgba(125,148,171,0.06)",
+          border: "1px solid rgba(125,148,171,0.15)",
           borderRadius: 8,
           padding: "0.75rem 1rem",
           marginBottom: "1.25rem",
@@ -737,12 +584,10 @@ export function RefinementWidget() {
       >
         <span
           style={{
-            fontSize: "0.65rem",
+            fontSize: "11px",
             fontFamily: "var(--font-mono), monospace",
             fontWeight: 600,
-            color: "#f472b6",
-            textTransform: "uppercase",
-            letterSpacing: "0.08em",
+            color: "var(--accent-2)",
             whiteSpace: "nowrap",
           }}
         >
@@ -750,8 +595,8 @@ export function RefinementWidget() {
         </span>
         <span
           style={{
-            fontSize: "0.9rem",
-            color: "#e4e4e7",
+            fontSize: "14px",
+            color: "var(--fg)",
             lineHeight: 1.5,
           }}
         >
@@ -774,15 +619,25 @@ export function RefinementWidget() {
           marginBottom: "1.25rem",
         }}
       >
-        <FlowDiagram activeStage={activeFlowStage} />
+        <FlowCycle
+          markerId="arrowRW"
+          activeStage={activeFlowStage}
+          note="until score clears the threshold"
+          stages={[
+            { id: "generator", label: "Generator" },
+            { id: "critic", label: "Critic" },
+            { id: "refiner", label: "Refiner" },
+          ]}
+        />
 
         <div
           style={{
             display: "flex",
             flexDirection: "column",
-            gap: "0.85rem",
+            gap: 16,
             flex: 1,
-            minWidth: 200,
+            minWidth: 240,
+            maxWidth: 420,
           }}
         >
           {/* Threshold slider */}
@@ -798,8 +653,8 @@ export function RefinementWidget() {
               <span
                 style={{
                   fontFamily: "var(--font-mono), monospace",
-                  fontSize: "0.72rem",
-                  color: "#a1a1aa",
+                  fontSize: "12px",
+                  color: "var(--fg-2)",
                 }}
               >
                 Score Threshold
@@ -807,9 +662,8 @@ export function RefinementWidget() {
               <span
                 style={{
                   fontFamily: "var(--font-mono), monospace",
-                  fontSize: "0.78rem",
-                  fontWeight: 700,
-                  color: "#f472b6",
+                  fontSize: "12px",
+                  color: "var(--fg)",
                 }}
               >
                 {threshold.toFixed(2)}
@@ -829,9 +683,9 @@ export function RefinementWidget() {
               style={{
                 display: "flex",
                 justifyContent: "space-between",
-                fontSize: "0.58rem",
+                fontSize: "11px",
                 fontFamily: "var(--font-mono), monospace",
-                color: "#a1a1aa",
+                color: "var(--fg-2)",
                 marginTop: 2,
               }}
             >
@@ -848,43 +702,14 @@ export function RefinementWidget() {
             style={{
               opacity: running ? 0.5 : 1,
               cursor: running ? "not-allowed" : "pointer",
-              borderColor: running
-                ? "rgba(255,255,255,0.08)"
-                : "rgba(244,114,182,0.3)",
-              color: running ? "#a1a1aa" : "#f9a8d4",
+              borderColor: running ? "var(--line)" : "var(--accent)",
+              color: running ? "var(--fg-3)" : "var(--accent)",
               maxWidth: 200,
             }}
           >
             {running ? "Refining..." : "Run Refinement"}
           </button>
 
-          {/* Score trend sparkline */}
-          {visibleScores.length > 0 && (
-            <div>
-              <span
-                style={{
-                  fontFamily: "var(--font-mono), monospace",
-                  fontSize: "0.65rem",
-                  color: "#a1a1aa",
-                  marginBottom: 4,
-                  display: "block",
-                }}
-              >
-                Score Trend
-              </span>
-              <div
-                style={{
-                  background: "rgba(255,255,255,0.02)",
-                  border: "1px solid rgba(255,255,255,0.06)",
-                  borderRadius: 8,
-                  padding: "0.4rem 0.5rem",
-                  display: "inline-block",
-                }}
-              >
-                <Sparkline scores={visibleScores} threshold={threshold} />
-              </div>
-            </div>
-          )}
         </div>
       </div>
 
@@ -895,9 +720,9 @@ export function RefinementWidget() {
             style={{
               textAlign: "center",
               padding: "2rem 1rem",
-              color: "#a1a1aa",
+              color: "var(--fg-2)",
               fontFamily: "var(--font-mono), monospace",
-              fontSize: "0.78rem",
+              fontSize: "12px",
               opacity: 0.6,
             }}
           >
@@ -918,19 +743,28 @@ export function RefinementWidget() {
         ))}
       </div>
 
+      {/* Score trend */}
+      {visibleScores.length > 0 && (
+        <div style={{ marginTop: 24 }}>
+          <span className="field-label">Score trend</span>
+          <div className="panel" style={{ display: "inline-block", padding: "8px 12px" }}>
+            <Sparkline scores={visibleScores} threshold={threshold} />
+          </div>
+        </div>
+      )}
+
       {/* Completion footer */}
       {passedIter && !running && (
         <div
           className="animate-fade-in"
           style={{
-            marginTop: "1rem",
-            padding: "0.75rem 1rem",
-            background: "rgba(74,222,128,0.04)",
-            border: "1px solid rgba(74,222,128,0.12)",
+            marginTop: 16,
+            padding: "12px 16px",
+            border: "1px solid var(--line)",
             borderRadius: 8,
             fontFamily: "var(--font-mono), monospace",
-            fontSize: "0.75rem",
-            color: "#4ade80",
+            fontSize: "12px",
+            color: "var(--fg-2)",
             textAlign: "center",
           }}
         >
@@ -951,12 +785,12 @@ export function RefinementWidget() {
             style={{
               marginTop: "1rem",
               padding: "0.75rem 1rem",
-              background: "rgba(239,68,68,0.04)",
-              border: "1px solid rgba(239,68,68,0.12)",
+              background: "rgba(229,72,77,0.04)",
+              border: "1px solid rgba(229,72,77,0.12)",
               borderRadius: 8,
               fontFamily: "var(--font-mono), monospace",
-              fontSize: "0.75rem",
-              color: "#f87171",
+              fontSize: "12px",
+              color: "var(--negative)",
               textAlign: "center",
             }}
           >

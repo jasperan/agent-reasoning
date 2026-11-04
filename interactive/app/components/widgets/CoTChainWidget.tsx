@@ -70,16 +70,11 @@ const PROBLEMS: Problem[] = [
 /* ------------------------------------------------------------------ */
 
 export function CoTChainWidget() {
-  /* --- Hydration guard -------------------------------------------- */
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => setMounted(true), []);
-
   /* --- State ------------------------------------------------------ */
   const [problemIdx, setProblemIdx] = useState(0);
-  const [visibleSteps, setVisibleSteps] = useState(0);
+  const [visibleSteps, setVisibleSteps] = useState(PROBLEMS[0].steps.length);
   const [isRunning, setIsRunning] = useState(false);
   const [autoPlay, setAutoPlay] = useState(false);
-  const [showDirect, setShowDirect] = useState(false);
 
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -98,7 +93,6 @@ export function CoTChainWidget() {
     clearTimer();
     setVisibleSteps(0);
     setIsRunning(false);
-    setShowDirect(false);
   }, [clearTimer]);
 
   const revealNext = useCallback(() => {
@@ -106,7 +100,6 @@ export function CoTChainWidget() {
       const next = prev + 1;
       if (next >= totalSteps) {
         setIsRunning(false);
-        setShowDirect(true);
         return next;
       }
       /* schedule the following step */
@@ -139,8 +132,7 @@ export function CoTChainWidget() {
       clearTimer();
       setVisibleSteps(0);
       setIsRunning(false);
-      setShowDirect(false);
-      setProblemIdx(idx);
+        setProblemIdx(idx);
     },
     [problemIdx, clearTimer],
   );
@@ -150,11 +142,9 @@ export function CoTChainWidget() {
   /* ---------------------------------------------------------------- */
 
   return (
-    <div className="widget-container s1">
-      <div className="widget-label">Interactive &middot; Chain-of-Thought Reasoning</div>
-
+    <div className="widget-shell">
       {/* ---- Problem selector ---- */}
-      <div className="flex flex-wrap items-center gap-2 mb-5">
+      <div className="mb-5 flex flex-wrap items-center gap-2">
         {PROBLEMS.map((p, i) => (
           <button
             key={p.id}
@@ -167,360 +157,105 @@ export function CoTChainWidget() {
       </div>
 
       {/* ---- Question ---- */}
-      <div
-        className="rounded-lg p-4 mb-6"
-        style={{
-          background: "rgba(255,255,255,0.03)",
-          border: "1px solid rgba(255,255,255,0.08)",
-        }}
-      >
-        <span
-          className="block mb-1"
-          style={{
-            fontFamily: "var(--font-mono), monospace",
-            fontSize: "0.7rem",
-            textTransform: "uppercase",
-            letterSpacing: "0.08em",
-            color: "#a1a1aa",
-          }}
-        >
-          Problem
-        </span>
-        <p style={{ color: "#e4e4e7", margin: 0, lineHeight: 1.7 }}>
+      <div className="panel mb-6 px-4 py-3">
+        <span className="field-label">Problem</span>
+        <p style={{ color: "var(--fg)", margin: 0, fontSize: "14px", lineHeight: 1.6 }}>
           {problem.question}
         </p>
       </div>
 
       {/* ---- Controls ---- */}
-      <div className="flex flex-wrap items-center gap-3 mb-6">
-        <button
-          className="btn-mono"
-          onClick={runCoT}
-          disabled={isRunning}
-          style={{
-            background: isRunning ? "transparent" : "rgba(249,115,22,0.12)",
-            borderColor: isRunning
-              ? "rgba(255,255,255,0.08)"
-              : "rgba(249,115,22,0.35)",
-            color: isRunning ? "#a1a1aa" : "#f97316",
-            cursor: isRunning ? "not-allowed" : "pointer",
-          }}
-        >
+      <div className="mb-6 flex flex-wrap items-center gap-2">
+        <button className="btn-mono active" onClick={runCoT} disabled={isRunning}>
           {isRunning ? "Running\u2026" : "Run CoT"}
         </button>
-
         <button className="btn-mono" onClick={reset}>
           Reset
         </button>
-
-        <label
-          className="flex items-center gap-2 select-none"
-          style={{
-            fontFamily: "var(--font-mono), monospace",
-            fontSize: "0.78rem",
-            color: "#a1a1aa",
-            cursor: "pointer",
-          }}
+        <button
+          className={`btn-mono ml-1 ${autoPlay ? "active" : ""}`}
+          aria-pressed={autoPlay}
+          onClick={() => setAutoPlay((v) => !v)}
         >
-          <span
-            role="checkbox"
-            aria-checked={autoPlay}
-            tabIndex={0}
-            onClick={() => setAutoPlay((v) => !v)}
-            onKeyDown={(e) => {
-              if (e.key === " " || e.key === "Enter") {
-                e.preventDefault();
-                setAutoPlay((v) => !v);
-              }
-            }}
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              justifyContent: "center",
-              width: 16,
-              height: 16,
-              borderRadius: 4,
-              border: `1px solid ${
-                autoPlay ? "rgba(249,115,22,0.5)" : "rgba(255,255,255,0.15)"
-              }`,
-              background: autoPlay
-                ? "rgba(249,115,22,0.15)"
-                : "transparent",
-              transition: "all 0.15s",
-            }}
-          >
-            {autoPlay && (
-              <span style={{ color: "#f97316", fontSize: 11, lineHeight: 1 }}>
-                &#10003;
-              </span>
-            )}
-          </span>
-          Auto Play
-        </label>
+          {autoPlay ? "Auto play on" : "Auto play off"}
+        </button>
       </div>
 
-      {/* ---- Main area: CoT steps + Direct answer ---- */}
-      <div className="flex flex-col lg:flex-row gap-6">
-        {/* -- CoT column -- */}
-        <div className="flex-1 min-w-0">
-          <span
-            className="block mb-3"
-            style={{
-              fontFamily: "var(--font-mono), monospace",
-              fontSize: "0.7rem",
-              textTransform: "uppercase",
-              letterSpacing: "0.08em",
-              color: "#f97316",
-              fontWeight: 600,
-            }}
-          >
-            Chain-of-Thought
-          </span>
-
-          <div className="flex flex-col gap-0">
+      {/* ---- Chain, one numbered row per step ---- */}
+      <div className="grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,1fr)_220px]">
+        <div>
+          <div className="mb-1 flex items-baseline justify-between">
+            <span className="field-label mb-0">Chain of thought</span>
+            <span className="seq">
+              {visibleSteps}/{totalSteps}
+            </span>
+          </div>
+          <ol>
             {problem.steps.map((step, i) => {
               const visible = i < visibleSteps;
               const isFinal = i === totalSteps - 1;
-
               return (
-                <div key={`${problem.id}-${i}`}>
-                  {/* Step card */}
-                  <div
-                    className={visible ? "animate-fade-in" : ""}
+                <li
+                  key={`${problem.id}-${i}`}
+                  className="flex gap-3 border-t py-3"
+                  style={{
+                    borderColor: "var(--line)",
+                    opacity: visible ? 1 : 0.3,
+                    transition: "opacity 240ms var(--ease)",
+                  }}
+                >
+                  <span className="seq w-6 shrink-0 tabular-nums">
+                    {String(i + 1).padStart(2, "0")}
+                  </span>
+                  <span
                     style={{
-                      opacity: visible ? 1 : 0,
-                      transform: visible
-                        ? "translateY(0)"
-                        : "translateY(10px)",
-                      transition: "opacity 0.45s ease-out, transform 0.45s ease-out",
-                      borderLeft: `3px solid ${
-                        isFinal && visible ? "#f97316" : "rgba(249,115,22,0.45)"
-                      }`,
-                      background:
-                        isFinal && visible
-                          ? "rgba(249,115,22,0.07)"
-                          : "rgba(255,255,255,0.03)",
-                      border:
-                        isFinal && visible
-                          ? "1px solid rgba(249,115,22,0.25)"
-                          : "1px solid rgba(255,255,255,0.08)",
-                      borderLeftWidth: 3,
-                      borderLeftColor:
-                        isFinal && visible
-                          ? "#f97316"
-                          : "rgba(249,115,22,0.45)",
-                      borderRadius: 8,
-                      padding: "0.75rem 1rem",
-                      boxShadow:
-                        isFinal && visible
-                          ? "0 0 18px rgba(249,115,22,0.15)"
-                          : "none",
+                      fontFamily: "var(--font-mono), monospace",
+                      fontSize: "13px",
+                      lineHeight: "20px",
+                      color: isFinal
+                        ? "var(--accent)"
+                        : visible
+                        ? "var(--fg-2)"
+                        : "var(--fg-4)",
                     }}
                   >
-                    <span
-                      style={{
-                        fontFamily: "var(--font-mono), monospace",
-                        fontSize: "0.68rem",
-                        textTransform: "uppercase",
-                        letterSpacing: "0.06em",
-                        color: isFinal && visible ? "#f97316" : "#a1a1aa",
-                        fontWeight: 600,
-                      }}
-                    >
-                      {step.label}
-                    </span>
-                    <p
-                      style={{
-                        color: "#e4e4e7",
-                        margin: "0.35rem 0 0",
-                        fontSize: "0.88rem",
-                        lineHeight: 1.55,
-                      }}
-                    >
-                      {step.text}
-                    </p>
-                  </div>
-
-                  {/* Arrow connector (skip after last step) */}
-                  {i < totalSteps - 1 && (
-                    <div
-                      className="flex justify-center"
-                      style={{
-                        height: 28,
-                        opacity: visible ? 1 : 0,
-                        transition: "opacity 0.3s",
-                      }}
-                    >
-                      {mounted && (
-                        <svg
-                          width="16"
-                          height="28"
-                          viewBox="0 0 16 28"
-                          fill="none"
-                          xmlns="http://www.w3.org/2000/svg"
-                        >
-                          <line
-                            x1="8"
-                            y1="0"
-                            x2="8"
-                            y2="20"
-                            stroke="rgba(249,115,22,0.35)"
-                            strokeWidth="1.5"
-                          />
-                          <path
-                            d="M4 16 L8 22 L12 16"
-                            stroke="rgba(249,115,22,0.5)"
-                            strokeWidth="1.5"
-                            fill="none"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                          />
-                        </svg>
-                      )}
-                    </div>
-                  )}
-                </div>
+                    {step.text}
+                  </span>
+                </li>
               );
             })}
-          </div>
-
-          {/* Placeholder when nothing is running */}
-          {visibleSteps === 0 && !isRunning && (
-            <div
-              className="rounded-lg flex items-center justify-center"
-              style={{
-                height: 80,
-                border: "1px dashed rgba(255,255,255,0.1)",
-                color: "#a1a1aa",
-                fontFamily: "var(--font-mono), monospace",
-                fontSize: "0.78rem",
-              }}
-            >
-              Press &ldquo;Run CoT&rdquo; to begin
-            </div>
-          )}
+          </ol>
         </div>
 
-        {/* -- Direct answer column -- */}
-        <div
-          className="lg:w-[280px] shrink-0"
-          style={{
-            opacity: showDirect ? 1 : 0.35,
-            transition: "opacity 0.5s",
-          }}
-        >
-          <span
-            className="block mb-3"
-            style={{
-              fontFamily: "var(--font-mono), monospace",
-              fontSize: "0.7rem",
-              textTransform: "uppercase",
-              letterSpacing: "0.08em",
-              color: "#a1a1aa",
-              fontWeight: 600,
-            }}
-          >
-            Direct Answer (No CoT)
-          </span>
-
-          <div
-            className={showDirect ? "animate-slide-in" : ""}
-            style={{
-              background: "rgba(255,255,255,0.03)",
-              border: `1px solid ${
-                showDirect
-                  ? problem.directCorrect
-                    ? "rgba(74,222,128,0.3)"
-                    : "rgba(244,63,94,0.3)"
-                  : "rgba(255,255,255,0.08)"
-              }`,
-              borderRadius: 8,
-              padding: "0.85rem 1rem",
-            }}
-          >
+        {/* ---- Same question, answered without the chain ---- */}
+        <div>
+          <span className="field-label">Direct answer</span>
+          <div className="panel px-3 py-3">
             <p
               style={{
                 fontFamily: "var(--font-mono), monospace",
-                fontSize: "0.85rem",
-                color: showDirect
-                  ? problem.directCorrect
-                    ? "#4ade80"
-                    : "#f43f5e"
-                  : "#a1a1aa",
+                fontSize: "13px",
+                color: "var(--fg)",
                 margin: 0,
-                lineHeight: 1.6,
+                lineHeight: "20px",
               }}
             >
-              {showDirect ? problem.directAnswer : "\u2014"}
+              {problem.directAnswer}
             </p>
-            {showDirect && (
-              <span
-                className="animate-fade-in"
-                style={{
-                  display: "inline-block",
-                  marginTop: 8,
-                  fontFamily: "var(--font-mono), monospace",
-                  fontSize: "0.68rem",
-                  textTransform: "uppercase",
-                  letterSpacing: "0.06em",
-                  color: problem.directCorrect ? "#4ade80" : "#f43f5e",
-                  fontWeight: 600,
-                }}
-              >
-                {problem.directCorrect ? "\u2713 Correct" : "\u2717 Incorrect"}
-              </span>
-            )}
-          </div>
-
-          {showDirect && (
-            <p
-              className="animate-fade-in"
+            <span
               style={{
-                marginTop: 12,
-                fontSize: "0.78rem",
-                color: "#a1a1aa",
-                lineHeight: 1.6,
+                fontFamily: "var(--font-mono), monospace",
+                fontSize: "11px",
+                color: "var(--negative)",
               }}
             >
-              Without step-by-step reasoning, the model jumps straight to an
-              answer and often makes arithmetic or logical errors.
-            </p>
-          )}
-        </div>
-      </div>
-
-      {/* ---- Progress indicator ---- */}
-      <div className="mt-6 flex items-center gap-3">
-        <span
-          style={{
-            fontFamily: "var(--font-mono), monospace",
-            fontSize: "0.7rem",
-            color: "#a1a1aa",
-          }}
-        >
-          {visibleSteps}/{totalSteps} steps
-        </span>
-        <div
-          style={{
-            flex: 1,
-            height: 4,
-            borderRadius: 2,
-            background: "rgba(255,255,255,0.06)",
-            overflow: "hidden",
-          }}
-        >
-          <div
-            style={{
-              width: `${(visibleSteps / totalSteps) * 100}%`,
-              height: "100%",
-              borderRadius: 2,
-              background:
-                visibleSteps === totalSteps
-                  ? "#f97316"
-                  : "rgba(249,115,22,0.5)",
-              transition: "width 0.35s ease-out",
-            }}
-          />
+              incorrect
+            </span>
+          </div>
+          <p style={{ marginTop: 12, fontSize: "12px", lineHeight: 1.6, color: "var(--fg-3)" }}>
+            Without step-by-step reasoning the model jumps straight to an
+            answer and drops the second box count.
+          </p>
         </div>
       </div>
     </div>

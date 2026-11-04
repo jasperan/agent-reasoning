@@ -20,19 +20,19 @@ import {
 } from "./components/widgets";
 
 const sections = [
-  { id: "cot", num: "01", title: "Chain of Thought" },
-  { id: "tot", num: "02", title: "Tree of Thoughts" },
+  { id: "cot", num: "01", title: "CoT" },
+  { id: "tot", num: "02", title: "ToT" },
   { id: "react", num: "03", title: "ReAct" },
-  { id: "reflection", num: "04", title: "Self-Reflection" },
-  { id: "consistency", num: "05", title: "Self-Consistency" },
+  { id: "reflection", num: "04", title: "Reflection" },
+  { id: "consistency", num: "05", title: "Consistency" },
   { id: "decomposed", num: "06", title: "Decomposition" },
-  { id: "ltm", num: "07", title: "Least-to-Most" },
+  { id: "ltm", num: "07", title: "Least-to-most" },
   { id: "refinement", num: "08", title: "Refinement" },
   { id: "debate", num: "09", title: "Debate" },
   { id: "mcts", num: "10", title: "MCTS" },
   { id: "analogical", num: "11", title: "Analogical" },
   { id: "socratic", num: "12", title: "Socratic" },
-  { id: "meta", num: "13", title: "Meta-Reasoning" },
+  { id: "meta", num: "13", title: "Meta" },
   { id: "benchmarks", num: "14", title: "Benchmarks" },
   { id: "architecture", num: "15", title: "Architecture" },
 ];
@@ -53,73 +53,124 @@ export default function Home() {
   return (
     <div className="min-h-screen">
       {/* ---- Nav ---- */}
-      <nav className="sticky top-0 z-50 backdrop-blur-xl bg-background/80 border-b border-border">
-        <div className="max-w-5xl mx-auto px-4 py-2 flex items-center gap-1 overflow-x-auto scrollbar-hide">
-          <a href="#top" className="nav-link font-medium text-foreground mr-2">
-            Agent<span className="text-muted-foreground font-normal">.reason</span>
+      <nav className="sticky top-0 z-50 border-b border-border bg-background/85 backdrop-blur-md">
+        <div className="mx-auto flex h-14 max-w-5xl items-center gap-6 px-6">
+          <a
+            href="#top"
+            className="shrink-0 text-[15px] font-medium tracking-tight text-foreground"
+          >
+            Agent<span className="text-muted-foreground">.reason</span>
           </a>
-          {sections.map((s) => (
-            <a key={s.id} href={`#${s.id}`} className="nav-link">
-              <span className="text-muted-foreground">{s.num}</span>
-              <span className="hidden lg:inline ml-1">{s.title}</span>
-            </a>
-          ))}
+          <div className="relative min-w-0 flex-1">
+            <div className="flex items-center gap-1 overflow-x-auto scrollbar-hide">
+              {sections.map((s) => (
+                <a key={s.id} href={`#${s.id}`} className="nav-link">
+                  <span className="text-fg-4">{s.num}</span>
+                  <span>{s.title}</span>
+                </a>
+              ))}
+            </div>
+            <div className="pointer-events-none absolute inset-y-0 right-0 w-16 bg-linear-to-l from-background to-transparent" />
+          </div>
         </div>
       </nav>
 
       {/* ---- Hero ---- */}
-      <header id="top" className="relative overflow-hidden py-24 md:py-32">
-        <div className="max-w-5xl mx-auto px-4 relative z-10">
-          <p className="font-mono text-xs text-muted-foreground mb-4">Interactive explorer</p>
-          <h1 className="text-4xl md:text-6xl font-medium tracking-tight leading-tight mb-6">
-            From Next Token to{" "}
-            <span className="text-s1">Next Thought</span>
-          </h1>
-          <p className="text-lg md:text-xl text-muted-foreground max-w-2xl leading-relaxed">
-            Fifteen interactive widgets exploring <strong>16 reasoning strategies</strong> that
-            transform standard LLMs into problem-solving agents. Chain of Thought, Tree of Thoughts,
-            Self-Reflection, Adversarial Debate, Monte Carlo Tree Search, and more.
-          </p>
-          <p className="text-sm text-muted-foreground mt-4 font-mono">
-            Every concept below is interactive. Click buttons, drag sliders, explore reasoning architectures.
-          </p>
+      <header id="top" className="border-b border-border">
+        <div className="mx-auto grid max-w-5xl grid-cols-1 items-center gap-12 px-6 py-16 md:grid-cols-[minmax(0,1fr)_380px] md:gap-16 md:py-24">
+          <div>
+            <p className="mb-6 font-mono text-xs text-fg-3">Interactive explorer</p>
+            <h1 className="mb-6 text-4xl font-medium leading-[1.05] tracking-[-0.02em] text-foreground md:text-[56px]">
+              From next token
+              <br />
+              to next thought
+            </h1>
+            <p className="max-w-lg text-lg leading-8 text-muted-foreground">
+              Fifteen widgets for the reasoning strategies that turn a
+              next-token predictor into an agent: chain of thought, tree
+              search, reflection, debate, and eleven more.
+            </p>
+            <p className="mt-6 font-mono text-xs text-fg-3">
+              Every strategy below runs in the page
+            </p>
+          </div>
+
+          {/* ---- The trace: one chain of thought, numbered ---- */}
+          <div className="rounded-xl border border-border bg-card p-5">
+            <div className="mb-4 flex items-baseline justify-between font-mono text-xs text-fg-3">
+              <span>trace 01 · cot</span>
+              <span className="tabular-nums">4 steps</span>
+            </div>
+            <ol className="space-y-3">
+              {[
+                ["01", "3 boxes \u00d7 12 apples = 36"],
+                ["02", "2 boxes \u00d7 8 oranges = 16"],
+                ["03", "36 + 16 = 52"],
+                ["04", "Answer: 52 fruits"],
+              ].map(([n, text], i) => (
+                <li key={n} className="flex items-baseline gap-3">
+                  <span className="seq w-6 shrink-0">{n}</span>
+                  <span
+                    className={
+                      i === 3
+                        ? "font-mono text-[13px] text-accent"
+                        : "font-mono text-[13px] text-fg-2"
+                    }
+                  >
+                    {text}
+                  </span>
+                </li>
+              ))}
+            </ol>
+            <div className="mt-4 flex items-baseline gap-3 border-t border-border pt-4">
+              <span className="seq w-6 shrink-0">—</span>
+              <span className="font-mono text-[13px] text-fg-3">
+                direct answer: 48 fruits
+              </span>
+            </div>
+          </div>
         </div>
       </header>
 
-      {/* ---- Table of Contents ---- */}
-      <div className="max-w-5xl mx-auto px-4 mb-16">
-        <div className="bg-card border border-border rounded-xl p-6">
-          <h2 className="text-sm font-mono text-muted-foreground mb-4">
-            Reasoning strategies
-          </h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+      {/* ---- Index ---- */}
+      <div className="mx-auto max-w-5xl px-6 py-12">
+        <div className="overflow-hidden rounded-xl border border-border bg-card">
+          <div className="flex items-baseline justify-between border-b border-border px-5 py-3">
+            <h2 className="font-mono text-xs text-fg-3">Reasoning strategies</h2>
+            <span className="font-mono text-xs text-fg-4">15</span>
+          </div>
+          <div className="-mb-px grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
             {[
               { id: "cot", title: "Chain of Thought", desc: "Step-by-step reasoning" },
               { id: "tot", title: "Tree of Thoughts", desc: "BFS tree exploration" },
-              { id: "react", title: "ReAct", desc: "Reason + Act with tools" },
+              { id: "react", title: "ReAct", desc: "Reason + act with tools" },
               { id: "reflection", title: "Self-Reflection", desc: "Draft, critique, improve" },
               { id: "consistency", title: "Self-Consistency", desc: "Majority vote sampling" },
               { id: "decomposed", title: "Decomposition", desc: "Break into sub-tasks" },
               { id: "ltm", title: "Least-to-Most", desc: "Easy-to-hard progression" },
               { id: "refinement", title: "Refinement Loop", desc: "Score-based iteration" },
-              { id: "debate", title: "Adversarial Debate", desc: "Pro vs Con with judge" },
-              { id: "mcts", title: "MCTS", desc: "Monte Carlo Tree Search" },
+              { id: "debate", title: "Adversarial Debate", desc: "Pro and con with a judge" },
+              { id: "mcts", title: "MCTS", desc: "Monte Carlo tree search" },
               { id: "analogical", title: "Analogical", desc: "Cross-domain analogy" },
               { id: "socratic", title: "Socratic Method", desc: "Progressive questioning" },
-              { id: "meta", title: "Meta-Reasoning", desc: "Auto-classify & route" },
+              { id: "meta", title: "Meta-Reasoning", desc: "Classify and route" },
               { id: "benchmarks", title: "Benchmarks", desc: "Strategy comparison" },
               { id: "architecture", title: "Architecture", desc: "System overview" },
-            ].map((item) => (
+            ].map((item, i) => (
               <a
                 key={item.id}
                 href={`#${item.id}`}
-                className="flex items-center gap-3 p-3 rounded-lg border border-border hover:bg-[rgba(255,255,255,0.03)] transition-all group"
+                className="group flex items-baseline gap-3 border-b border-border px-5 py-3 transition-colors hover:bg-white/4"
               >
-                <div className="w-1 h-8 rounded-full bg-s1 opacity-70" />
-                <div>
-                  <div className="text-sm font-medium text-foreground group-hover:underline">{item.title}</div>
-                  <div className="text-xs text-muted-foreground">{item.desc}</div>
-                </div>
+                <span className="seq w-6 shrink-0 group-hover:text-accent">
+                  {String(i + 1).padStart(2, "0")}
+                </span>
+                <span className="min-w-0">
+                  <span className="block text-sm font-medium text-foreground">
+                    {item.title}
+                  </span>
+                  <span className="block text-xs text-fg-3">{item.desc}</span>
+                </span>
               </a>
             ))}
           </div>
@@ -127,11 +178,11 @@ export default function Home() {
       </div>
 
       {/* ---- Main Content ---- */}
-      <main className="max-w-5xl mx-auto px-4 prose-dark">
+      <main className="mx-auto max-w-5xl px-6 prose-dark">
 
         {/* ---- Section 01: Chain of Thought ---- */}
         <section id="cot" className="scroll-mt-16 reveal">
-          <h2><span className="text-s1">01</span> Chain-of-Thought Reasoning</h2>
+          <h2><span className="seq">01</span> Chain-of-Thought Reasoning</h2>
           <p>
             <strong>Chain-of-Thought (CoT)</strong> prompting, introduced by <span className="text-s1">Wei et al. (2022)</span>,
             is the simplest yet most impactful reasoning strategy. Instead of asking a model to jump directly to an answer,
@@ -153,7 +204,7 @@ export default function Home() {
 
         {/* ---- Section 02: Tree of Thoughts ---- */}
         <section id="tot" className="scroll-mt-16 reveal">
-          <h2><span className="text-s2">02</span> Tree of Thoughts</h2>
+          <h2><span className="seq">02</span> Tree of Thoughts</h2>
           <p>
             <strong>Tree of Thoughts (ToT)</strong>, proposed by <span className="text-s2">Yao et al. (2023)</span>,
             extends Chain-of-Thought from a single linear chain into a <em>tree</em> of possible reasoning paths.
@@ -175,7 +226,7 @@ export default function Home() {
 
         {/* ---- Section 03: ReAct ---- */}
         <section id="react" className="scroll-mt-16 reveal">
-          <h2><span className="text-s2">03</span> ReAct: Reason + Act</h2>
+          <h2><span className="seq">03</span> ReAct: Reason + Act</h2>
           <p>
             <strong>ReAct</strong>, introduced by <span className="text-s2">Yao et al. (2022)</span>,
             interleaves internal reasoning with external tool use. The model alternates between
@@ -199,7 +250,7 @@ export default function Home() {
 
         {/* ---- Section 04: Self-Reflection ---- */}
         <section id="reflection" className="scroll-mt-16 reveal">
-          <h2><span className="text-s3">04</span> Self-Reflection</h2>
+          <h2><span className="seq">04</span> Self-Reflection</h2>
           <p>
             <strong>Self-Reflection</strong>, based on <span className="text-s3">Shinn et al.&apos;s (2023) Reflexion</span>,
             implements a <em>Draft → Critique → Improve</em> loop. The model generates an initial response,
@@ -220,7 +271,7 @@ export default function Home() {
 
         {/* ---- Section 05: Self-Consistency ---- */}
         <section id="consistency" className="scroll-mt-16 reveal">
-          <h2><span className="text-s3">05</span> Self-Consistency Voting</h2>
+          <h2><span className="seq">05</span> Self-Consistency Voting</h2>
           <p>
             <strong>Self-Consistency</strong>, from <span className="text-s3">Wang et al. (2022)</span>,
             takes a statistical approach to reasoning. Instead of relying on a single chain of thought,
@@ -243,7 +294,7 @@ export default function Home() {
 
         {/* ---- Section 06: Decomposition ---- */}
         <section id="decomposed" className="scroll-mt-16 reveal">
-          <h2><span className="text-s4">06</span> Problem Decomposition</h2>
+          <h2><span className="seq">06</span> Problem Decomposition</h2>
           <p>
             <strong>Decomposed Reasoning</strong>, based on <span className="text-s4">Khot et al. (2022)</span>,
             tackles complex problems by breaking them into manageable sub-tasks. Each sub-task is solved
@@ -264,7 +315,7 @@ export default function Home() {
 
         {/* ---- Section 07: Least-to-Most ---- */}
         <section id="ltm" className="scroll-mt-16 reveal">
-          <h2><span className="text-s4">07</span> Least-to-Most Prompting</h2>
+          <h2><span className="seq">07</span> Least-to-Most Prompting</h2>
           <p>
             <strong>Least-to-Most</strong>, from <span className="text-s4">Zhou et al. (2022)</span>,
             is a refinement of decomposition that explicitly orders sub-problems from <em>easiest to hardest</em>.
@@ -285,7 +336,7 @@ export default function Home() {
 
         {/* ---- Section 08: Refinement Loop ---- */}
         <section id="refinement" className="scroll-mt-16 reveal">
-          <h2><span className="text-s5">08</span> Iterative Refinement</h2>
+          <h2><span className="seq">08</span> Iterative Refinement</h2>
           <p>
             The <strong>Refinement Loop</strong> implements a <em>Generator → Critic → Refiner</em> cycle
             with quantitative scoring. A critic evaluates each draft on a 0.0–1.0 scale and provides
@@ -307,7 +358,7 @@ export default function Home() {
 
         {/* ---- Section 09: Adversarial Debate ---- */}
         <section id="debate" className="scroll-mt-16 reveal">
-          <h2><span className="text-s6">09</span> Adversarial Debate</h2>
+          <h2><span className="seq">09</span> Adversarial Debate</h2>
           <p>
             <strong>Adversarial Debate</strong>, inspired by <span className="text-s6">Irving et al. (2018)</span>,
             pits two sides against each other with a judge evaluating each round. A <em>PRO</em> side
@@ -330,7 +381,7 @@ export default function Home() {
 
         {/* ---- Section 10: MCTS ---- */}
         <section id="mcts" className="scroll-mt-16 reveal">
-          <h2><span className="text-s6">10</span> Monte Carlo Tree Search</h2>
+          <h2><span className="seq">10</span> Monte Carlo Tree Search</h2>
           <p>
             <strong>MCTS</strong>, based on <span className="text-s6">Browne et al. (2012)</span>,
             applies the same algorithm that powered AlphaGo to language model reasoning. The four-phase
@@ -353,7 +404,7 @@ export default function Home() {
 
         {/* ---- Section 11: Analogical ---- */}
         <section id="analogical" className="scroll-mt-16 reveal">
-          <h2><span className="text-s6">11</span> Analogical Reasoning</h2>
+          <h2><span className="seq">11</span> Analogical Reasoning</h2>
           <p>
             <strong>Analogical Reasoning</strong>, rooted in <span className="text-s6">Gentner&apos;s (1983)</span> structure-mapping
             theory, solves novel problems by finding structurally similar solved problems from other domains
@@ -374,7 +425,7 @@ export default function Home() {
 
         {/* ---- Section 12: Socratic ---- */}
         <section id="socratic" className="scroll-mt-16 reveal">
-          <h2><span className="text-s6">12</span> Socratic Method</h2>
+          <h2><span className="seq">12</span> Socratic Method</h2>
           <p>
             The <strong>Socratic Method</strong>, based on <span className="text-s6">Paul &amp; Elder&apos;s (2007)</span> critical
             thinking framework, builds understanding through progressive questioning. The model generates
@@ -397,7 +448,7 @@ export default function Home() {
 
         {/* ---- Section 13: Meta-Reasoning ---- */}
         <section id="meta" className="scroll-mt-16 reveal">
-          <h2><span className="text-s7">13</span> Meta-Reasoning Router</h2>
+          <h2><span className="seq">13</span> Meta-Reasoning Router</h2>
           <p>
             The <strong>Meta-Reasoning Agent</strong> is the orchestrator — it analyzes incoming queries,
             classifies them by type (math, logic, creative, factual, controversial, planning, philosophical),
@@ -420,7 +471,7 @@ export default function Home() {
 
         {/* ---- Section 14: Benchmarks ---- */}
         <section id="benchmarks" className="scroll-mt-16 reveal">
-          <h2><span className="text-s7">14</span> Strategy Benchmarks</h2>
+          <h2><span className="seq">14</span> Strategy Benchmarks</h2>
           <p>
             How do these strategies actually perform? The benchmark suite evaluates all strategies across
             standard datasets: <strong>GSM8K</strong> (math reasoning), <strong>MMLU</strong> (broad knowledge),
@@ -444,7 +495,7 @@ export default function Home() {
 
         {/* ---- Section 15: Architecture ---- */}
         <section id="architecture" className="scroll-mt-16 reveal">
-          <h2><span className="text-s7">15</span> System Architecture</h2>
+          <h2><span className="seq">15</span> System Architecture</h2>
           <p>
             Under the hood, the agent-reasoning system uses a simple but powerful routing pattern.
             The <strong>ReasoningInterceptor</strong> parses the <code>model+strategy</code> naming convention

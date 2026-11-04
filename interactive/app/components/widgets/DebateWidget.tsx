@@ -94,9 +94,7 @@ const MONO = "var(--font-mono), monospace";
 function monoLabel(color: string, mb?: number): React.CSSProperties {
   return {
     fontFamily: MONO,
-    fontSize: "0.7rem",
-    textTransform: "uppercase",
-    letterSpacing: "0.08em",
+    fontSize: "12px",
     color,
     fontWeight: 600,
     marginBottom: mb ?? 0,
@@ -231,8 +229,7 @@ export function DebateWidget() {
   /* ---------------------------------------------------------------- */
 
   return (
-    <div className="widget-container s6">
-      <div className="widget-label">Interactive &middot; Adversarial Debate</div>
+    <div className="widget-shell">
 
       {/* ---- Topic selector ---- */}
       <div className="flex flex-wrap items-center gap-2 mb-4">
@@ -255,10 +252,10 @@ export function DebateWidget() {
           border: "1px solid rgba(255,255,255,0.08)",
         }}
       >
-        <span style={monoLabel("#a1a1aa")} className="block mb-1">
+        <span style={monoLabel("var(--fg-2)")} className="block mb-1">
           Topic
         </span>
-        <p style={{ color: "#e4e4e7", margin: 0, lineHeight: 1.7, fontSize: "0.95rem" }}>
+        <p style={{ color: "var(--fg)", margin: 0, lineHeight: 1.7, fontSize: "14px" }}>
           {topic.question}
         </p>
       </div>
@@ -283,14 +280,14 @@ export function DebateWidget() {
                 width: 10,
                 height: 10,
                 borderRadius: "50%",
-                background: "#4ade80",
+                background: "var(--accent)",
                 flexShrink: 0,
               }}
             />
-            <span style={{ fontFamily: MONO, fontSize: "0.75rem", color: "#4ade80", fontWeight: 600 }}>
+            <span style={{ fontFamily: MONO, fontSize: "12px", color: "var(--accent)", fontWeight: 600 }}>
               PRO
             </span>
-            <span style={{ fontFamily: MONO, fontSize: "1rem", color: "#4ade80", fontWeight: 700 }}>
+            <span style={{ fontFamily: MONO, fontSize: "14px", color: "var(--accent)", fontWeight: 700 }}>
               {runningPro.toFixed(1)}
             </span>
           </div>
@@ -311,7 +308,7 @@ export function DebateWidget() {
                   style={{
                     width: `${(runningPro / (runningPro + runningCon)) * 100}%`,
                     height: "100%",
-                    background: "linear-gradient(90deg, #4ade80, rgba(74,222,128,0.4))",
+                    background: "linear-gradient(90deg, var(--accent), rgba(224,162,83,0.4)",
                     transition: "width 0.5s ease-out",
                   }}
                 />
@@ -319,7 +316,7 @@ export function DebateWidget() {
                   style={{
                     width: `${(runningCon / (runningPro + runningCon)) * 100}%`,
                     height: "100%",
-                    background: "linear-gradient(90deg, rgba(244,63,94,0.4), #f43f5e)",
+                    background: "linear-gradient(90deg, rgba(125,148,171,0.4), var(--accent-2))",
                     transition: "width 0.5s ease-out",
                   }}
                 />
@@ -328,10 +325,10 @@ export function DebateWidget() {
           </div>
 
           <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-            <span style={{ fontFamily: MONO, fontSize: "1rem", color: "#f43f5e", fontWeight: 700 }}>
+            <span style={{ fontFamily: MONO, fontSize: "14px", color: "var(--accent-2)", fontWeight: 700 }}>
               {runningCon.toFixed(1)}
             </span>
-            <span style={{ fontFamily: MONO, fontSize: "0.75rem", color: "#f43f5e", fontWeight: 600 }}>
+            <span style={{ fontFamily: MONO, fontSize: "12px", color: "var(--accent-2)", fontWeight: 600 }}>
               CON
             </span>
             <span
@@ -339,7 +336,7 @@ export function DebateWidget() {
                 width: 10,
                 height: 10,
                 borderRadius: "50%",
-                background: "#f43f5e",
+                background: "var(--accent-2)",
                 flexShrink: 0,
               }}
             />
@@ -354,9 +351,9 @@ export function DebateWidget() {
           onClick={startDebate}
           disabled={phase === "running"}
           style={{
-            background: phase === "running" ? "transparent" : "rgba(250,204,21,0.12)",
-            borderColor: phase === "running" ? "rgba(255,255,255,0.08)" : "rgba(250,204,21,0.35)",
-            color: phase === "running" ? "#a1a1aa" : "#facc15",
+            background: phase === "running" ? "transparent" : "rgba(224,162,83,0.12)",
+            borderColor: phase === "running" ? "rgba(255,255,255,0.08)" : "rgba(224,162,83,0.35)",
+            color: phase === "running" ? "var(--fg-2)" : "var(--accent)",
             cursor: phase === "running" ? "not-allowed" : "pointer",
           }}
         >
@@ -371,8 +368,8 @@ export function DebateWidget() {
           <span
             style={{
               fontFamily: MONO,
-              fontSize: "0.75rem",
-              color: "#a1a1aa",
+              fontSize: "12px",
+              color: "var(--fg-2)",
               background: "rgba(255,255,255,0.05)",
               borderRadius: 4,
               padding: "0.2rem 0.55rem",
@@ -389,7 +386,7 @@ export function DebateWidget() {
           {roundsData.map((rd, rIdx) => (
             <div key={`round-${rIdx}`}>
               {/* Round header */}
-              <div style={{ ...monoLabel("#a1a1aa"), marginBottom: "0.65rem" }}>
+              <div style={{ ...monoLabel("var(--fg-2)"), marginBottom: "0.65rem" }}>
                 Round {rIdx + 1}
               </div>
 
@@ -406,10 +403,10 @@ export function DebateWidget() {
                   <div
                     className="debate-pro animate-slide-in"
                     style={{
-                      background: "rgba(74,222,128,0.04)",
-                      border: "1px solid rgba(74,222,128,0.12)",
+                      background: "rgba(224,162,83,0.04)",
+                      border: "1px solid rgba(224,162,83,0.12)",
                       borderLeftWidth: 3,
-                      borderLeftColor: "#4ade80",
+                      borderLeftColor: "var(--accent)",
                       borderRadius: 8,
                       padding: "0.75rem 0.85rem",
                     }}
@@ -417,20 +414,18 @@ export function DebateWidget() {
                     <span
                       style={{
                         fontFamily: MONO,
-                        fontSize: "0.65rem",
-                        color: "#4ade80",
+                        fontSize: "11px",
+                        color: "var(--accent)",
                         fontWeight: 700,
-                        textTransform: "uppercase",
-                        letterSpacing: "0.06em",
                       }}
                     >
                       PRO
                     </span>
                     <p
                       style={{
-                        color: "#e4e4e7",
+                        color: "var(--fg)",
                         margin: "0.35rem 0 0",
-                        fontSize: "0.84rem",
+                        fontSize: "13px",
                         lineHeight: 1.6,
                       }}
                     >
@@ -444,10 +439,10 @@ export function DebateWidget() {
                   <div
                     className="debate-con animate-slide-in"
                     style={{
-                      background: "rgba(244,63,94,0.04)",
-                      border: "1px solid rgba(244,63,94,0.12)",
+                      background: "rgba(125,148,171,0.04)",
+                      border: "1px solid rgba(125,148,171,0.12)",
                       borderLeftWidth: 3,
-                      borderLeftColor: "#f43f5e",
+                      borderLeftColor: "var(--accent-2)",
                       borderRadius: 8,
                       padding: "0.75rem 0.85rem",
                     }}
@@ -455,20 +450,18 @@ export function DebateWidget() {
                     <span
                       style={{
                         fontFamily: MONO,
-                        fontSize: "0.65rem",
-                        color: "#f43f5e",
+                        fontSize: "11px",
+                        color: "var(--accent-2)",
                         fontWeight: 700,
-                        textTransform: "uppercase",
-                        letterSpacing: "0.06em",
                       }}
                     >
                       CON
                     </span>
                     <p
                       style={{
-                        color: "#e4e4e7",
+                        color: "var(--fg)",
                         margin: "0.35rem 0 0",
-                        fontSize: "0.84rem",
+                        fontSize: "13px",
                         lineHeight: 1.6,
                       }}
                     >
@@ -484,9 +477,9 @@ export function DebateWidget() {
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
-                      color: "#a1a1aa",
+                      color: "var(--fg-2)",
                       fontFamily: MONO,
-                      fontSize: "0.72rem",
+                      fontSize: "12px",
                     }}
                   >
                     Waiting for CON...
@@ -500,10 +493,10 @@ export function DebateWidget() {
                   {/* Judge card */}
                   <div
                     style={{
-                      background: "rgba(250,204,21,0.05)",
-                      border: "1px solid rgba(250,204,21,0.2)",
+                      background: "rgba(224,162,83,0.05)",
+                      border: "1px solid rgba(224,162,83,0.2)",
                       borderLeftWidth: 3,
-                      borderLeftColor: "#facc15",
+                      borderLeftColor: "var(--accent)",
                       borderRadius: 8,
                       padding: "0.65rem 0.85rem",
                       maxWidth: 500,
@@ -520,18 +513,16 @@ export function DebateWidget() {
                     >
                       {mounted && (
                         <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-                          <circle cx="7" cy="7" r="6" stroke="#facc15" strokeWidth="1.2" fill="none" />
-                          <path d="M4.5 6.5 L6 8.5 L9.5 5" stroke="#facc15" strokeWidth="1.2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+                          <circle cx="7" cy="7" r="6" stroke="var(--accent)" strokeWidth="1.2" fill="none" />
+                          <path d="M4.5 6.5 L6 8.5 L9.5 5" stroke="var(--accent)" strokeWidth="1.2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
                         </svg>
                       )}
                       <span
                         style={{
                           fontFamily: MONO,
-                          fontSize: "0.65rem",
-                          color: "#facc15",
+                          fontSize: "11px",
+                          color: "var(--accent)",
                           fontWeight: 700,
-                          textTransform: "uppercase",
-                          letterSpacing: "0.06em",
                         }}
                       >
                         Judge
@@ -539,11 +530,10 @@ export function DebateWidget() {
                     </div>
                     <p
                       style={{
-                        color: "#b4b4bc",
+                        color: "var(--fg-2)",
                         margin: 0,
-                        fontSize: "0.8rem",
+                        fontSize: "13px",
                         lineHeight: 1.55,
-                        fontStyle: "italic",
                       }}
                     >
                       {rd.judge.reasoning}
@@ -565,8 +555,8 @@ export function DebateWidget() {
                     <span
                       style={{
                         fontFamily: MONO,
-                        fontSize: "0.72rem",
-                        color: "#4ade80",
+                        fontSize: "12px",
+                        color: "var(--accent)",
                         fontWeight: 600,
                         minWidth: 28,
                         textAlign: "right",
@@ -590,8 +580,8 @@ export function DebateWidget() {
                           borderRadius: 4,
                           background:
                             rd.judge.pro >= rd.judge.con
-                              ? "linear-gradient(90deg, #4ade80, rgba(74,222,128,0.4))"
-                              : "rgba(74,222,128,0.25)",
+                              ? "linear-gradient(90deg, var(--accent), rgba(224,162,83,0.4)"
+                              : "rgba(224,162,83,0.25)",
                           transition: "flex 0.5s ease-out",
                         }}
                       />
@@ -603,8 +593,8 @@ export function DebateWidget() {
                           borderRadius: 4,
                           background:
                             rd.judge.con >= rd.judge.pro
-                              ? "linear-gradient(90deg, rgba(244,63,94,0.4), #f43f5e)"
-                              : "rgba(244,63,94,0.25)",
+                              ? "linear-gradient(90deg, rgba(125,148,171,0.4), var(--accent-2))"
+                              : "rgba(125,148,171,0.25)",
                           transition: "flex 0.5s ease-out",
                         }}
                       />
@@ -613,8 +603,8 @@ export function DebateWidget() {
                     <span
                       style={{
                         fontFamily: MONO,
-                        fontSize: "0.72rem",
-                        color: "#f43f5e",
+                        fontSize: "12px",
+                        color: "var(--accent-2)",
                         fontWeight: 600,
                         minWidth: 28,
                         textAlign: "left",
@@ -633,16 +623,19 @@ export function DebateWidget() {
       {/* ---- Placeholder when idle ---- */}
       {phase === "idle" && visibleArgs.length === 0 && (
         <div
-          className="rounded-lg flex items-center justify-center"
-          style={{
-            height: 100,
-            border: "1px dashed rgba(255,255,255,0.1)",
-            color: "#a1a1aa",
-            fontFamily: MONO,
-            fontSize: "0.78rem",
-          }}
+          className="flex items-baseline gap-3 border-t py-3"
+          style={{ borderColor: "var(--line)" }}
         >
-          Press &ldquo;Start Debate&rdquo; to begin
+          <span className="seq w-6 shrink-0">—</span>
+          <span
+            style={{
+              fontFamily: "var(--font-mono), monospace",
+              fontSize: "12px",
+              color: "var(--fg-3)",
+            }}
+          >
+            Press &ldquo;Start Debate&rdquo; to begin
+          </span>
         </div>
       )}
 
@@ -652,11 +645,10 @@ export function DebateWidget() {
           className="animate-fade-in"
           style={{
             marginTop: "1.5rem",
-            background: "rgba(250,204,21,0.06)",
-            border: "1px solid rgba(250,204,21,0.25)",
+            background: "rgba(224,162,83,0.06)",
+            border: "1px solid rgba(224,162,83,0.25)",
             borderRadius: 10,
             padding: "1rem 1.15rem",
-            boxShadow: "0 0 24px rgba(250,204,21,0.08)",
           }}
         >
           {/* Verdict header */}
@@ -672,9 +664,9 @@ export function DebateWidget() {
               <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
                 <path
                   d="M9 1 L11 6.5 L17 7 L12.5 11 L14 17 L9 13.5 L4 17 L5.5 11 L1 7 L7 6.5 Z"
-                  stroke="#facc15"
+                  stroke="var(--accent)"
                   strokeWidth="1.2"
-                  fill="rgba(250,204,21,0.15)"
+                  fill="rgba(224,162,83,0.15)"
                   strokeLinejoin="round"
                 />
               </svg>
@@ -682,11 +674,9 @@ export function DebateWidget() {
             <span
               style={{
                 fontFamily: MONO,
-                fontSize: "0.72rem",
-                color: "#facc15",
+                fontSize: "12px",
+                color: "var(--accent)",
                 fontWeight: 700,
-                textTransform: "uppercase",
-                letterSpacing: "0.08em",
               }}
             >
               Final Verdict
@@ -697,9 +687,9 @@ export function DebateWidget() {
           <p
             style={{
               fontFamily: MONO,
-              fontSize: "0.95rem",
+              fontSize: "14px",
               fontWeight: 700,
-              color: "#e4e4e7",
+              color: "var(--fg)",
               margin: "0 0 0.55rem",
               lineHeight: 1.5,
             }}
@@ -722,11 +712,11 @@ export function DebateWidget() {
                   width: 8,
                   height: 8,
                   borderRadius: "50%",
-                  background: "#4ade80",
+                  background: "var(--accent)",
                   flexShrink: 0,
                 }}
               />
-              <span style={{ fontFamily: MONO, fontSize: "0.72rem", color: "#4ade80", fontWeight: 600 }}>
+              <span style={{ fontFamily: MONO, fontSize: "12px", color: "var(--accent)", fontWeight: 600 }}>
                 PRO {runningPro.toFixed(1)}
               </span>
             </div>
@@ -746,7 +736,7 @@ export function DebateWidget() {
                     style={{
                       width: `${(runningPro / (runningPro + runningCon)) * 100}%`,
                       height: "100%",
-                      background: "linear-gradient(90deg, #4ade80, rgba(74,222,128,0.3))",
+                      background: "linear-gradient(90deg, var(--accent), rgba(224,162,83,0.3)",
                       transition: "width 0.5s ease-out",
                     }}
                   />
@@ -754,7 +744,7 @@ export function DebateWidget() {
                     style={{
                       width: `${(runningCon / (runningPro + runningCon)) * 100}%`,
                       height: "100%",
-                      background: "linear-gradient(90deg, rgba(244,63,94,0.3), #f43f5e)",
+                      background: "linear-gradient(90deg, rgba(125,148,171,0.3), var(--accent-2))",
                       transition: "width 0.5s ease-out",
                     }}
                   />
@@ -762,7 +752,7 @@ export function DebateWidget() {
               )}
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: "0.35rem" }}>
-              <span style={{ fontFamily: MONO, fontSize: "0.72rem", color: "#f43f5e", fontWeight: 600 }}>
+              <span style={{ fontFamily: MONO, fontSize: "12px", color: "var(--accent-2)", fontWeight: 600 }}>
                 CON {runningCon.toFixed(1)}
               </span>
               <span
@@ -770,7 +760,7 @@ export function DebateWidget() {
                   width: 8,
                   height: 8,
                   borderRadius: "50%",
-                  background: "#f43f5e",
+                  background: "var(--accent-2)",
                   flexShrink: 0,
                 }}
               />
@@ -780,9 +770,9 @@ export function DebateWidget() {
           {/* Synthesis */}
           <p
             style={{
-              color: "#b4b4bc",
+              color: "var(--fg-2)",
               margin: 0,
-              fontSize: "0.82rem",
+              fontSize: "13px",
               lineHeight: 1.7,
             }}
           >
@@ -796,8 +786,8 @@ export function DebateWidget() {
         <span
           style={{
             fontFamily: MONO,
-            fontSize: "0.7rem",
-            color: "#a1a1aa",
+            fontSize: "12px",
+            color: "var(--fg-2)",
           }}
         >
           {judgedRounds}/{totalRounds} rounds
@@ -818,8 +808,8 @@ export function DebateWidget() {
               borderRadius: 2,
               background:
                 judgedRounds === totalRounds
-                  ? "#facc15"
-                  : "rgba(250,204,21,0.5)",
+                  ? "var(--accent)"
+                  : "rgba(224,162,83,0.5)",
               transition: "width 0.35s ease-out",
             }}
           />

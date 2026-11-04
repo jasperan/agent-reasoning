@@ -70,20 +70,9 @@ const DATASETS: Record<DatasetKey, { label: string; description: string; entries
   },
 };
 
-/* Consistent color per strategy name */
-const STRATEGY_COLORS: Record<string, string> = {
-  "Chain of Thought": "#f97316", // orange  (s1)
-  "Tree of Thoughts": "#22d3ee", // cyan    (s2)
-  "Self-Consistency": "#4ade80", // green   (s3)
-  "Self-Reflection": "#86efac",  // light green (s3)
-  "Recursive": "#a78bfa",       // purple  (s4)
-  "Decomposed": "#f472b6",      // pink    (s5)
-  "Refinement Loop": "#f9a8d4", // light pink (s5)
-  "ReAct": "#67e8f9",           // light cyan (s2)
-  "Socratic": "#fde047",        // light yellow (s6)
-  "Standard": "#94a3b8",        // slate
-  "Debate": "#2dd4bf",          // teal    (s7)
-};
+/* The leader takes the accent; the field stays neutral. */
+const BAR_LEAD = "var(--accent)";
+const BAR_FIELD = "rgba(255,255,255,0.12)";
 
 const DATASET_KEYS: DatasetKey[] = ["gsm8k", "mmlu", "arc-c"];
 
@@ -146,16 +135,14 @@ export function StrategyComparisonWidget() {
 
   if (!mounted) {
     return (
-      <div className="widget-container s7">
-        <div className="widget-label">Interactive &middot; Strategy Benchmarks</div>
-        <div style={{ height: 360 }} />
+      <div className="widget-shell">
+        <div style={{ height: 160 }} />
       </div>
     );
   }
 
   return (
-    <div className="widget-container s7">
-      <div className="widget-label">Interactive &middot; Strategy Benchmarks</div>
+    <div className="widget-shell">
 
       {/* ---- Dataset selector + Cost toggle ---- */}
       <div
@@ -183,9 +170,9 @@ export function StrategyComparisonWidget() {
           onClick={toggleCost}
           className={`btn-mono ${showCost ? "active" : ""}`}
           style={{
-            borderColor: showCost ? "rgba(45,212,191,0.35)" : undefined,
-            color: showCost ? "#2dd4bf" : undefined,
-            background: showCost ? "rgba(45,212,191,0.1)" : undefined,
+            borderColor: showCost ? "rgba(125,148,171,0.35)" : undefined,
+            color: showCost ? "var(--accent-2)" : undefined,
+            background: showCost ? "rgba(125,148,171,0.1)" : undefined,
           }}
         >
           {showCost ? "LLM Calls" : "Accuracy"}
@@ -196,28 +183,17 @@ export function StrategyComparisonWidget() {
       <div
         style={{
           fontFamily: MONO,
-          fontSize: "0.72rem",
-          color: "#a1a1aa",
+          fontSize: "12px",
+          color: "var(--fg-2)",
           marginBottom: "1rem",
           display: "flex",
           alignItems: "center",
           gap: "0.5rem",
         }}
       >
-        <span
-          style={{
-            background: "rgba(45,212,191,0.12)",
-            border: "1px solid rgba(45,212,191,0.25)",
-            borderRadius: 4,
-            padding: "0.15rem 0.45rem",
-            color: "#2dd4bf",
-            fontWeight: 600,
-          }}
-        >
-          {dataset.label}
-        </span>
+        <span style={{ color: "var(--fg)", fontFamily: MONO }}>{dataset.label}</span>
         <span>{dataset.description}</span>
-        <span style={{ marginLeft: "auto", color: "#71717a" }}>
+        <span style={{ marginLeft: "auto", color: "var(--fg-3)" }}>
           {showCost ? "Est. LLM calls / query" : "Accuracy %"}
         </span>
       </div>
@@ -225,11 +201,11 @@ export function StrategyComparisonWidget() {
       {/* ---- Bar chart ---- */}
       <div style={{ display: "flex", flexDirection: "column", gap: "0.35rem" }}>
         {sorted.map((entry, idx) => {
-          const color = STRATEGY_COLORS[entry.name] ?? "#a1a1aa";
           const value = showCost ? entry.calls : entry.score;
           const pct = maxValue > 0 ? (value / maxValue) * 100 : 0;
           const isHovered = hoveredIdx === idx;
           const isTop = idx === 0;
+          const color = isTop ? BAR_LEAD : BAR_FIELD;
 
           return (
             <div
@@ -250,9 +226,9 @@ export function StrategyComparisonWidget() {
               <span
                 style={{
                   fontFamily: MONO,
-                  fontSize: "0.75rem",
-                  color: isTop ? color : "#e4e4e7",
-                  fontWeight: isTop ? 700 : 400,
+                  fontSize: "12px",
+                  color: isTop ? "var(--fg)" : "var(--fg-2)",
+                  fontWeight: 400,
                   minWidth: 130,
                   textAlign: "right",
                   whiteSpace: "nowrap",
@@ -267,7 +243,7 @@ export function StrategyComparisonWidget() {
               <div
                 style={{
                   flex: 1,
-                  height: 28,
+                  height: 24,
                   background: "rgba(255,255,255,0.03)",
                   borderRadius: "0 6px 6px 0",
                   overflow: "hidden",
@@ -282,14 +258,12 @@ export function StrategyComparisonWidget() {
                     left: 0,
                     height: "100%",
                     width: `${pct}%`,
-                    background: isHovered
-                      ? color
-                      : `linear-gradient(90deg, ${color}, ${color}88)`,
+                    background: color,
                     borderRadius: "0 6px 6px 0",
                     transition: "width 0.7s cubic-bezier(0.22, 1, 0.36, 1), background 0.2s",
                     animation: "barGrow 0.7s cubic-bezier(0.22, 1, 0.36, 1) both",
                     animationDelay: `${idx * 0.06}s`,
-                    boxShadow: isHovered ? `0 0 14px ${color}40` : "none",
+
                   }}
                 />
 
@@ -301,13 +275,13 @@ export function StrategyComparisonWidget() {
                       top: "50%",
                       left: `${Math.min(pct + 1, 85)}%`,
                       transform: "translateY(-50%)",
-                      background: "#1a1b25",
+                      background: "var(--surface-2)",
                       border: "1px solid rgba(255,255,255,0.12)",
                       borderRadius: 6,
                       padding: "0.3rem 0.55rem",
                       fontFamily: MONO,
-                      fontSize: "0.68rem",
-                      color: "#e4e4e7",
+                      fontSize: "11px",
+                      color: "var(--fg)",
                       whiteSpace: "nowrap",
                       zIndex: 10,
                       pointerEvents: "none",
@@ -315,14 +289,14 @@ export function StrategyComparisonWidget() {
                     }}
                   >
                     <span style={{ color }}>{entry.name}</span>
-                    <span style={{ color: "#71717a" }}> &middot; </span>
+                    <span style={{ color: "var(--fg-3)" }}> &middot; </span>
                     <span>
                       {showCost
                         ? `${entry.calls} call${entry.calls !== 1 ? "s" : ""}`
                         : `${entry.score}%`}
                     </span>
-                    <span style={{ color: "#71717a" }}> &middot; </span>
-                    <span style={{ color: "#a1a1aa" }}>
+                    <span style={{ color: "var(--fg-3)" }}> &middot; </span>
+                    <span style={{ color: "var(--fg-2)" }}>
                       {showCost
                         ? `Accuracy: ${entry.score}%`
                         : `${entry.calls} call${entry.calls !== 1 ? "s" : ""}/query`}
@@ -335,8 +309,8 @@ export function StrategyComparisonWidget() {
               <span
                 style={{
                   fontFamily: MONO,
-                  fontSize: "0.78rem",
-                  color: isTop ? color : "#e4e4e7",
+                  fontSize: "12px",
+                  color: isTop ? color : "var(--fg)",
                   fontWeight: isTop ? 700 : 500,
                   minWidth: 42,
                   textAlign: "right",
@@ -356,40 +330,19 @@ export function StrategyComparisonWidget() {
           display: "flex",
           alignItems: "center",
           gap: "0.85rem",
-          background: "rgba(45,212,191,0.06)",
-          border: "1px solid rgba(45,212,191,0.18)",
+          background: "rgba(125,148,171,0.06)",
+          border: "1px solid rgba(125,148,171,0.18)",
           borderRadius: 10,
           padding: "0.75rem 1rem",
         }}
       >
         {/* Icon */}
-        <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
-          <rect
-            x="1"
-            y="1"
-            width="16"
-            height="16"
-            rx="3"
-            stroke="#2dd4bf"
-            strokeWidth="1.2"
-            fill="rgba(45,212,191,0.1)"
-          />
-          <path
-            d="M5 12V8M9 12V5M13 12V9"
-            stroke="#2dd4bf"
-            strokeWidth="1.5"
-            strokeLinecap="round"
-          />
-        </svg>
-
         <div style={{ display: "flex", flexDirection: "column", gap: "0.1rem" }}>
           <span
             style={{
               fontFamily: MONO,
-              fontSize: "0.7rem",
-              color: "#a1a1aa",
-              textTransform: "uppercase",
-              letterSpacing: "0.06em",
+              fontSize: "12px",
+              color: "var(--fg-2)",
             }}
           >
             Average accuracy on {dataset.label}
@@ -398,9 +351,8 @@ export function StrategyComparisonWidget() {
             <span
               style={{
                 fontFamily: MONO,
-                fontSize: "1.2rem",
-                fontWeight: 700,
-                color: "#2dd4bf",
+                fontSize: "18px",
+                color: "var(--fg)",
               }}
             >
               {avgScore}%
@@ -408,8 +360,8 @@ export function StrategyComparisonWidget() {
             <span
               style={{
                 fontFamily: MONO,
-                fontSize: "0.7rem",
-                color: "#71717a",
+                fontSize: "12px",
+                color: "var(--fg-3)",
               }}
             >
               across {dataset.entries.length} strategies
@@ -422,10 +374,8 @@ export function StrategyComparisonWidget() {
           <span
             style={{
               fontFamily: MONO,
-              fontSize: "0.65rem",
-              color: "#71717a",
-              textTransform: "uppercase",
-              letterSpacing: "0.06em",
+              fontSize: "11px",
+              color: "var(--fg-3)",
             }}
           >
             Best
@@ -433,13 +383,13 @@ export function StrategyComparisonWidget() {
           <div
             style={{
               fontFamily: MONO,
-              fontSize: "0.82rem",
+              fontSize: "13px",
               fontWeight: 600,
-              color: STRATEGY_COLORS[sorted[0]?.name] ?? "#e4e4e7",
+              color: "var(--accent)",
             }}
           >
             {sorted[0]?.name}
-            <span style={{ color: "#a1a1aa", fontWeight: 400 }}>
+            <span style={{ color: "var(--fg-2)", fontWeight: 400 }}>
               {" "}
               {showCost ? `${sorted[0]?.calls}x` : `${sorted[0]?.score}%`}
             </span>

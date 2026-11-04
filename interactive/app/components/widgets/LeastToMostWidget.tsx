@@ -47,55 +47,20 @@ const SUB_PROBLEMS: SubProblem[] = [
 /*  Color helpers                                                      */
 /* ------------------------------------------------------------------ */
 
-/** Gradient from light purple (easy) to deep purple (hardest) */
-function stepColor(level: number): {
-  bg: string;
-  border: string;
-  text: string;
-  glow: string;
-} {
-  const palette = [
-    {
-      bg: "rgba(196,181,253,0.08)",
-      border: "rgba(196,181,253,0.35)",
-      text: "#c4b5fd",
-      glow: "rgba(196,181,253,0.12)",
-    },
-    {
-      bg: "rgba(167,139,250,0.10)",
-      border: "rgba(167,139,250,0.40)",
-      text: "#a78bfa",
-      glow: "rgba(167,139,250,0.15)",
-    },
-    {
-      bg: "rgba(139,92,246,0.12)",
-      border: "rgba(139,92,246,0.45)",
-      text: "#8b5cf6",
-      glow: "rgba(139,92,246,0.18)",
-    },
-    {
-      bg: "rgba(109,40,217,0.14)",
-      border: "rgba(109,40,217,0.50)",
-      text: "#7c3aed",
-      glow: "rgba(109,40,217,0.22)",
-    },
-  ];
-  return palette[Math.min(level - 1, palette.length - 1)];
+/** One hue for the whole staircase: only the final answer takes the accent. */
+function stepColor(level: number): { text: string } {
+  return { text: level > 1 ? "var(--fg-2)" : "var(--fg-3)" };
 }
 
 function difficultyBadge(difficulty: SubProblem["difficulty"]): {
-  bg: string;
   color: string;
 } {
   switch (difficulty) {
     case "Easy":
-      return { bg: "rgba(74,222,128,0.12)", color: "#4ade80" };
     case "Medium":
-      return { bg: "rgba(250,204,21,0.12)", color: "#facc15" };
-    case "Hard":
-      return { bg: "rgba(249,115,22,0.12)", color: "#fb923c" };
-    case "Hardest":
-      return { bg: "rgba(244,63,94,0.12)", color: "#f43f5e" };
+      return { color: "var(--fg-3)" };
+    default:
+      return { color: "var(--fg-2)" };
   }
 }
 
@@ -158,33 +123,28 @@ export function LeastToMostWidget() {
   /* ---------------------------------------------------------------- */
 
   return (
-    <div className="widget-container s4">
-      <div className="widget-label">
-        Interactive &middot; Least-to-Most Prompting
-      </div>
+    <div className="widget-shell">
 
       {/* ---- Problem ---- */}
       <div
         className="rounded-lg p-4 mb-6"
         style={{
-          background: "rgba(167,139,250,0.06)",
-          border: "1px solid rgba(167,139,250,0.15)",
+          background: "rgba(125,148,171,0.06)",
+          border: "1px solid rgba(125,148,171,0.15)",
         }}
       >
         <span
           className="block mb-1"
           style={{
             fontFamily: "var(--font-mono), monospace",
-            fontSize: "0.7rem",
-            textTransform: "uppercase",
-            letterSpacing: "0.08em",
-            color: "#a78bfa",
+            fontSize: "12px",
+            color: "var(--accent-2)",
             fontWeight: 600,
           }}
         >
           Problem
         </span>
-        <p style={{ color: "#e4e4e7", margin: 0, lineHeight: 1.7 }}>
+        <p style={{ color: "var(--fg)", margin: 0, lineHeight: 1.7 }}>
           {PROBLEM}
         </p>
       </div>
@@ -193,10 +153,8 @@ export function LeastToMostWidget() {
       <div
         style={{
           fontFamily: "var(--font-mono), monospace",
-          fontSize: "0.7rem",
-          textTransform: "uppercase",
-          letterSpacing: "0.08em",
-          color: "#a1a1aa",
+          fontSize: "12px",
+          color: "var(--fg-2)",
           marginBottom: "0.5rem",
         }}
       >
@@ -210,11 +168,11 @@ export function LeastToMostWidget() {
           onClick={solve}
           disabled={isRunning}
           style={{
-            background: isRunning ? "transparent" : "rgba(167,139,250,0.12)",
+            background: isRunning ? "transparent" : "rgba(125,148,171,0.12)",
             borderColor: isRunning
               ? "rgba(255,255,255,0.08)"
-              : "rgba(167,139,250,0.35)",
-            color: isRunning ? "#a1a1aa" : "#c4b5fd",
+              : "rgba(125,148,171,0.35)",
+            color: isRunning ? "var(--fg-2)" : "var(--accent-2)",
             cursor: isRunning ? "not-allowed" : "pointer",
           }}
         >
@@ -228,8 +186,8 @@ export function LeastToMostWidget() {
         <span
           style={{
             fontFamily: "var(--font-mono), monospace",
-            fontSize: "0.7rem",
-            color: "#a1a1aa",
+            fontSize: "12px",
+            color: "var(--fg-2)",
           }}
         >
           {visibleSteps}/{totalSteps} sub-problems
@@ -240,22 +198,24 @@ export function LeastToMostWidget() {
       <div
         style={{
           position: "relative",
-          minHeight: 320,
         }}
       >
         {/* Placeholder when idle */}
         {visibleSteps === 0 && !isRunning && (
           <div
-            className="rounded-lg flex items-center justify-center"
-            style={{
-              height: 120,
-              border: "1px dashed rgba(255,255,255,0.1)",
-              color: "#a1a1aa",
-              fontFamily: "var(--font-mono), monospace",
-              fontSize: "0.78rem",
-            }}
+            className="flex items-baseline gap-3 border-t py-3"
+            style={{ borderColor: "var(--line)" }}
           >
-            Press &ldquo;Solve&rdquo; to decompose and solve step by step
+            <span className="seq w-6 shrink-0">—</span>
+            <span
+              style={{
+                fontFamily: "var(--font-mono), monospace",
+                fontSize: "12px",
+                color: "var(--fg-3)",
+              }}
+            >
+              Press &ldquo;Solve&rdquo; to decompose and solve step by step
+            </span>
           </div>
         )}
 
@@ -267,7 +227,6 @@ export function LeastToMostWidget() {
               const colors = stepColor(sub.level);
               const badge = difficultyBadge(sub.difficulty);
               const isFinal = i === totalSteps - 1;
-              const borderLeftWidth = 3 + i;
 
               return (
                 <div key={`step-${i}`}>
@@ -282,19 +241,12 @@ export function LeastToMostWidget() {
                       transition:
                         "opacity 0.45s ease-out, transform 0.45s ease-out",
                       marginLeft: i * 24,
-                      background: isFinal && visible ? colors.bg : "rgba(255,255,255,0.03)",
+                      background: "transparent",
                       border: `1px solid ${
-                        isFinal && visible ? colors.border : "rgba(255,255,255,0.08)"
+                        isFinal && visible ? "var(--line-strong)" : "var(--line)"
                       }`,
-                      borderLeftWidth: borderLeftWidth,
-                      borderLeftColor: visible ? colors.text : "rgba(255,255,255,0.08)",
-                      borderLeftStyle: "solid",
                       borderRadius: 8,
-                      padding: "0.75rem 1rem",
-                      boxShadow:
-                        isFinal && visible
-                          ? `0 0 20px ${colors.glow}`
-                          : "none",
+                      padding: "12px 16px",
                       position: "relative",
                     }}
                   >
@@ -310,9 +262,7 @@ export function LeastToMostWidget() {
                       <span
                         style={{
                           fontFamily: "var(--font-mono), monospace",
-                          fontSize: "0.65rem",
-                          textTransform: "uppercase",
-                          letterSpacing: "0.06em",
+                          fontSize: "11px",
                           color: colors.text,
                           fontWeight: 600,
                         }}
@@ -321,27 +271,21 @@ export function LeastToMostWidget() {
                       </span>
                       <span
                         style={{
-                          display: "inline-block",
-                          fontSize: "0.58rem",
+                          fontSize: "11px",
                           fontFamily: "var(--font-mono), monospace",
-                          fontWeight: 600,
-                          letterSpacing: "0.06em",
-                          background: badge.bg,
                           color: badge.color,
-                          padding: "1px 7px",
-                          borderRadius: 999,
                         }}
                       >
-                        {sub.difficulty.toUpperCase()}
+                        {sub.difficulty}
                       </span>
                     </div>
 
                     {/* Sub-question */}
                     <p
                       style={{
-                        color: "#e4e4e7",
+                        color: "var(--fg)",
                         margin: "0 0 4px",
-                        fontSize: "0.85rem",
+                        fontSize: "13px",
                         lineHeight: 1.55,
                       }}
                     >
@@ -353,25 +297,17 @@ export function LeastToMostWidget() {
                       <div
                         className="animate-fade-in"
                         style={{
-                          display: "inline-flex",
-                          alignItems: "center",
+                          display: "flex",
+                          alignItems: "baseline",
                           gap: 6,
-                          marginTop: 4,
-                          background: isFinal
-                            ? "rgba(109,40,217,0.15)"
-                            : "rgba(255,255,255,0.04)",
-                          border: `1px solid ${
-                            isFinal ? colors.border : "rgba(255,255,255,0.06)"
-                          }`,
-                          borderRadius: 6,
-                          padding: "3px 10px",
+                          marginTop: 6,
                         }}
                       >
                         <span
                           style={{
                             fontFamily: "var(--font-mono), monospace",
-                            fontSize: "0.72rem",
-                            color: "#a1a1aa",
+                            fontSize: "12px",
+                            color: "var(--fg-2)",
                             fontWeight: 600,
                           }}
                         >
@@ -380,9 +316,8 @@ export function LeastToMostWidget() {
                         <span
                           style={{
                             fontFamily: "var(--font-mono), monospace",
-                            fontSize: "0.8rem",
-                            color: isFinal ? "#c4b5fd" : "#e4e4e7",
-                            fontWeight: isFinal ? 700 : 500,
+                            fontSize: "13px",
+                            color: isFinal ? "var(--accent)" : "var(--fg)",
                           }}
                         >
                           {sub.answer}
@@ -436,8 +371,8 @@ export function LeastToMostWidget() {
                           <span
                             style={{
                               fontFamily: "var(--font-mono), monospace",
-                              fontSize: "0.58rem",
-                              color: "#a1a1aa",
+                              fontSize: "11px",
+                              color: "var(--fg-2)",
                               opacity: 0.5,
                             }}
                           >
@@ -459,8 +394,8 @@ export function LeastToMostWidget() {
         <span
           style={{
             fontFamily: "var(--font-mono), monospace",
-            fontSize: "0.7rem",
-            color: "#a1a1aa",
+            fontSize: "12px",
+            color: "var(--fg-2)",
           }}
         >
           {visibleSteps}/{totalSteps}
@@ -481,8 +416,8 @@ export function LeastToMostWidget() {
               borderRadius: 2,
               background:
                 visibleSteps === totalSteps
-                  ? "#a78bfa"
-                  : "rgba(167,139,250,0.5)",
+                  ? "var(--accent-2)"
+                  : "rgba(125,148,171,0.5)",
               transition: "width 0.35s ease-out",
             }}
           />
@@ -506,8 +441,8 @@ export function LeastToMostWidget() {
               flex: 1,
               minWidth: 200,
               padding: "0.75rem 1rem",
-              background: "rgba(74,222,128,0.04)",
-              border: "1px solid rgba(74,222,128,0.15)",
+              background: "rgba(76,195,138,0.04)",
+              border: "1px solid rgba(76,195,138,0.15)",
               borderRadius: 8,
             }}
           >
@@ -515,10 +450,8 @@ export function LeastToMostWidget() {
               style={{
                 display: "block",
                 fontFamily: "var(--font-mono), monospace",
-                fontSize: "0.62rem",
-                textTransform: "uppercase",
-                letterSpacing: "0.06em",
-                color: "#4ade80",
+                fontSize: "11px",
+                color: "var(--positive)",
                 fontWeight: 600,
                 marginBottom: 4,
               }}
@@ -528,8 +461,8 @@ export function LeastToMostWidget() {
             <span
               style={{
                 fontFamily: "var(--font-mono), monospace",
-                fontSize: "0.85rem",
-                color: "#e4e4e7",
+                fontSize: "13px",
+                color: "var(--fg)",
                 fontWeight: 600,
               }}
             >
@@ -538,8 +471,8 @@ export function LeastToMostWidget() {
             <p
               style={{
                 margin: "6px 0 0",
-                fontSize: "0.75rem",
-                color: "#a1a1aa",
+                fontSize: "12px",
+                color: "var(--fg-2)",
                 lineHeight: 1.55,
               }}
             >
@@ -555,8 +488,8 @@ export function LeastToMostWidget() {
               flex: 1,
               minWidth: 200,
               padding: "0.75rem 1rem",
-              background: "rgba(244,63,94,0.04)",
-              border: "1px solid rgba(244,63,94,0.15)",
+              background: "rgba(229,72,77,0.04)",
+              border: "1px solid rgba(229,72,77,0.15)",
               borderRadius: 8,
             }}
           >
@@ -564,10 +497,8 @@ export function LeastToMostWidget() {
               style={{
                 display: "block",
                 fontFamily: "var(--font-mono), monospace",
-                fontSize: "0.62rem",
-                textTransform: "uppercase",
-                letterSpacing: "0.06em",
-                color: "#f43f5e",
+                fontSize: "11px",
+                color: "var(--negative)",
                 fontWeight: 600,
                 marginBottom: 4,
               }}
@@ -577,8 +508,8 @@ export function LeastToMostWidget() {
             <span
               style={{
                 fontFamily: "var(--font-mono), monospace",
-                fontSize: "0.85rem",
-                color: "#e4e4e7",
+                fontSize: "13px",
+                color: "var(--fg)",
                 fontWeight: 600,
               }}
             >
@@ -587,8 +518,8 @@ export function LeastToMostWidget() {
             <p
               style={{
                 margin: "6px 0 0",
-                fontSize: "0.75rem",
-                color: "#a1a1aa",
+                fontSize: "12px",
+                color: "var(--fg-2)",
                 lineHeight: 1.55,
               }}
             >

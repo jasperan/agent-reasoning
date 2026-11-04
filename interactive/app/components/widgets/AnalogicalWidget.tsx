@@ -39,7 +39,7 @@ const ANALOGIES: Analogy[] = [
     title: "Circulatory System",
     description:
       "Blood vessels branch from arteries to capillaries for efficient distribution to every cell",
-    color: "#f43f5e",
+    color: "var(--fg-2)",
     relevance: 0.92,
   },
   {
@@ -48,7 +48,7 @@ const ANALOGIES: Analogy[] = [
     title: "Network Routing",
     description:
       "Packets find optimal paths via routing tables and load balancing across network topology",
-    color: "#22d3ee",
+    color: "var(--fg-2)",
     relevance: 0.78,
   },
   {
@@ -57,7 +57,7 @@ const ANALOGIES: Analogy[] = [
     title: "Ant Colonies",
     description:
       "Pheromone trails create self-optimizing paths to food sources through emergent behavior",
-    color: "#4ade80",
+    color: "var(--fg-2)",
     relevance: 0.85,
   },
 ];
@@ -74,12 +74,12 @@ const MAPPINGS: Mapping[] = [
 /* ------------------------------------------------------------------ */
 
 const MONO = "var(--font-mono), monospace";
-const YELLOW = "#facc15";
-const YELLOW_DIM = "rgba(250,204,21,0.5)";
+const YELLOW = "var(--accent)";
+const YELLOW_DIM = "rgba(224,162,83,0.5)";
 const BG_SUBTLE = "rgba(255,255,255,0.03)";
 const BORDER = "rgba(255,255,255,0.08)";
-const TEXT = "#e4e4e7";
-const MUTED = "#a1a1aa";
+const TEXT = "var(--fg)";
+const MUTED = "var(--fg-2)";
 
 type Phase = "idle" | "structure" | "analogies" | "transfer" | "done";
 
@@ -264,8 +264,7 @@ export function AnalogicalWidget() {
   const isRunning = phase !== "idle" && phase !== "done";
 
   return (
-    <div className="widget-container s6">
-      <div className="widget-label">Interactive &middot; Analogical Reasoning</div>
+    <div className="widget-shell">
 
       {/* ---- Problem statement ---- */}
       <div
@@ -279,15 +278,13 @@ export function AnalogicalWidget() {
           className="block mb-1"
           style={{
             fontFamily: MONO,
-            fontSize: "0.7rem",
-            textTransform: "uppercase",
-            letterSpacing: "0.08em",
+            fontSize: "12px",
             color: MUTED,
           }}
         >
           Novel Problem
         </span>
-        <p style={{ color: TEXT, margin: 0, lineHeight: 1.7, fontSize: "0.95rem" }}>
+        <p style={{ color: TEXT, margin: 0, lineHeight: 1.7, fontSize: "14px" }}>
           How can we design a more efficient package delivery network for a city?
         </p>
       </div>
@@ -299,51 +296,30 @@ export function AnalogicalWidget() {
             const active = isPhaseActive(p);
             const current = isCurrentPhase(p);
             return (
-              <div
-                key={p}
-                style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: "0.4rem",
-                  padding: "0.25rem 0.65rem",
-                  borderRadius: 20,
-                  fontFamily: MONO,
-                  fontSize: "0.68rem",
-                  letterSpacing: "0.04em",
-                  border: `1px solid ${
-                    current
-                      ? "rgba(250,204,21,0.4)"
-                      : active
-                      ? "rgba(250,204,21,0.2)"
-                      : BORDER
-                  }`,
-                  background: current
-                    ? "rgba(250,204,21,0.1)"
-                    : "transparent",
-                  color: active ? YELLOW : MUTED,
-                  transition: "all 0.3s",
-                }}
-              >
+              <span key={p} className="flex items-baseline gap-2">
+                {i > 0 && (
+                  <span style={{ color: "var(--fg-4)", marginRight: 8 }}>·</span>
+                )}
+                <span
+                  className="seq"
+                  style={{ color: current ? "var(--accent)" : "var(--fg-4)" }}
+                >
+                  {String(i + 1).padStart(2, "0")}
+                </span>
                 <span
                   style={{
-                    display: "inline-flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    width: 18,
-                    height: 18,
-                    borderRadius: "50%",
-                    background: active
-                      ? "rgba(250,204,21,0.2)"
-                      : "rgba(255,255,255,0.06)",
-                    fontSize: "0.62rem",
-                    fontWeight: 700,
-                    color: active ? YELLOW : MUTED,
+                    fontFamily: MONO,
+                    fontSize: "12px",
+                    color: current
+                      ? "var(--accent)"
+                      : active
+                      ? "var(--fg-2)"
+                      : "var(--fg-4)",
                   }}
                 >
-                  {i + 1}
+                  {phaseLabels[i]}
                 </span>
-                {phaseLabels[i]}
-              </div>
+              </span>
             );
           })}
         </div>
@@ -356,11 +332,8 @@ export function AnalogicalWidget() {
           onClick={findAnalogies}
           disabled={isRunning}
           style={{
-            background: isRunning ? "transparent" : "rgba(250,204,21,0.12)",
-            borderColor: isRunning
-              ? BORDER
-              : "rgba(250,204,21,0.35)",
-            color: isRunning ? MUTED : YELLOW,
+            borderColor: isRunning ? BORDER : "var(--accent)",
+            color: isRunning ? MUTED : "var(--accent)",
             cursor: isRunning ? "not-allowed" : "pointer",
           }}
         >
@@ -379,9 +352,7 @@ export function AnalogicalWidget() {
             className="block mb-3"
             style={{
               fontFamily: MONO,
-              fontSize: "0.7rem",
-              textTransform: "uppercase",
-              letterSpacing: "0.08em",
+              fontSize: "12px",
               color: YELLOW,
               fontWeight: 600,
             }}
@@ -407,10 +378,10 @@ export function AnalogicalWidget() {
                     transition:
                       "opacity 0.4s ease-out, transform 0.4s ease-out",
                     background: visible
-                      ? "rgba(250,204,21,0.05)"
+                      ? "rgba(224,162,83,0.05)"
                       : BG_SUBTLE,
                     border: `1px solid ${
-                      visible ? "rgba(250,204,21,0.2)" : BORDER
+                      visible ? "rgba(224,162,83,0.2)" : BORDER
                     }`,
                     borderRadius: 8,
                     padding: "0.65rem 0.75rem",
@@ -419,7 +390,7 @@ export function AnalogicalWidget() {
                   <span
                     style={{
                       fontFamily: MONO,
-                      fontSize: "0.72rem",
+                      fontSize: "12px",
                       fontWeight: 700,
                       color: visible ? YELLOW : MUTED,
                     }}
@@ -430,7 +401,7 @@ export function AnalogicalWidget() {
                     style={{
                       color: MUTED,
                       margin: "0.25rem 0 0",
-                      fontSize: "0.78rem",
+                      fontSize: "12px",
                       lineHeight: 1.5,
                     }}
                   >
@@ -452,9 +423,7 @@ export function AnalogicalWidget() {
             className="block mb-3"
             style={{
               fontFamily: MONO,
-              fontSize: "0.7rem",
-              textTransform: "uppercase",
-              letterSpacing: "0.08em",
+              fontSize: "12px",
               color: YELLOW,
               fontWeight: 600,
             }}
@@ -477,48 +446,32 @@ export function AnalogicalWidget() {
                   className={visible ? "animate-fade-in" : ""}
                   style={{
                     opacity: visible ? 1 : 0,
-                    transform: visible ? "translateY(0)" : "translateY(12px)",
+                    transform: visible ? "none" : "translateY(6px)",
                     transition:
-                      "opacity 0.5s ease-out, transform 0.5s ease-out, box-shadow 0.5s ease-out",
-                    background: isBest
-                      ? `rgba(${hexToRgb(analogy.color)},0.06)`
-                      : BG_SUBTLE,
+                      "opacity 240ms var(--ease), transform 240ms var(--ease), border-color 240ms var(--ease)",
+                    background: isBest ? "rgba(224,162,83,0.04)" : "transparent",
                     border: `1px solid ${
-                      isBest
-                        ? `rgba(${hexToRgb(analogy.color)},0.35)`
-                        : BORDER
-                    }`,
-                    borderTop: `3px solid ${
-                      visible ? analogy.color : "transparent"
+                      isBest ? "var(--accent)" : BORDER
                     }`,
                     borderRadius: 8,
-                    padding: "0.85rem 0.9rem",
+                    padding: "12px 14px",
                     position: "relative",
-                    boxShadow: isBest
-                      ? `0 0 24px rgba(${hexToRgb(analogy.color)},0.15)`
-                      : "none",
                   }}
                 >
-                  {/* Best badge */}
+                  {/* Best match marker */}
                   {isBest && (
                     <span
                       className="animate-fade-in"
                       style={{
                         position: "absolute",
-                        top: 8,
-                        right: 8,
+                        top: 12,
+                        right: 14,
                         fontFamily: MONO,
-                        fontSize: "0.58rem",
-                        textTransform: "uppercase",
-                        letterSpacing: "0.06em",
-                        background: `rgba(${hexToRgb(analogy.color)},0.15)`,
-                        color: analogy.color,
-                        padding: "0.15rem 0.45rem",
-                        borderRadius: 10,
-                        fontWeight: 700,
+                        fontSize: "11px",
+                        color: "var(--accent)",
                       }}
                     >
-                      Best Match
+                      Best match
                     </span>
                   )}
 
@@ -541,7 +494,7 @@ export function AnalogicalWidget() {
                       >
                         <path
                           d={analogy.icon}
-                          stroke={analogy.color}
+                          stroke="var(--fg-2)"
                           strokeWidth="1.3"
                           strokeLinecap="round"
                           strokeLinejoin="round"
@@ -552,11 +505,8 @@ export function AnalogicalWidget() {
                     <span
                       style={{
                         fontFamily: MONO,
-                        fontSize: "0.65rem",
-                        textTransform: "uppercase",
-                        letterSpacing: "0.06em",
-                        color: analogy.color,
-                        fontWeight: 700,
+                        fontSize: "11px",
+                        color: "var(--fg-3)",
                       }}
                     >
                       {analogy.domain}
@@ -566,11 +516,10 @@ export function AnalogicalWidget() {
                   {/* Title */}
                   <p
                     style={{
-                      fontFamily: MONO,
-                      fontSize: "0.85rem",
-                      fontWeight: 600,
+                      fontSize: "14px",
+                      fontWeight: 500,
                       color: TEXT,
-                      margin: "0 0 0.3rem",
+                      margin: "0 0 4px",
                     }}
                   >
                     {analogy.title}
@@ -580,9 +529,9 @@ export function AnalogicalWidget() {
                   <p
                     style={{
                       color: MUTED,
-                      margin: "0 0 0.65rem",
-                      fontSize: "0.8rem",
-                      lineHeight: 1.55,
+                      margin: "0 0 12px",
+                      fontSize: "12px",
+                      lineHeight: 1.5,
                     }}
                   >
                     {analogy.description}
@@ -601,10 +550,8 @@ export function AnalogicalWidget() {
                       <span
                         style={{
                           fontFamily: MONO,
-                          fontSize: "0.62rem",
-                          color: MUTED,
-                          textTransform: "uppercase",
-                          letterSpacing: "0.04em",
+                          fontSize: "11px",
+                          color: "var(--fg-3)",
                         }}
                       >
                         Relevance
@@ -612,9 +559,9 @@ export function AnalogicalWidget() {
                       <span
                         style={{
                           fontFamily: MONO,
-                          fontSize: "0.68rem",
-                          color: analogy.color,
-                          fontWeight: 600,
+                          fontSize: "11px",
+                          color: "var(--fg)",
+                          fontVariantNumeric: "tabular-nums",
                         }}
                       >
                         {visible
@@ -624,8 +571,8 @@ export function AnalogicalWidget() {
                     </div>
                     <div
                       style={{
-                        height: 5,
-                        borderRadius: 3,
+                        height: 4,
+                        borderRadius: 2,
                         background: "rgba(255,255,255,0.06)",
                         overflow: "hidden",
                       }}
@@ -636,9 +583,11 @@ export function AnalogicalWidget() {
                             ? `${analogy.relevance * 100}%`
                             : "0%",
                           height: "100%",
-                          borderRadius: 3,
-                          background: `linear-gradient(90deg, ${analogy.color}, rgba(${hexToRgb(analogy.color)},0.4))`,
-                          transition: "width 0.7s ease-out",
+                          borderRadius: 2,
+                          background: isBest
+                            ? "var(--accent)"
+                            : "var(--fg-3)",
+                          transition: "width 400ms var(--ease)",
                         }}
                       />
                     </div>
@@ -657,9 +606,7 @@ export function AnalogicalWidget() {
             className="block mb-3"
             style={{
               fontFamily: MONO,
-              fontSize: "0.7rem",
-              textTransform: "uppercase",
-              letterSpacing: "0.08em",
+              fontSize: "12px",
               color: YELLOW,
               fontWeight: 600,
             }}
@@ -684,10 +631,8 @@ export function AnalogicalWidget() {
             <div
               style={{
                 fontFamily: MONO,
-                fontSize: "0.65rem",
-                textTransform: "uppercase",
-                letterSpacing: "0.06em",
-                color: "#f43f5e",
+                fontSize: "11px",
+                color: "var(--negative)",
                 fontWeight: 700,
                 marginBottom: "0.35rem",
                 textAlign: "center",
@@ -699,9 +644,7 @@ export function AnalogicalWidget() {
             <div
               style={{
                 fontFamily: MONO,
-                fontSize: "0.65rem",
-                textTransform: "uppercase",
-                letterSpacing: "0.06em",
+                fontSize: "11px",
                 color: YELLOW,
                 fontWeight: 700,
                 marginBottom: "0.35rem",
@@ -731,7 +674,7 @@ export function AnalogicalWidget() {
                     <path
                       key={`line-${i}`}
                       d={`M ${c.x1} ${c.y1} C ${midX} ${c.y1}, ${midX} ${c.y2}, ${c.x2} ${c.y2}`}
-                      stroke="rgba(250,204,21,0.35)"
+                      stroke="rgba(224,162,83,0.35)"
                       strokeWidth="1.5"
                       fill="none"
                       strokeDasharray="4 3"
@@ -768,12 +711,12 @@ export function AnalogicalWidget() {
                         : "translateX(-10px)",
                       transition:
                         "opacity 0.4s ease-out, transform 0.4s ease-out",
-                      background: "rgba(244,63,94,0.06)",
-                      border: "1px solid rgba(244,63,94,0.2)",
+                      background: "rgba(229,72,77,0.06)",
+                      border: "1px solid rgba(229,72,77,0.2)",
                       borderRadius: 6,
                       padding: "0.5rem 0.7rem",
                       fontFamily: MONO,
-                      fontSize: "0.8rem",
+                      fontSize: "13px",
                       color: TEXT,
                       textAlign: "center",
                       position: "relative",
@@ -834,12 +777,12 @@ export function AnalogicalWidget() {
                         : "translateX(10px)",
                       transition:
                         "opacity 0.4s ease-out, transform 0.4s ease-out",
-                      background: "rgba(250,204,21,0.06)",
-                      border: "1px solid rgba(250,204,21,0.2)",
+                      background: "rgba(224,162,83,0.06)",
+                      border: "1px solid rgba(224,162,83,0.2)",
                       borderRadius: 6,
                       padding: "0.5rem 0.7rem",
                       fontFamily: MONO,
-                      fontSize: "0.8rem",
+                      fontSize: "13px",
                       color: TEXT,
                       textAlign: "center",
                       position: "relative",
@@ -858,16 +801,19 @@ export function AnalogicalWidget() {
       {/* ---- Placeholder when idle ---- */}
       {phase === "idle" && (
         <div
-          className="rounded-lg flex items-center justify-center"
-          style={{
-            height: 100,
-            border: "1px dashed rgba(255,255,255,0.1)",
-            color: MUTED,
-            fontFamily: MONO,
-            fontSize: "0.78rem",
-          }}
+          className="flex items-baseline gap-3 border-t py-3"
+          style={{ borderColor: "var(--line)" }}
         >
-          Press &ldquo;Find Analogies&rdquo; to begin
+          <span className="seq w-6 shrink-0">—</span>
+          <span
+            style={{
+              fontFamily: "var(--font-mono), monospace",
+              fontSize: "12px",
+              color: "var(--fg-3)",
+            }}
+          >
+            Press &ldquo;Find Analogies&rdquo; to begin
+          </span>
         </div>
       )}
 
@@ -877,11 +823,10 @@ export function AnalogicalWidget() {
           className="animate-fade-in"
           style={{
             marginTop: "1.25rem",
-            background: "rgba(250,204,21,0.05)",
-            border: "1px solid rgba(250,204,21,0.2)",
+            background: "rgba(224,162,83,0.05)",
+            border: "1px solid rgba(224,162,83,0.2)",
             borderRadius: 10,
             padding: "0.85rem 1rem",
-            boxShadow: "0 0 20px rgba(250,204,21,0.06)",
           }}
         >
           <div
@@ -915,9 +860,7 @@ export function AnalogicalWidget() {
             <span
               style={{
                 fontFamily: MONO,
-                fontSize: "0.68rem",
-                textTransform: "uppercase",
-                letterSpacing: "0.06em",
+                fontSize: "11px",
                 color: YELLOW,
                 fontWeight: 700,
               }}
@@ -927,9 +870,9 @@ export function AnalogicalWidget() {
           </div>
           <p
             style={{
-              color: "#b4b4bc",
+              color: "var(--fg-2)",
               margin: 0,
-              fontSize: "0.82rem",
+              fontSize: "13px",
               lineHeight: 1.7,
             }}
           >
@@ -946,7 +889,7 @@ export function AnalogicalWidget() {
         <span
           style={{
             fontFamily: MONO,
-            fontSize: "0.7rem",
+            fontSize: "12px",
             color: MUTED,
           }}
         >
@@ -997,8 +940,3 @@ export function AnalogicalWidget() {
 /*  Utility: hex color to "r,g,b" string                               */
 /* ------------------------------------------------------------------ */
 
-function hexToRgb(hex: string): string {
-  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-  if (!result) return "255,255,255";
-  return `${parseInt(result[1], 16)},${parseInt(result[2], 16)},${parseInt(result[3], 16)}`;
-}

@@ -174,27 +174,27 @@ const TYPE_META: Record<
   { label: string; color: string; bg: string; swimlane: string }
 > = {
   thought: {
-    label: "THOUGHT",
-    color: "#22d3ee",
-    bg: "rgba(34,211,238,0.12)",
+    label: "Thought",
+    color: "var(--accent-2)",
+    bg: "rgba(125,148,171,0.12)",
     swimlane: "swimlane-thought",
   },
   action: {
-    label: "ACTION",
-    color: "#f97316",
-    bg: "rgba(249,115,22,0.12)",
+    label: "Action",
+    color: "var(--accent)",
+    bg: "rgba(224,162,83,0.12)",
     swimlane: "swimlane-action",
   },
   observation: {
-    label: "OBSERVATION",
-    color: "#4ade80",
-    bg: "rgba(74,222,128,0.12)",
+    label: "Observation",
+    color: "var(--positive)",
+    bg: "rgba(76,195,138,0.12)",
     swimlane: "swimlane-observation",
   },
   answer: {
-    label: "FINAL ANSWER",
-    color: "#a78bfa",
-    bg: "rgba(167,139,250,0.12)",
+    label: "Final answer",
+    color: "var(--accent-2)",
+    bg: "rgba(125,148,171,0.12)",
     swimlane: "",
   },
 };
@@ -299,8 +299,8 @@ export function ReActWidget() {
       <span
         style={{
           fontFamily: "var(--font-mono, monospace)",
-          fontSize: "0.7rem",
-          color: "#a1a1aa",
+          fontSize: "12px",
+          color: "var(--fg-2)",
           marginRight: "0.25rem",
           alignSelf: "center",
         }}
@@ -312,12 +312,11 @@ export function ReActWidget() {
           key={t}
           style={{
             fontFamily: "var(--font-mono, monospace)",
-            fontSize: "0.7rem",
-            padding: "0.2rem 0.55rem",
-            borderRadius: "9999px",
-            background: "rgba(249,115,22,0.12)",
-            color: "#f97316",
-            border: "1px solid rgba(249,115,22,0.25)",
+            fontSize: "12px",
+            padding: "2px 8px",
+            borderRadius: "4px",
+            color: "var(--fg-2)",
+            border: "1px solid rgba(255,255,255,0.1)",
           }}
         >
           {t}
@@ -341,9 +340,9 @@ export function ReActWidget() {
           animationDelay: `${index * 0.05}s`,
           ...(isAnswer
             ? {
-                borderLeft: "3px solid #a78bfa",
+                borderLeft: "3px solid var(--accent-2)",
                 boxShadow:
-                  "0 0 12px rgba(167,139,250,0.15), 0 0 4px rgba(167,139,250,0.1)",
+                  "0 0 12px rgba(125,148,171,0.15), 0 0 4px rgba(125,148,171,0.1)",
               }
             : {}),
         }}
@@ -360,12 +359,7 @@ export function ReActWidget() {
           <span
             style={{
               fontFamily: "var(--font-mono, monospace)",
-              fontSize: "0.6rem",
-              fontWeight: 700,
-              letterSpacing: "0.08em",
-              padding: "0.15rem 0.5rem",
-              borderRadius: "4px",
-              background: meta.bg,
+              fontSize: "11px",
               color: meta.color,
             }}
           >
@@ -375,11 +369,8 @@ export function ReActWidget() {
             <span
               style={{
                 fontFamily: "var(--font-mono, monospace)",
-                fontSize: "0.6rem",
-                padding: "0.15rem 0.5rem",
-                borderRadius: "4px",
-                background: "rgba(249,115,22,0.18)",
-                color: "#fb923c",
+                fontSize: "11px",
+                color: "var(--fg-3)",
               }}
             >
               {step.tool}
@@ -392,24 +383,24 @@ export function ReActWidget() {
           <div
             style={{
               fontFamily: "var(--font-mono, monospace)",
-              fontSize: "0.82rem",
-              color: "#e4e4e7",
+              fontSize: "13px",
+              color: "var(--fg)",
               lineHeight: 1.5,
             }}
           >
-            <span style={{ color: "#a1a1aa" }}>Action: </span>
-            <span style={{ color: "#f97316" }}>{step.tool}</span>
-            <span style={{ color: "#a1a1aa" }}>[</span>
-            <span style={{ color: "#e4e4e7" }}>
+            <span style={{ color: "var(--fg-2)" }}>Action: </span>
+            <span style={{ color: "var(--accent)" }}>{step.tool}</span>
+            <span style={{ color: "var(--fg-2)" }}>[</span>
+            <span style={{ color: "var(--fg)" }}>
               &quot;{step.toolInput}&quot;
             </span>
-            <span style={{ color: "#a1a1aa" }}>]</span>
+            <span style={{ color: "var(--fg-2)" }}>]</span>
           </div>
         ) : (
           <p
             style={{
-              fontSize: "0.85rem",
-              color: isAnswer ? "#e4e4e7" : "#b4b4bc",
+              fontSize: "13px",
+              color: isAnswer ? "var(--fg)" : "var(--fg-2)",
               lineHeight: 1.6,
               margin: 0,
               ...(isAnswer ? { fontWeight: 500 } : {}),
@@ -423,10 +414,7 @@ export function ReActWidget() {
   };
 
   return (
-    <div className="widget-container s2">
-      <div className="widget-label">
-        Interactive &middot; ReAct (Reason + Act)
-      </div>
+    <div className="widget-shell">
 
       {/* ---- Query selector tabs ---- */}
       <div
@@ -454,8 +442,8 @@ export function ReActWidget() {
       <div
         style={{
           fontFamily: "var(--font-mono, monospace)",
-          fontSize: "0.85rem",
-          color: "#e4e4e7",
+          fontSize: "13px",
+          color: "var(--fg)",
           background: "rgba(0,0,0,0.4)",
           border: "1px solid rgba(255,255,255,0.08)",
           borderRadius: "8px",
@@ -463,7 +451,7 @@ export function ReActWidget() {
           marginBottom: "1rem",
         }}
       >
-        <span style={{ color: "#a1a1aa" }}>Query: </span>
+        <span style={{ color: "var(--fg-2)" }}>Query: </span>
         {example.query}
       </div>
 
@@ -494,8 +482,8 @@ export function ReActWidget() {
         <span
           style={{
             fontFamily: "var(--font-mono, monospace)",
-            fontSize: "0.72rem",
-            color: "#a1a1aa",
+            fontSize: "12px",
+            color: "var(--fg-2)",
             marginLeft: "auto",
           }}
         >
@@ -517,7 +505,7 @@ export function ReActWidget() {
           style={{
             height: "100%",
             width: `${(visibleCount / totalSteps) * 100}%`,
-            background: "linear-gradient(90deg, #22d3ee, #4ade80)",
+            background: "var(--accent)",
             borderRadius: "2px",
             transition: "width 0.4s ease-out",
           }}
@@ -534,23 +522,24 @@ export function ReActWidget() {
           maxHeight: "420px",
           overflowY: "auto",
           paddingRight: "0.25rem",
-          minHeight: "80px",
         }}
         className="scrollbar-hide"
       >
         {visibleCount === 0 && (
           <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              height: "80px",
-              color: "#a1a1aa",
-              fontFamily: "var(--font-mono, monospace)",
-              fontSize: "0.78rem",
-            }}
+            className="flex items-baseline gap-3 py-3"
+            style={{ borderColor: "var(--line)" }}
           >
-            Press &quot;Run ReAct&quot; to begin
+            <span className="seq w-6 shrink-0">&mdash;</span>
+            <span
+              style={{
+                fontFamily: "var(--font-mono, monospace)",
+                fontSize: "12px",
+                color: "var(--fg-3)",
+              }}
+            >
+              Press &quot;Run ReAct&quot; to begin
+            </span>
           </div>
         )}
         {example.steps.slice(0, visibleCount).map((step, i) =>
@@ -589,8 +578,8 @@ export function ReActWidget() {
             <span
               style={{
                 fontFamily: "var(--font-mono, monospace)",
-                fontSize: "0.65rem",
-                color: "#a1a1aa",
+                fontSize: "11px",
+                color: "var(--fg-2)",
                 textTransform: "capitalize",
               }}
             >
@@ -604,7 +593,7 @@ export function ReActWidget() {
               width: "10px",
               height: "10px",
               borderRadius: "2px",
-              background: "#a78bfa",
+              background: "var(--accent-2)",
               display: "inline-block",
               flexShrink: 0,
             }}
@@ -612,8 +601,8 @@ export function ReActWidget() {
           <span
             style={{
               fontFamily: "var(--font-mono, monospace)",
-              fontSize: "0.65rem",
-              color: "#a1a1aa",
+              fontSize: "11px",
+              color: "var(--fg-2)",
             }}
           >
             Final answer

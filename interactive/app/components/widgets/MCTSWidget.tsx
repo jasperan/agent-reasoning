@@ -459,10 +459,10 @@ export function MCTSWidget() {
   /* ---------------------------------------------------------------- */
 
   const phaseBadges: { key: MCTSPhase; label: string; color: string }[] = [
-    { key: "selection", label: "Selection", color: "#22d3ee" },
-    { key: "expansion", label: "Expansion", color: "#facc15" },
-    { key: "simulation", label: "Simulation", color: "#a78bfa" },
-    { key: "backpropagation", label: "Backprop", color: "#4ade80" },
+    { key: "selection", label: "Selection", color: "var(--accent-2)" },
+    { key: "expansion", label: "Expansion", color: "var(--accent)" },
+    { key: "simulation", label: "Simulation", color: "var(--accent-2)" },
+    { key: "backpropagation", label: "Backprop", color: "var(--positive)" },
   ];
 
   /* ---------------------------------------------------------------- */
@@ -473,24 +473,23 @@ export function MCTSWidget() {
   const backpropSet = useMemo(() => new Set(backpropIds), [backpropIds]);
 
   return (
-    <div className="widget-container s6">
-      <div className="widget-label">Interactive &middot; Monte Carlo Tree Search</div>
+    <div className="widget-shell">
 
       {/* Problem context */}
       <div
         style={{
-          background: "rgba(250,204,21,0.06)",
-          border: "1px solid rgba(250,204,21,0.15)",
+          background: "rgba(224,162,83,0.06)",
+          border: "1px solid rgba(224,162,83,0.15)",
           borderRadius: 8,
           padding: "0.75rem 1rem",
           marginBottom: "1rem",
           fontFamily: "var(--font-mono), monospace",
-          fontSize: "0.8rem",
-          color: "#e4e4e7",
+          fontSize: "13px",
+          color: "var(--fg)",
           lineHeight: 1.6,
         }}
       >
-        <span style={{ color: "#facc15", fontWeight: 600, marginRight: 6 }}>
+        <span style={{ color: "var(--accent)", fontWeight: 600, marginRight: 6 }}>
           Goal:
         </span>
         Planning the best move in a strategy game
@@ -512,17 +511,16 @@ export function MCTSWidget() {
               key={b.key}
               style={{
                 fontFamily: "var(--font-mono), monospace",
-                fontSize: "0.68rem",
+                fontSize: "11px",
                 fontWeight: 600,
-                letterSpacing: "0.04em",
                 padding: "3px 10px",
                 borderRadius: 6,
                 border: `1px solid ${isActive ? b.color : "rgba(255,255,255,0.08)"}`,
                 background: isActive
                   ? `${b.color}22`
                   : "rgba(255,255,255,0.03)",
-                color: isActive ? b.color : "#52525b",
-                transition: "all 0.3s",
+                color: isActive ? b.color : "var(--fg-3)",
+                transition: "background-color 140ms var(--ease), border-color 140ms var(--ease), color 140ms var(--ease),"
               }}
             >
               {b.label}
@@ -540,21 +538,21 @@ export function MCTSWidget() {
           padding: "0.6rem 1rem",
           marginBottom: "1rem",
           fontFamily: "var(--font-mono), monospace",
-          fontSize: "0.75rem",
-          color: "#a1a1aa",
+          fontSize: "12px",
+          color: "var(--fg-2)",
           lineHeight: 1.8,
           overflowX: "auto",
         }}
       >
         <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
-          <span style={{ color: "#e4e4e7", fontWeight: 600 }}>UCB1</span>
-          <span style={{ color: "#52525b" }}>=</span>
+          <span style={{ color: "var(--fg)", fontWeight: 600 }}>UCB1</span>
+          <span style={{ color: "var(--fg-3)" }}>=</span>
           <span
             style={{
               color:
                 selectedLeafForFormula && phase !== "idle"
-                  ? "#22d3ee"
-                  : "#a1a1aa",
+                  ? "var(--accent-2)"
+                  : "var(--fg-2)",
               transition: "color 0.3s",
             }}
           >
@@ -562,13 +560,13 @@ export function MCTSWidget() {
               ? selectedLeafForFormula.wins
               : "w"}
           </span>
-          <span style={{ color: "#52525b" }}>/</span>
+          <span style={{ color: "var(--fg-3)" }}>/</span>
           <span
             style={{
               color:
                 selectedLeafForFormula && phase !== "idle"
-                  ? "#22d3ee"
-                  : "#a1a1aa",
+                  ? "var(--accent-2)"
+                  : "var(--fg-2)",
               transition: "color 0.3s",
             }}
           >
@@ -576,24 +574,24 @@ export function MCTSWidget() {
               ? selectedLeafForFormula.visits
               : "n"}
           </span>
-          <span style={{ color: "#52525b" }}>+</span>
+          <span style={{ color: "var(--fg-3)" }}>+</span>
           <span
             style={{
-              color: "#facc15",
+              color: "var(--accent)",
               fontWeight: 600,
             }}
           >
             {explorationC.toFixed(3)}
           </span>
-          <span style={{ color: "#52525b" }}>*</span>
-          <span style={{ color: "#a1a1aa" }}>
+          <span style={{ color: "var(--fg-3)" }}>*</span>
+          <span style={{ color: "var(--fg-2)" }}>
             sqrt( ln(
             <span
               style={{
                 color:
                   selectedLeafForFormula && phase !== "idle"
-                    ? "#4ade80"
-                    : "#a1a1aa",
+                    ? "var(--positive)"
+                    : "var(--fg-2)",
                 transition: "color 0.3s",
               }}
             >
@@ -606,8 +604,8 @@ export function MCTSWidget() {
               style={{
                 color:
                   selectedLeafForFormula && phase !== "idle"
-                    ? "#22d3ee"
-                    : "#a1a1aa",
+                    ? "var(--accent-2)"
+                    : "var(--fg-2)",
                 transition: "color 0.3s",
               }}
             >
@@ -620,8 +618,8 @@ export function MCTSWidget() {
           </span>
           {selectedLeafForFormula && phase !== "idle" && (
             <>
-              <span style={{ color: "#52525b" }}>=</span>
-              <span style={{ color: "#e4e4e7", fontWeight: 600 }}>
+              <span style={{ color: "var(--fg-3)" }}>=</span>
+              <span style={{ color: "var(--fg)", fontWeight: 600 }}>
                 {ucb1Display(
                   selectedLeafForFormula.wins,
                   selectedLeafForFormula.visits,
@@ -690,13 +688,13 @@ export function MCTSWidget() {
         <span
           style={{
             fontFamily: "var(--font-mono), monospace",
-            fontSize: "0.75rem",
-            color: "#a1a1aa",
+            fontSize: "12px",
+            color: "var(--fg-2)",
             marginLeft: "auto",
           }}
         >
           Simulations:{" "}
-          <strong style={{ color: "#e4e4e7" }}>
+          <strong style={{ color: "var(--fg)" }}>
             {simCount}/{maxSims}
           </strong>
         </span>
@@ -710,8 +708,8 @@ export function MCTSWidget() {
           gap: 8,
           marginBottom: "1rem",
           fontFamily: "var(--font-mono), monospace",
-          fontSize: "0.72rem",
-          color: "#a1a1aa",
+          fontSize: "12px",
+          color: "var(--fg-2)",
         }}
       >
         <span>Exploration C</span>
@@ -723,9 +721,9 @@ export function MCTSWidget() {
           value={explorationC}
           onChange={(e) => setExplorationC(Number(e.target.value))}
           disabled={phase !== "idle"}
-          style={{ width: 120, accentColor: "#facc15" }}
+          style={{ width: 120, accentColor: "var(--accent)" }}
         />
-        <span style={{ color: "#facc15", fontWeight: 600, minWidth: 42 }}>
+        <span style={{ color: "var(--accent)", fontWeight: 600, minWidth: 42 }}>
           {explorationC.toFixed(3)}
         </span>
       </div>
@@ -759,22 +757,6 @@ export function MCTSWidget() {
                 .mcts-flash {
                   animation: mctsFlash 0.5s ease-in-out;
                 }
-                @keyframes mctsGlow {
-                  0% { filter: drop-shadow(0 0 0px #22d3ee); }
-                  50% { filter: drop-shadow(0 0 8px #22d3ee); }
-                  100% { filter: drop-shadow(0 0 4px #22d3ee); }
-                }
-                .mcts-selection-glow {
-                  animation: mctsGlow 0.8s ease-in-out infinite;
-                }
-                @keyframes mctsYellowGlow {
-                  0% { filter: drop-shadow(0 0 0px #facc15); }
-                  50% { filter: drop-shadow(0 0 10px #facc15); }
-                  100% { filter: drop-shadow(0 0 5px #facc15); }
-                }
-                .mcts-expand-glow {
-                  animation: mctsYellowGlow 0.6s ease-in-out;
-                }
                 @keyframes rolloutDash {
                   from { stroke-dashoffset: 20; }
                   to { stroke-dashoffset: 0; }
@@ -784,16 +766,6 @@ export function MCTSWidget() {
                 }
               `}</style>
 
-              {/* Glow filter for selection */}
-              <filter id="cyanGlow" x="-50%" y="-50%" width="200%" height="200%">
-                <feDropShadow dx="0" dy="0" stdDeviation="4" floodColor="#22d3ee" floodOpacity="0.6" />
-              </filter>
-              <filter id="yellowGlow" x="-50%" y="-50%" width="200%" height="200%">
-                <feDropShadow dx="0" dy="0" stdDeviation="5" floodColor="#facc15" floodOpacity="0.7" />
-              </filter>
-              <filter id="greenGlow" x="-50%" y="-50%" width="200%" height="200%">
-                <feDropShadow dx="0" dy="0" stdDeviation="4" floodColor="#4ade80" floodOpacity="0.6" />
-              </filter>
             </defs>
 
             {/* Edges */}
@@ -816,10 +788,10 @@ export function MCTSWidget() {
               let strokeW = 1;
 
               if (isBackprop) {
-                strokeColor = "#4ade80";
+                strokeColor = "var(--positive)";
                 strokeW = 3;
               } else if (isOnSelPath && (phase === "selection" || phase === "expansion" || phase === "simulation")) {
-                strokeColor = "#22d3ee";
+                strokeColor = "var(--accent-2)";
                 strokeW = 2.5;
               }
 
@@ -851,29 +823,25 @@ export function MCTSWidget() {
               let fillColor = "rgba(255,255,255,0.04)";
               let strokeColor = "rgba(255,255,255,0.15)";
               let strokeW = 1;
-              let filterAttr: string | undefined = undefined;
               let className = "";
 
               if (isFlashing) {
-                fillColor = "rgba(74,222,128,0.15)";
-                strokeColor = "#4ade80";
+                fillColor = "rgba(76,195,138,0.15)";
+                strokeColor = "var(--positive)";
                 strokeW = 2;
-                filterAttr = "url(#greenGlow)";
                 className = "mcts-flash";
               } else if (isExpanded && (phase === "expansion" || phase === "simulation")) {
-                fillColor = "rgba(250,204,21,0.12)";
-                strokeColor = "#facc15";
+                fillColor = "rgba(224,162,83,0.12)";
+                strokeColor = "var(--accent)";
                 strokeW = 2;
-                filterAttr = "url(#yellowGlow)";
                 className = "mcts-new-node";
               } else if (isOnSelPath && phase === "selection") {
-                fillColor = "rgba(34,211,238,0.1)";
-                strokeColor = "#22d3ee";
+                fillColor = "rgba(125,148,171,0.1)";
+                strokeColor = "var(--accent-2)";
                 strokeW = 2;
-                filterAttr = "url(#cyanGlow)";
               } else if (isOnSelPath && (phase === "expansion" || phase === "simulation" || phase === "backpropagation")) {
-                fillColor = "rgba(34,211,238,0.06)";
-                strokeColor = "#22d3ee";
+                fillColor = "rgba(125,148,171,0.06)";
+                strokeColor = "var(--accent-2)";
                 strokeW = 1.5;
               }
 
@@ -899,7 +867,6 @@ export function MCTSWidget() {
                     fill={fillColor}
                     stroke={strokeColor}
                     strokeWidth={strokeW}
-                    filter={filterAttr}
                     style={{ transition: "fill 0.3s, stroke 0.3s" }}
                   />
 
@@ -908,9 +875,9 @@ export function MCTSWidget() {
                     x={pos.x}
                     y={pos.y - nodeR - 6}
                     textAnchor="middle"
-                    fill="#a1a1aa"
+                    fill="var(--fg-2)"
                     fontFamily="var(--font-mono), monospace"
-                    fontSize={9}
+                    fontSize={11}
                     style={{ pointerEvents: "none" }}
                   >
                     {node.label}
@@ -922,7 +889,7 @@ export function MCTSWidget() {
                     y={pos.y + 1}
                     textAnchor="middle"
                     dominantBaseline="central"
-                    fill="#e4e4e7"
+                    fill="var(--fg)"
                     fontFamily="var(--font-mono), monospace"
                     fontSize={11}
                     fontWeight={600}
@@ -940,8 +907,8 @@ export function MCTSWidget() {
                       fill={
                         isOnSelPath &&
                         (phase === "selection" || phase === "expansion")
-                          ? "#22d3ee"
-                          : "#52525b"
+                          ? "var(--accent-2)"
+                          : "var(--fg-3)"
                       }
                       fontFamily="var(--font-mono), monospace"
                       fontSize={8.5}
@@ -966,7 +933,7 @@ export function MCTSWidget() {
                       x={pos.x}
                       y={pos.y + nodeR + 14}
                       textAnchor="middle"
-                      fill="#facc15"
+                      fill="var(--accent)"
                       fontFamily="var(--font-mono), monospace"
                       fontSize={8.5}
                       fontWeight={600}
@@ -994,7 +961,7 @@ export function MCTSWidget() {
                     y1={expandedPos.y + 28}
                     x2={expandedPos.x}
                     y2={rolloutEndY}
-                    stroke="#a78bfa"
+                    stroke="var(--accent-2)"
                     strokeWidth={2}
                     strokeDasharray="4 4"
                     className="mcts-rollout-line"
@@ -1011,19 +978,19 @@ export function MCTSWidget() {
                         rx={6}
                         fill={
                           rolloutResult
-                            ? "rgba(74,222,128,0.15)"
-                            : "rgba(248,113,113,0.15)"
+                            ? "rgba(76,195,138,0.15)"
+                            : "rgba(229,72,77,0.15)"
                         }
-                        stroke={rolloutResult ? "#4ade80" : "#f87171"}
+                        stroke={rolloutResult ? "var(--positive)" : "var(--negative)"}
                         strokeWidth={1}
                       />
                       <text
                         x={expandedPos.x}
                         y={rolloutEndY + 17}
                         textAnchor="middle"
-                        fill={rolloutResult ? "#4ade80" : "#f87171"}
+                        fill={rolloutResult ? "var(--positive)" : "var(--negative)"}
                         fontFamily="var(--font-mono), monospace"
-                        fontSize={10}
+                        fontSize={11}
                         fontWeight={700}
                       >
                         {rolloutResult ? "Win" : "Loss"}
@@ -1035,7 +1002,7 @@ export function MCTSWidget() {
                   <text
                     x={expandedPos.x + 30}
                     y={expandedPos.y + 55}
-                    fill="#a78bfa"
+                    fill="var(--accent-2)"
                     fontFamily="var(--font-mono), monospace"
                     fontSize={8.5}
                     style={{ pointerEvents: "none" }}
@@ -1053,8 +1020,8 @@ export function MCTSWidget() {
       <div
         style={{
           fontFamily: "var(--font-mono), monospace",
-          fontSize: "0.72rem",
-          color: "#a1a1aa",
+          fontSize: "12px",
+          color: "var(--fg-2)",
           marginBottom: "0.5rem",
           minHeight: 20,
         }}
@@ -1062,7 +1029,7 @@ export function MCTSWidget() {
         {phase === "idle" && simCount === 0 && (
           <span>
             Press{" "}
-            <strong style={{ color: "#e4e4e7" }}>Run Simulation</strong> to
+            <strong style={{ color: "var(--fg)" }}>Run Simulation</strong> to
             begin MCTS cycle
           </span>
         )}
@@ -1072,30 +1039,30 @@ export function MCTSWidget() {
           </span>
         )}
         {phase === "idle" && simCount >= maxSims && (
-          <span style={{ color: "#4ade80" }}>
+          <span style={{ color: "var(--positive)" }}>
             All {maxSims} simulations complete. Tree is fully explored.
           </span>
         )}
         {phase === "selection" && (
           <span>
-            <strong style={{ color: "#22d3ee" }}>Selection:</strong> Traversing
+            <strong style={{ color: "var(--accent-2)" }}>Selection:</strong> Traversing
             tree via UCB1 to find most promising leaf...
           </span>
         )}
         {phase === "expansion" && (
           <span>
-            <strong style={{ color: "#facc15" }}>Expansion:</strong> Adding new
+            <strong style={{ color: "var(--accent)" }}>Expansion:</strong> Adding new
             child node at the selected leaf...
           </span>
         )}
         {phase === "simulation" && (
           <span>
-            <strong style={{ color: "#a78bfa" }}>Simulation:</strong> Running
+            <strong style={{ color: "var(--accent-2)" }}>Simulation:</strong> Running
             random rollout from expanded node...{" "}
             {rolloutResult !== null && (
               <span
                 style={{
-                  color: rolloutResult ? "#4ade80" : "#f87171",
+                  color: rolloutResult ? "var(--positive)" : "var(--negative)",
                   fontWeight: 600,
                 }}
               >
@@ -1106,75 +1073,12 @@ export function MCTSWidget() {
         )}
         {phase === "backpropagation" && (
           <span>
-            <strong style={{ color: "#4ade80" }}>Backpropagation:</strong>{" "}
+            <strong style={{ color: "var(--positive)" }}>Backpropagation:</strong>{" "}
             Updating win/visit counts along the selected path...
           </span>
         )}
       </div>
 
-      {/* Legend */}
-      <div
-        style={{
-          display: "flex",
-          gap: "1rem",
-          marginTop: "0.5rem",
-          flexWrap: "wrap",
-          fontFamily: "var(--font-mono), monospace",
-          fontSize: "0.68rem",
-          color: "#a1a1aa",
-        }}
-      >
-        <span style={{ display: "flex", alignItems: "center", gap: 4 }}>
-          <span
-            style={{
-              width: 16,
-              height: 2,
-              background: "#22d3ee",
-              display: "inline-block",
-              borderRadius: 1,
-            }}
-          />
-          selection path
-        </span>
-        <span style={{ display: "flex", alignItems: "center", gap: 4 }}>
-          <span
-            style={{
-              width: 8,
-              height: 8,
-              borderRadius: "50%",
-              background: "rgba(250,204,21,0.3)",
-              border: "1px solid #facc15",
-              display: "inline-block",
-            }}
-          />
-          expanded
-        </span>
-        <span style={{ display: "flex", alignItems: "center", gap: 4 }}>
-          <span
-            style={{
-              width: 16,
-              height: 2,
-              background: "#a78bfa",
-              display: "inline-block",
-              borderRadius: 1,
-              borderBottom: "1px dashed #a78bfa",
-            }}
-          />
-          rollout
-        </span>
-        <span style={{ display: "flex", alignItems: "center", gap: 4 }}>
-          <span
-            style={{
-              width: 16,
-              height: 2,
-              background: "#4ade80",
-              display: "inline-block",
-              borderRadius: 1,
-            }}
-          />
-          backprop
-        </span>
-      </div>
     </div>
   );
 }

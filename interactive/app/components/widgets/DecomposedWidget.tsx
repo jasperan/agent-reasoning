@@ -48,22 +48,10 @@ const SYNTHESIS =
 /*  Status helpers                                                     */
 /* ------------------------------------------------------------------ */
 
-const STATUS_COLORS: Record<TaskStatus, { border: string; badge: string; badgeBg: string }> = {
-  pending: {
-    border: "rgba(161,161,170,0.35)",
-    badge: "#a1a1aa",
-    badgeBg: "rgba(161,161,170,0.12)",
-  },
-  running: {
-    border: "#a78bfa",
-    badge: "#a78bfa",
-    badgeBg: "rgba(167,139,250,0.15)",
-  },
-  complete: {
-    border: "#4ade80",
-    badge: "#4ade80",
-    badgeBg: "rgba(74,222,128,0.12)",
-  },
+const STATUS_COLORS: Record<TaskStatus, { badge: string }> = {
+  pending: { badge: "var(--fg-4)" },
+  running: { badge: "var(--accent)" },
+  complete: { badge: "var(--fg-2)" },
 };
 
 const STATUS_LABEL: Record<TaskStatus, string> = {
@@ -166,20 +154,14 @@ export function DecomposedWidget() {
 
   if (!mounted) {
     return (
-      <div className="widget-container s4">
-        <div className="widget-label">
-          Interactive &middot; Problem Decomposition
-        </div>
-        <div style={{ height: 200 }} />
+      <div className="widget-shell">
+        <div style={{ height: 160 }} />
       </div>
     );
   }
 
   return (
-    <div className="widget-container s4">
-      <div className="widget-label">
-        Interactive &middot; Problem Decomposition
-      </div>
+    <div className="widget-shell">
 
       {/* ---- Complex question ---- */}
       <div
@@ -195,16 +177,14 @@ export function DecomposedWidget() {
           style={{
             display: "block",
             fontFamily: "var(--font-mono), monospace",
-            fontSize: "0.7rem",
-            textTransform: "uppercase",
-            letterSpacing: "0.08em",
-            color: "#a1a1aa",
+            fontSize: "12px",
+            color: "var(--fg-2)",
             marginBottom: "0.35rem",
           }}
         >
           Complex Problem
         </span>
-        <p style={{ color: "#e4e4e7", margin: 0, lineHeight: 1.7 }}>
+        <p style={{ color: "var(--fg)", margin: 0, lineHeight: 1.7 }}>
           {QUESTION}
         </p>
       </div>
@@ -226,11 +206,11 @@ export function DecomposedWidget() {
           style={{
             background: isRunning
               ? "transparent"
-              : "rgba(167,139,250,0.12)",
+              : "rgba(125,148,171,0.12)",
             borderColor: isRunning
               ? "rgba(255,255,255,0.08)"
-              : "rgba(167,139,250,0.35)",
-            color: isRunning ? "#a1a1aa" : "#a78bfa",
+              : "rgba(125,148,171,0.35)",
+            color: isRunning ? "var(--fg-2)" : "var(--accent-2)",
             cursor: isRunning ? "not-allowed" : "pointer",
           }}
         >
@@ -245,8 +225,8 @@ export function DecomposedWidget() {
           <span
             style={{
               fontFamily: "var(--font-mono), monospace",
-              fontSize: "0.72rem",
-              color: "#a1a1aa",
+              fontSize: "12px",
+              color: "var(--fg-2)",
               marginLeft: "auto",
             }}
           >
@@ -273,8 +253,8 @@ export function DecomposedWidget() {
               borderRadius: 2,
               background:
                 completedCount === totalTasks
-                  ? "linear-gradient(90deg, #a78bfa, #c4b5fd)"
-                  : "rgba(167,139,250,0.6)",
+                  ? "linear-gradient(90deg, var(--accent-2), var(--accent-2))"
+                  : "rgba(125,148,171,0.6)",
               transition: "width 0.4s ease-out",
             }}
           />
@@ -301,19 +281,11 @@ export function DecomposedWidget() {
                 className="animate-slide-in"
                 style={{
                   animationDelay: `${i * 0.1}s`,
-                  background:
-                    status === "complete"
-                      ? "rgba(74,222,128,0.04)"
-                      : status === "running"
-                        ? "rgba(167,139,250,0.05)"
-                        : "rgba(255,255,255,0.02)",
-                  border: "1px solid rgba(255,255,255,0.08)",
-                  borderLeftWidth: 3,
-                  borderLeftColor: colors.border,
+                  background: "transparent",
+                  border: "1px solid var(--line)",
                   borderRadius: 8,
-                  padding: "0.75rem 1rem",
-                  transition:
-                    "background 0.3s ease, border-left-color 0.3s ease",
+                  padding: "12px 16px",
+                  transition: "border-color 200ms var(--ease)",
                 }}
               >
                 {/* Header: task number + description + badge */}
@@ -337,10 +309,8 @@ export function DecomposedWidget() {
                     <span
                       style={{
                         fontFamily: "var(--font-mono), monospace",
-                        fontSize: "0.68rem",
-                        fontWeight: 700,
-                        color: "#a78bfa",
-                        letterSpacing: "0.04em",
+                        fontSize: "11px",
+                        color: "var(--fg-3)",
                         flexShrink: 0,
                       }}
                     >
@@ -348,8 +318,8 @@ export function DecomposedWidget() {
                     </span>
                     <span
                       style={{
-                        fontSize: "0.85rem",
-                        color: "#e4e4e7",
+                        fontSize: "13px",
+                        color: "var(--fg)",
                         lineHeight: 1.5,
                       }}
                     >
@@ -361,13 +331,7 @@ export function DecomposedWidget() {
                   <span
                     style={{
                       fontFamily: "var(--font-mono), monospace",
-                      fontSize: "0.6rem",
-                      fontWeight: 600,
-                      letterSpacing: "0.06em",
-                      textTransform: "uppercase",
-                      padding: "0.15rem 0.5rem",
-                      borderRadius: "9999px",
-                      background: colors.badgeBg,
+                      fontSize: "11px",
                       color: colors.badge,
                       flexShrink: 0,
                       whiteSpace: "nowrap",
@@ -389,10 +353,8 @@ export function DecomposedWidget() {
                     <span
                       style={{
                         fontFamily: "var(--font-mono), monospace",
-                        fontSize: "0.65rem",
-                        color: "#a1a1aa",
-                        textTransform: "uppercase",
-                        letterSpacing: "0.06em",
+                        fontSize: "11px",
+                        color: "var(--fg-2)",
                       }}
                     >
                       Result
@@ -400,8 +362,8 @@ export function DecomposedWidget() {
                     <p
                       style={{
                         margin: "0.25rem 0 0",
-                        fontSize: "0.82rem",
-                        color: "#c4b5fd",
+                        fontSize: "13px",
+                        color: "var(--fg-2)",
                         lineHeight: 1.55,
                         fontFamily: "var(--font-mono), monospace",
                       }}
@@ -419,7 +381,7 @@ export function DecomposedWidget() {
                       height: 2,
                       borderRadius: 1,
                       overflow: "hidden",
-                      background: "rgba(167,139,250,0.15)",
+                      background: "rgba(255,255,255,0.06)",
                     }}
                   >
                     <div
@@ -427,7 +389,7 @@ export function DecomposedWidget() {
                         height: "100%",
                         width: "60%",
                         borderRadius: 1,
-                        background: "#a78bfa",
+                        background: "var(--accent)",
                         animation: "pulseBar 1.2s ease-in-out infinite",
                       }}
                     />
@@ -442,19 +404,19 @@ export function DecomposedWidget() {
       {/* ---- Placeholder when idle ---- */}
       {!showDecomposed && (
         <div
-          className="rounded-lg"
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            height: 80,
-            border: "1px dashed rgba(255,255,255,0.1)",
-            color: "#a1a1aa",
-            fontFamily: "var(--font-mono), monospace",
-            fontSize: "0.78rem",
-          }}
+          className="flex items-baseline gap-3 border-t py-3"
+          style={{ borderColor: "var(--line)" }}
         >
-          Press &ldquo;Decompose&rdquo; to break into sub-tasks
+          <span className="seq w-6 shrink-0">—</span>
+          <span
+            style={{
+              fontFamily: "var(--font-mono), monospace",
+              fontSize: "12px",
+              color: "var(--fg-3)",
+            }}
+          >
+            Press &ldquo;Decompose&rdquo; to break into sub-tasks
+          </span>
         </div>
       )}
 
@@ -463,24 +425,21 @@ export function DecomposedWidget() {
         <div
           className="animate-slide-in"
           style={{
-            background: "rgba(167,139,250,0.06)",
-            border: "1px solid rgba(167,139,250,0.25)",
+            background: "rgba(125,148,171,0.06)",
+            border: "1px solid rgba(125,148,171,0.25)",
             borderLeftWidth: 3,
-            borderLeftColor: "#a78bfa",
+            borderLeftColor: "var(--accent-2)",
             borderRadius: 8,
             padding: "0.85rem 1rem",
-            boxShadow: "0 0 18px rgba(167,139,250,0.12)",
           }}
         >
           <span
             style={{
               display: "block",
               fontFamily: "var(--font-mono), monospace",
-              fontSize: "0.68rem",
+              fontSize: "11px",
               fontWeight: 700,
-              textTransform: "uppercase",
-              letterSpacing: "0.08em",
-              color: "#a78bfa",
+              color: "var(--accent-2)",
               marginBottom: "0.45rem",
             }}
           >
@@ -489,8 +448,8 @@ export function DecomposedWidget() {
           <p
             style={{
               margin: 0,
-              fontSize: "0.85rem",
-              color: "#e4e4e7",
+              fontSize: "13px",
+              color: "var(--fg)",
               lineHeight: 1.65,
             }}
           >

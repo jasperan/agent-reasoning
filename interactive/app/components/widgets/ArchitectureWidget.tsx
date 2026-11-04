@@ -14,22 +14,22 @@ interface Strategy {
 }
 
 const STRATEGIES: Strategy[] = [
-  { key: "standard",           label: "Standard",           color: "#a1a1aa", description: "Direct generation (baseline)" },
-  { key: "cot",                label: "CoT",                color: "#22d3ee", description: "Chain-of-Thought reasoning" },
-  { key: "tot",                label: "ToT",                color: "#4ade80", description: "Tree of Thoughts exploration" },
-  { key: "react",              label: "ReAct",              color: "#f97316", description: "Reason + Act with tools" },
-  { key: "reflection",         label: "Reflection",         color: "#a78bfa", description: "Draft \u2192 Critique \u2192 Refine" },
-  { key: "consistency",        label: "Consistency",        color: "#f472b6", description: "Self-Consistency voting" },
-  { key: "decomposed",         label: "Decomposed",         color: "#facc15", description: "Problem decomposition" },
-  { key: "least_to_most",      label: "Least-to-Most",      color: "#2dd4bf", description: "Progressive subproblem solving" },
-  { key: "recursive",          label: "Recursive",          color: "#fb923c", description: "Recursive LM (RLM)" },
-  { key: "refinement",         label: "Refinement",         color: "#67e8f9", description: "Score-based iterative refinement" },
-  { key: "complex_refinement", label: "Complex Refine",     color: "#c084fc", description: "5-stage optimization pipeline" },
-  { key: "debate",             label: "Debate",             color: "#f43f5e", description: "Adversarial debate synthesis" },
-  { key: "mcts",               label: "MCTS",               color: "#34d399", description: "Monte Carlo Tree Search" },
-  { key: "analogical",         label: "Analogical",         color: "#fbbf24", description: "Reasoning by analogy" },
-  { key: "socratic",           label: "Socratic",           color: "#818cf8", description: "Question-driven discovery" },
-  { key: "meta",               label: "Meta",               color: "#e879f9", description: "Meta-cognitive orchestration" },
+  { key: "standard",           label: "Standard",           color: "var(--fg-2)", description: "Direct generation (baseline)" },
+  { key: "cot",                label: "CoT",                color: "var(--fg-2)", description: "Chain-of-Thought reasoning" },
+  { key: "tot",                label: "ToT",                color: "var(--fg-2)", description: "Tree of Thoughts exploration" },
+  { key: "react",              label: "ReAct",              color: "var(--fg-2)", description: "Reason + Act with tools" },
+  { key: "reflection",         label: "Reflection",         color: "var(--fg-2)", description: "Draft \u2192 Critique \u2192 Refine" },
+  { key: "consistency",        label: "Consistency",        color: "var(--fg-2)", description: "Self-Consistency voting" },
+  { key: "decomposed",         label: "Decomposed",         color: "var(--fg-2)", description: "Problem decomposition" },
+  { key: "least_to_most",      label: "Least-to-Most",      color: "var(--fg-2)", description: "Progressive subproblem solving" },
+  { key: "recursive",          label: "Recursive",          color: "var(--fg-2)", description: "Recursive LM (RLM)" },
+  { key: "refinement",         label: "Refinement",         color: "var(--fg-2)", description: "Score-based iterative refinement" },
+  { key: "complex_refinement", label: "Complex Refine",     color: "var(--fg-2)", description: "5-stage optimization pipeline" },
+  { key: "debate",             label: "Debate",             color: "var(--fg-2)", description: "Adversarial debate synthesis" },
+  { key: "mcts",               label: "MCTS",               color: "var(--fg-2)", description: "Monte Carlo Tree Search" },
+  { key: "analogical",         label: "Analogical",         color: "var(--fg-2)", description: "Reasoning by analogy" },
+  { key: "socratic",           label: "Socratic",           color: "var(--fg-2)", description: "Question-driven discovery" },
+  { key: "meta",               label: "Meta",               color: "var(--fg-2)", description: "Meta-cognitive orchestration" },
 ];
 
 const EXAMPLES = [
@@ -60,9 +60,7 @@ function parseModelStrategy(input: string): { baseModel: string; strategy: strin
 function monoLabel(color: string, mb?: number): React.CSSProperties {
   return {
     fontFamily: MONO,
-    fontSize: "0.7rem",
-    textTransform: "uppercase",
-    letterSpacing: "0.08em",
+    fontSize: "12px",
     color,
     fontWeight: 600,
     marginBottom: mb ?? 0,
@@ -96,7 +94,7 @@ export function ArchitectureWidget() {
   /* --- State ------------------------------------------------------ */
   const [input, setInput] = useState("gemma3:4b+cot");
   const [flowPhase, setFlowPhase] = useState<FlowPhase>("idle");
-  const [flowColor, setFlowColor] = useState("#22d3ee");
+  const [flowColor, setFlowColor] = useState("var(--accent-2)");
 
   const timersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
 
@@ -114,7 +112,7 @@ export function ArchitectureWidget() {
   /* --- Start flow animation -------------------------------------- */
   const startFlow = useCallback(() => {
     clearTimers();
-    const color = matchedStrategy?.color ?? "#a1a1aa";
+    const color = matchedStrategy?.color ?? "var(--fg-2)";
     setFlowColor(color);
     setFlowPhase("idle");
 
@@ -156,9 +154,8 @@ export function ArchitectureWidget() {
   /* --- SSR placeholder ------------------------------------------- */
   if (!mounted) {
     return (
-      <div className="widget-container s7">
-        <div className="widget-label">Interactive &middot; System Architecture</div>
-        <div style={{ height: 400 }} />
+      <div className="widget-shell">
+        <div style={{ height: 160 }} />
       </div>
     );
   }
@@ -173,12 +170,11 @@ export function ArchitectureWidget() {
   /* ---------------------------------------------------------------- */
 
   return (
-    <div className="widget-container s7">
-      <div className="widget-label">Interactive &middot; System Architecture</div>
+    <div className="widget-shell">
 
       {/* ---- Input Section ---- */}
       <div style={{ marginBottom: 24 }}>
-        <div style={monoLabel("#a1a1aa", 8)}>Model + Strategy Input</div>
+        <div style={monoLabel("var(--fg-2)", 8)}>Model + Strategy Input</div>
         <div
           style={{
             display: "flex",
@@ -197,12 +193,12 @@ export function ArchitectureWidget() {
             placeholder='e.g. gemma3:4b+cot'
             style={{
               fontFamily: MONO,
-              fontSize: "0.9rem",
+              fontSize: "14px",
               background: "rgba(0,0,0,0.4)",
               border: "1px solid rgba(255,255,255,0.12)",
               borderRadius: 8,
               padding: "8px 14px",
-              color: "#e4e4e7",
+              color: "var(--fg)",
               outline: "none",
               minWidth: 220,
               flex: 1,
@@ -214,8 +210,8 @@ export function ArchitectureWidget() {
             onClick={startFlow}
             disabled={isFlowing}
             style={{
-              borderColor: isFlowing ? "rgba(255,255,255,0.04)" : "rgba(45,212,191,0.4)",
-              color: isFlowing ? "#71717a" : "#2dd4bf",
+              borderColor: isFlowing ? "rgba(255,255,255,0.04)" : "rgba(125,148,171,0.4)",
+              color: isFlowing ? "var(--fg-3)" : "var(--accent-2)",
               cursor: isFlowing ? "not-allowed" : "pointer",
             }}
           >
@@ -230,7 +226,7 @@ export function ArchitectureWidget() {
 
         {/* ---- Example Pills ---- */}
         <div style={{ display: "flex", gap: 8, marginTop: 10, flexWrap: "wrap" }}>
-          <span style={{ ...monoLabel("#71717a"), lineHeight: "28px", marginRight: 2 }}>
+          <span style={{ ...monoLabel("var(--fg-3)"), lineHeight: "28px", marginRight: 2 }}>
             Examples:
           </span>
           {EXAMPLES.map((ex) => (
@@ -239,14 +235,14 @@ export function ArchitectureWidget() {
               onClick={() => handleExample(ex)}
               style={{
                 fontFamily: MONO,
-                fontSize: "0.72rem",
+                fontSize: "12px",
                 padding: "4px 10px",
                 borderRadius: 12,
-                border: `1px solid ${input === ex ? "rgba(45,212,191,0.4)" : "rgba(255,255,255,0.08)"}`,
-                background: input === ex ? "rgba(45,212,191,0.08)" : "transparent",
-                color: input === ex ? "#2dd4bf" : "#a1a1aa",
+                border: `1px solid ${input === ex ? "rgba(125,148,171,0.4)" : "rgba(255,255,255,0.08)"}`,
+                background: input === ex ? "rgba(125,148,171,0.08)" : "transparent",
+                color: input === ex ? "var(--accent-2)" : "var(--fg-2)",
                 cursor: "pointer",
-                transition: "all 0.15s",
+                transition: "background-color 140ms var(--ease), border-color 140ms var(--ease), color 140ms var(--ease)",
               }}
             >
               {ex}
@@ -266,30 +262,30 @@ export function ArchitectureWidget() {
           alignItems: "baseline",
         }}
       >
-        <span style={{ color: "#71717a" }}>input:</span>
-        <span style={{ color: "#e4e4e7" }}>&quot;{input}&quot;</span>
+        <span style={{ color: "var(--fg-3)" }}>input:</span>
+        <span style={{ color: "var(--fg)" }}>&quot;{input}&quot;</span>
 
-        <span style={{ color: "#71717a" }}>base_model:</span>
-        <span style={{ color: "#22d3ee" }}>&quot;{parsed.baseModel}&quot;</span>
+        <span style={{ color: "var(--fg-3)" }}>base_model:</span>
+        <span style={{ color: "var(--accent-2)" }}>&quot;{parsed.baseModel}&quot;</span>
 
-        <span style={{ color: "#71717a" }}>strategy:</span>
-        <span style={{ color: hasMatch ? matchedStrategy!.color : "#f43f5e" }}>
+        <span style={{ color: "var(--fg-3)" }}>strategy:</span>
+        <span style={{ color: hasMatch ? matchedStrategy!.color : "var(--negative)" }}>
           &quot;{parsed.strategy || "none"}&quot;
           {parsed.strategy && !hasMatch && (
-            <span style={{ color: "#f43f5e", marginLeft: 8, fontSize: "0.72rem" }}>
+            <span style={{ color: "var(--negative)", marginLeft: 8, fontSize: "12px" }}>
               (unknown strategy)
             </span>
           )}
         </span>
 
-        <span style={{ color: "#71717a" }}>agent:</span>
-        <span style={{ color: hasMatch ? matchedStrategy!.color : "#a1a1aa" }}>
+        <span style={{ color: "var(--fg-3)" }}>agent:</span>
+        <span style={{ color: hasMatch ? matchedStrategy!.color : "var(--fg-2)" }}>
           {hasMatch ? matchedStrategy!.label + "Agent" : "StandardAgent (fallback)"}
         </span>
       </div>
 
       {/* ---- Flow Diagram ---- */}
-      <div style={monoLabel("#a1a1aa", 10)}>Data Flow</div>
+      <div style={monoLabel("var(--fg-2)", 10)}>Data Flow</div>
       <div
         style={{
           display: "flex",
@@ -303,59 +299,49 @@ export function ArchitectureWidget() {
         <FlowBox
           label="User Query"
           sublabel="prompt text"
-          borderColor="#a1a1aa"
+          borderColor="var(--fg-2)"
           active={flowPhase === "idle" || flowPhase === "to_interceptor"}
-          glow={flowPhase === "to_interceptor"}
-          glowColor={flowColor}
         />
         <FlowArrow active={flowPhase === "to_interceptor"} color={flowColor} />
 
         <FlowBox
           label="Interceptor"
           sublabel="parse model+strategy"
-          borderColor="#2dd4bf"
+          borderColor="var(--accent-2)"
           active={
             flowPhase === "at_interceptor" ||
             flowPhase === "to_agent"
           }
-          glow={flowPhase === "at_interceptor"}
-          glowColor={flowColor}
         />
         <FlowArrow active={flowPhase === "to_agent"} color={flowColor} />
 
         <FlowBox
           label={hasMatch ? matchedStrategy!.label + "Agent" : "StandardAgent"}
           sublabel={hasMatch ? matchedStrategy!.description : "Direct generation"}
-          borderColor={hasMatch ? matchedStrategy!.color : "#a1a1aa"}
+          borderColor={hasMatch ? matchedStrategy!.color : "var(--fg-2)"}
           active={
             flowPhase === "at_agent" ||
             flowPhase === "to_ollama"
           }
-          glow={flowPhase === "at_agent"}
-          glowColor={flowColor}
         />
         <FlowArrow active={flowPhase === "to_ollama"} color={flowColor} />
 
         <FlowBox
           label="Ollama"
           sublabel="localhost:11434"
-          borderColor="#71717a"
+          borderColor="var(--fg-3)"
           active={
             flowPhase === "at_ollama" ||
             flowPhase === "to_response"
           }
-          glow={flowPhase === "at_ollama"}
-          glowColor={flowColor}
         />
         <FlowArrow active={flowPhase === "to_response"} color={flowColor} />
 
         <FlowBox
           label="Response"
           sublabel="streamed chunks"
-          borderColor={isDone ? "#4ade80" : "#a1a1aa"}
+          borderColor={isDone ? "var(--positive)" : "var(--fg-2)"}
           active={isDone}
-          glow={isDone}
-          glowColor="#4ade80"
         />
       </div>
 
@@ -403,7 +389,7 @@ export function ArchitectureWidget() {
       )}
 
       {/* ---- Agent Map Grid ---- */}
-      <div style={monoLabel("#a1a1aa", 10)}>Agent Map &mdash; 16 Strategies</div>
+      <div style={monoLabel("var(--fg-2)", 10)}>Agent Map &mdash; 16 Strategies</div>
       <div
         style={{
           display: "grid",
@@ -419,42 +405,37 @@ export function ArchitectureWidget() {
             <div
               key={s.key}
               style={{
-                background: isMatch
-                  ? `rgba(${hexToRgb(s.color)}, 0.08)`
-                  : "rgba(255,255,255,0.02)",
+                background: isMatch ? "rgba(224,162,83,0.06)" : "transparent",
                 border: `1px solid ${
-                  isMatch ? s.color : "rgba(255,255,255,0.06)"
+                  isMatch ? "var(--accent)" : "rgba(255,255,255,0.06)"
                 }`,
-                borderRadius: 8,
+                borderRadius: 6,
                 padding: "8px 10px",
-                transition: "all 0.3s",
-                boxShadow: isActiveFlow
-                  ? `0 0 16px rgba(${hexToRgb(s.color)}, 0.35), inset 0 0 12px rgba(${hexToRgb(s.color)}, 0.08)`
-                  : isMatch
-                  ? `0 0 8px rgba(${hexToRgb(s.color)}, 0.15)`
-                  : "none",
+                transition:
+                  "background-color 140ms var(--ease), border-color 140ms var(--ease)",
                 cursor: "default",
                 position: "relative",
-                overflow: "hidden",
               }}
             >
-              {/* glow pulse behind active card */}
               {isActiveFlow && (
-                <div
+                <span
                   style={{
                     position: "absolute",
-                    inset: 0,
-                    background: `radial-gradient(circle at center, rgba(${hexToRgb(s.color)}, 0.12) 0%, transparent 70%)`,
-                    animation: "pulse-glow-card 1.5s ease-in-out infinite",
+                    top: 8,
+                    right: 8,
+                    width: 4,
+                    height: 4,
+                    borderRadius: 2,
+                    background: "var(--accent)",
                   }}
                 />
               )}
               <div
                 style={{
                   fontFamily: MONO,
-                  fontSize: "0.72rem",
+                  fontSize: "12px",
                   fontWeight: 600,
-                  color: isMatch ? s.color : "#a1a1aa",
+                  color: isMatch ? s.color : "var(--fg-2)",
                   marginBottom: 2,
                   position: "relative",
                 }}
@@ -463,8 +444,8 @@ export function ArchitectureWidget() {
               </div>
               <div
                 style={{
-                  fontSize: "0.65rem",
-                  color: isMatch ? "rgba(255,255,255,0.6)" : "#52525b",
+                  fontSize: "11px",
+                  color: isMatch ? "rgba(255,255,255,0.6)" : "var(--fg-3)",
                   lineHeight: 1.3,
                   position: "relative",
                 }}
@@ -496,20 +477,16 @@ export function ArchitectureWidget() {
             borderRadius: "50%",
             background:
               flowPhase === "at_ollama" || flowPhase === "to_response"
-                ? "#4ade80"
-                : "#71717a",
-            boxShadow:
-              flowPhase === "at_ollama" || flowPhase === "to_response"
-                ? "0 0 8px rgba(74,222,128,0.5)"
-                : "none",
-            transition: "all 0.3s",
+                ? "var(--positive)"
+                : "var(--fg-3)",
+            transition: "background-color 140ms var(--ease)",
           }}
         />
         <span
           style={{
             fontFamily: MONO,
-            fontSize: "0.75rem",
-            color: "#a1a1aa",
+            fontSize: "12px",
+            color: "var(--fg-2)",
           }}
         >
           Ollama &middot; http://localhost:11434
@@ -517,8 +494,8 @@ export function ArchitectureWidget() {
         <span
           style={{
             fontFamily: MONO,
-            fontSize: "0.65rem",
-            color: "#52525b",
+            fontSize: "11px",
+            color: "var(--fg-3)",
             marginLeft: "auto",
           }}
         >
@@ -541,32 +518,21 @@ export function ArchitectureWidget() {
         <ArchLabel
           title="ReasoningInterceptor"
           desc="Drop-in Ollama replacement. Parses model+strategy naming convention and routes to the correct agent."
-          color="#2dd4bf"
         />
         <ArchLabel
           title="AGENT_MAP"
           desc="Registry mapping strategy keys to agent classes. Single source of truth for all 16 reasoning strategies."
-          color="#a78bfa"
         />
         <ArchLabel
           title="BaseAgent"
           desc="Abstract base class providing OllamaClient connection, streaming interface, and colored logging."
-          color="#f97316"
         />
         <ArchLabel
           title="OllamaClient"
           desc="HTTP wrapper for Ollama API. Handles streaming and non-streaming responses with configurable parameters."
-          color="#71717a"
         />
       </div>
 
-      {/* Keyframes injected via style tag for card pulse */}
-      <style>{`
-        @keyframes pulse-glow-card {
-          0%, 100% { opacity: 0.5; }
-          50% { opacity: 1; }
-        }
-      `}</style>
     </div>
   );
 }
@@ -580,40 +546,32 @@ function FlowBox({
   sublabel,
   borderColor,
   active,
-  glow,
-  glowColor,
 }: {
   label: string;
   sublabel: string;
   borderColor: string;
   active: boolean;
-  glow: boolean;
-  glowColor: string;
 }) {
   return (
     <div
       style={{
         minWidth: 110,
-        padding: "10px 14px",
-        background: active
-          ? `rgba(${hexToRgb(borderColor)}, 0.06)`
-          : "rgba(255,255,255,0.02)",
+        padding: "10px 12px",
+        background: active ? "rgba(255,255,255,0.04)" : "transparent",
         border: `1px solid ${active ? borderColor : "rgba(255,255,255,0.08)"}`,
-        borderRadius: 8,
+        borderRadius: 6,
         textAlign: "center",
-        transition: "all 0.35s",
-        boxShadow: glow
-          ? `0 0 14px rgba(${hexToRgb(glowColor)}, 0.3)`
-          : "none",
+        transition:
+          "background-color 160ms var(--ease), border-color 160ms var(--ease)",
         flexShrink: 0,
       }}
     >
       <div
         style={{
           fontFamily: MONO,
-          fontSize: "0.75rem",
-          fontWeight: 600,
-          color: active ? borderColor : "#a1a1aa",
+          fontSize: "12px",
+          fontWeight: 500,
+          color: active ? borderColor : "var(--fg-2)",
           marginBottom: 2,
         }}
       >
@@ -621,8 +579,8 @@ function FlowBox({
       </div>
       <div
         style={{
-          fontSize: "0.65rem",
-          color: active ? "rgba(255,255,255,0.5)" : "#52525b",
+          fontSize: "11px",
+          color: "var(--fg-3)",
         }}
       >
         {sublabel}
@@ -666,38 +624,26 @@ function FlowArrow({ active, color }: { active: boolean; color: string }) {
   );
 }
 
-function ArchLabel({
-  title,
-  desc,
-  color,
-}: {
-  title: string;
-  desc: string;
-  color: string;
-}) {
+function ArchLabel({ title, desc }: { title: string; desc: string }) {
   return (
     <div
       style={{
         padding: "10px 14px",
-        background: "rgba(0,0,0,0.2)",
-        borderLeft: `2px solid ${color}`,
-        borderRadius: "0 6px 6px 0",
+        border: "1px solid var(--line)",
+        borderRadius: 6,
       }}
     >
       <div
         style={{
           fontFamily: MONO,
-          fontSize: "0.7rem",
-          fontWeight: 600,
-          color,
+          fontSize: "12px",
+          color: "var(--fg)",
           marginBottom: 4,
-          textTransform: "uppercase",
-          letterSpacing: "0.06em",
         }}
       >
         {title}
       </div>
-      <div style={{ fontSize: "0.72rem", color: "#a1a1aa", lineHeight: 1.5 }}>
+      <div style={{ fontSize: "12px", color: "var(--fg-2)", lineHeight: 1.5 }}>
         {desc}
       </div>
     </div>
@@ -708,14 +654,6 @@ function ArchLabel({
 /*  Utilities                                                          */
 /* ------------------------------------------------------------------ */
 
-function hexToRgb(hex: string): string {
-  const h = hex.replace("#", "");
-  const bigint = parseInt(h, 16);
-  const r = (bigint >> 16) & 255;
-  const g = (bigint >> 8) & 255;
-  const b = bigint & 255;
-  return `${r},${g},${b}`;
-}
 
 function flowProgressWidth(phase: FlowPhase): string {
   switch (phase) {
