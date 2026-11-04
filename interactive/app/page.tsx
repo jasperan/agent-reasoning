@@ -470,8 +470,8 @@ export default function Home() {
           <h2>Conclusion</h2>
           <p>
             The journey from <span className="text-s1">token prediction</span> to{" "}
-            <span className="text-s2">structured reasoning</span> is not about replacing models —
-            it&apos;s about wrapping them in <span className="text-s4">cognitive architectures</span> that
+            <span className="text-s2">structured reasoning</span>{" "}is not about replacing models —
+            it&apos;s about wrapping them in <span className="text-s4">cognitive architectures</span>{" "}that
             guide their thinking process. Each strategy we&apos;ve explored addresses a different failure mode
             of raw generation:
           </p>
