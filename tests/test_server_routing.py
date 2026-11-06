@@ -52,3 +52,13 @@ def test_root_server_drops_finished_debug_sessions():
     while not client.post("/api/debug/step", json={"session_id": sid}).json()["done"]:
         pass
     assert sid not in root.debug_sessions
+
+
+def test_agent_params_strip_base_url_and_internal_keys():
+    spec = importlib.util.spec_from_file_location(
+        "root_server_params", Path(__file__).resolve().parent.parent / "server.py"
+    )
+    root = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(root)
+    assert root._agent_params({"base_url": "http://x", "_debug_event": 1, "max_calls": 3}) == {"max_calls": 3}
+    assert root._agent_params("nope") == {}

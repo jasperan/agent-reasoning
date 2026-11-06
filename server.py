@@ -22,6 +22,17 @@ debug_sessions_lock = threading.Lock()
 app = FastAPI(title="Agent Reasoning Gateway")
 
 
+def _agent_params(params):
+    """Caller-supplied hyperparameters minus constructor arguments that are not tunables.
+
+    ``base_url`` would point the Ollama client at a caller-chosen host (SSRF) and
+    underscore-prefixed keys are server-internal (``_debug_event``).
+    """
+    if not isinstance(params, dict):
+        return {}
+    return {k: v for k, v in params.items() if k != "base_url" and not str(k).startswith("_")}
+
+
 class GenerateRequest(BaseModel):
     model: str
     prompt: str
@@ -50,7 +61,7 @@ async def generate(request: GenerateRequest):
 
     # 2. Instantiate Agent, forwarding any optional hyperparameters
     agent_class = AGENT_MAP[strategy]
-    params = request.parameters
+    params = _agent_params(request.parameters)
     try:
         agent = agent_class(model=base_model, **params)
     except TypeError:
@@ -105,7 +116,7 @@ async def generate_structured(request: Request):
 
     model_name = body.get("model", "gemma3:latest")
     prompt = body.get("prompt", "")
-    params = body.get("parameters", {})
+    params = _agent_params(body.get("parameters", {}))
 
     parts = model_name.split("+", 1)
     base_model = parts[0]
@@ -166,7 +177,7 @@ async def debug_start(request: Request):
     body = await request.json()
     model_name = body.get("model", "gemma3:latest")
     prompt = body.get("prompt", "")
-    params = body.get("parameters", {})
+    params = _agent_params(body.get("parameters", {}))
 
     parts = model_name.split("+", 1)
     base_model = parts[0]
