@@ -7,6 +7,15 @@ from agent_reasoning.agents.base import BaseAgent
 from agent_reasoning.visualization.models import ReActStep, StreamEvent, TaskStatus
 
 _MAX_EXPRESSION_LENGTH = 500
+_MAX_POW_RESULT_BITS = 100_000
+
+
+def _bounded_pow(base, exponent):
+    """``base ** exponent`` refusing results large enough to stall the process."""
+    if isinstance(base, int) and isinstance(exponent, int) and exponent > 0:
+        if base.bit_length() * exponent > _MAX_POW_RESULT_BITS:
+            raise ValueError("exponent too large")
+    return base ** exponent
 
 
 def _eval_math_node(node: ast.AST, names: dict):
@@ -40,7 +49,7 @@ def _eval_math_node(node: ast.AST, names: dict):
             ast.Div: lambda a, b: a / b,
             ast.FloorDiv: lambda a, b: a // b,
             ast.Mod: lambda a, b: a % b,
-            ast.Pow: lambda a, b: a ** b,
+            ast.Pow: _bounded_pow,
         }
         for op_type, operation in operations.items():
             if isinstance(node.op, op_type):

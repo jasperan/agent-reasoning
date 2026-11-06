@@ -113,3 +113,9 @@ def test_blocks_non_numeric_literals(agent):
 
 def test_blocks_oversized_expression(agent):
     assert "Error" in agent.perform_tool_call("calculate", "1+" * 400 + "1")
+
+
+def test_calculate_refuses_huge_power(agent):
+    assert agent.perform_tool_call("calculate", "9**9**8").startswith("Error calculating")
+    assert agent.perform_tool_call("calculate", "(9**999)**999").startswith("Error calculating")
+    assert agent.perform_tool_call("calculate", "2**10") == "1024"
