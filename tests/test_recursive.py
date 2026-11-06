@@ -215,3 +215,33 @@ def test_recursive_worker_is_reaped_when_run_ends():
     assert {p.pid for p in multiprocessing.active_children()} - before
     gen.close()
     assert {p.pid for p in multiprocessing.active_children()} <= before
+
+
+def test_worker_screen_blocks_env_escape_chain():
+    from agent_reasoning.agents.recursive import _screen_code
+
+    for code in (
+        "sub_llm.__func__.__globals__['__builtins__']",
+        "g = (x for x in [1])\ng.gi_frame.f_back.f_globals",
+        "'{0.__globals__}'.format(sub_llm)",
+        "__import__('os')",
+    ):
+        with pytest.raises(ValueError):
+            _screen_code(code)
+    _screen_code("result = sum(range(3))\nFINAL_ANSWER = f'{result}'")
+
+
+def test_worker_loop_reports_blocked_code():
+    import multiprocessing
+
+    from agent_reasoning.agents.recursive import _worker_loop
+
+    parent, child = multiprocessing.Pipe()
+    import threading
+
+    t = threading.Thread(target=_worker_loop, args=(child, {"__builtins__": {}}), daemon=True)
+    t.start()
+    parent.send("x = (1).__class__")
+    obs, final = parent.recv()
+    assert obs.startswith("Error:") and final is None
+    parent.close()

@@ -1,3 +1,4 @@
+import ast
 import io
 import multiprocessing
 import re
@@ -6,6 +7,26 @@ import sys
 from termcolor import colored
 
 from agent_reasoning.agents.base import BaseAgent
+
+# Attribute names that reach interpreter internals (frames, code objects, globals).
+_BLOCKED_ATTR_PREFIXES = ("_", "gi_", "cr_", "ag_", "f_", "tb_", "co_", "func_")
+
+
+def _screen_code(code):
+    """Reject model code that reaches interpreter internals.
+
+    Clearing ``__builtins__`` only removes names; attribute traversal such as
+    ``sub_llm.__func__.__globals__`` (or ``gen.gi_frame.f_back.f_globals``) still
+    reaches ``__import__``. Underscore/frame/code attributes and dunder-bearing
+    string constants (``str.format`` field traversal) are therefore refused.
+    """
+    for node in ast.walk(ast.parse(code)):
+        if isinstance(node, ast.Attribute) and node.attr.startswith(_BLOCKED_ATTR_PREFIXES):
+            raise ValueError(f"access to attribute '{node.attr}' is not allowed")
+        if isinstance(node, ast.Name) and node.id.startswith("__"):
+            raise ValueError(f"name '{node.id}' is not allowed")
+        if isinstance(node, ast.Constant) and isinstance(node.value, str) and "__" in node.value:
+            raise ValueError("strings containing '__' are not allowed")
 
 
 def _worker_loop(conn, env):
@@ -22,6 +43,7 @@ def _worker_loop(conn, env):
         buffer = io.StringIO()
         sys.stdout = buffer
         try:
+            _screen_code(code)
             exec(code, env)
             result = buffer.getvalue()
         except RecursionError as e:
