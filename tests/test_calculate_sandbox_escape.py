@@ -14,6 +14,7 @@ The pre-existing tests in ``test_edge_cases.py`` only asserted that bare
 ``open``/``eval``/``exec`` names are undefined, so they passed while the
 sandbox was fully bypassable. These tests exercise the traversal itself.
 """
+
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -34,6 +35,7 @@ def agent():
 
 
 # --- legitimate arithmetic must keep working (no behavior regression) ---
+
 
 @pytest.mark.parametrize(
     "expression,expected",
@@ -64,6 +66,7 @@ def test_division_by_zero_is_an_error_not_a_crash(agent):
 
 
 # --- the sandbox escape that previously succeeded ---
+
 
 def test_blocks_subclasses_traversal(agent):
     """The exact escape PoC: attribute traversal to reach __import__."""

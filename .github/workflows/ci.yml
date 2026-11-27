@@ -1,0 +1,37 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  python:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.12"
+      - run: uv sync --extra server
+      - run: uv run ruff check .
+      - run: uv run ruff format --check .
+      # httpx is only needed by fastapi.testclient for the server routing tests
+      - run: uv run --with httpx pytest -q
+
+  tui:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: tui
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: tui/go.mod
+          cache-dependency-path: tui/go.sum
+      - run: go vet ./...
+      - run: go test ./...

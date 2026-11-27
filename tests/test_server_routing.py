@@ -36,7 +36,10 @@ def test_packaged_server_routes_strategies_missing_from_old_map(monkeypatch):
 
 
 def test_packaged_server_tags_list_every_primary_strategy():
-    names = {m["name"].split("+", 1)[1] for m in TestClient(packaged.app).get("/api/tags").json()["models"]}
+    names = {
+        m["name"].split("+", 1)[1]
+        for m in TestClient(packaged.app).get("/api/tags").json()["models"]
+    }
     assert {"mcts", "debate", "socratic", "meta", "refinement"} <= names
 
 
@@ -60,5 +63,7 @@ def test_agent_params_strip_base_url_and_internal_keys():
     )
     root = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(root)
-    assert root._agent_params({"base_url": "http://x", "_debug_event": 1, "max_calls": 3}) == {"max_calls": 3}
+    assert root._agent_params({"base_url": "http://x", "_debug_event": 1, "max_calls": 3}) == {
+        "max_calls": 3
+    }
     assert root._agent_params("nope") == {}
