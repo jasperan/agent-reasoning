@@ -67,8 +67,10 @@ async def generate(request: GenerateRequest):
     except TypeError:
         agent = agent_class(model=base_model)
 
-    # 3. Stream Response with timing
-    async def response_generator():
+    # 3. Stream Response with timing. agent.stream() blocks on Ollama, so this is a
+    # plain generator: Starlette iterates it in a worker thread instead of on the
+    # event loop, which would otherwise serialise every request.
+    def response_generator():
         start_time = time.time()
         first_token_time = None
         chunk_count = 0
@@ -84,8 +86,6 @@ async def generate(request: GenerateRequest):
                     "done": False,
                 }
                 yield json.dumps(data) + "\n"
-                if chunk_count % 10 == 0:
-                    await asyncio.sleep(0)
 
             end_time = time.time()
             total_duration = int((end_time - start_time) * 1e9)
@@ -131,7 +131,7 @@ async def generate_structured(request: Request):
     except TypeError:
         agent = agent_class(model=base_model)
 
-    async def event_stream():
+    def event_stream():  # sync on purpose: runs in a worker thread (see generate)
         try:
             if hasattr(agent, "stream_structured"):
                 for event in agent.stream_structured(prompt):

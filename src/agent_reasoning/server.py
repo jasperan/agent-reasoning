@@ -1,7 +1,6 @@
 """FastAPI server for Agent Reasoning Gateway."""
 
 import argparse
-import asyncio
 import json
 
 from fastapi import FastAPI
@@ -41,7 +40,10 @@ async def generate(request: GenerateRequest):
     agent_class = AGENT_MAP[strategy]
     agent = agent_class(model=base_model)
 
-    async def response_generator():
+    # agent.stream() blocks on Ollama, so this is a plain generator: Starlette
+    # iterates it in a worker thread instead of on the event loop, which would
+    # otherwise serialise every request.
+    def response_generator():
         try:
             for chunk in agent.stream(request.prompt):
                 data = {
@@ -51,7 +53,6 @@ async def generate(request: GenerateRequest):
                     "done": False,
                 }
                 yield json.dumps(data) + "\n"
-                await asyncio.sleep(0)
 
             data = {
                 "model": request.model,
