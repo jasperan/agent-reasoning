@@ -77,7 +77,7 @@ This repository transforms standard Open Source models (like `gemma3`, `llama3`)
 ## Quick Start (3 commands)
 
 ```bash
-uv sync && ollama pull gemma3:270m && uv run agent-reasoning
+uv sync && ollama pull gemma3:270m && uv run python agent_cli.py
 ```
 
 ## 📦 Installation
@@ -101,8 +101,11 @@ uv add "agent-reasoning[server]"
 git clone https://github.com/jasperan/agent-reasoning.git
 cd agent-reasoning
 uv sync
-uv run agent-reasoning
+uv run python agent_cli.py
 ```
+
+The interactive CLI (`agent_cli.py`) lives in the repository, so run it from a clone. The PyPI
+package ships the Python API and the `agent-reasoning-server` gateway.
 
 ### Development
 
@@ -119,8 +122,8 @@ uv run ruff check .
 # Format code
 uv run ruff format .
 
-# Type check
-uv run ty check .
+# Type check (ty is not a project dependency; uvx fetches it)
+uvx ty check .
 
 # Add a new dependency
 uv add <package>
@@ -141,7 +144,7 @@ If you don't have Ollama installed locally, you can connect to a remote Ollama i
 
 **Option 1: Interactive CLI Configuration**
 ```bash
-agent-reasoning
+uv run python agent_cli.py
 # Select "Configure Endpoint" from the menu
 ```
 
@@ -211,20 +214,17 @@ Interactive Jupyter notebooks demonstrating agent reasoning capabilities:
 Access all agents, comparisons, and benchmarks via the rich CLI.
 
 ```bash
-# If installed via pip:
-agent-reasoning
-
-# Or from source:
-python agent_cli.py
+# From a clone:
+uv run python agent_cli.py
 ```
 
 **CLI Shortcuts:**
 ```bash
-python agent_cli.py                  # Full interactive menu
-python agent_cli.py --arena          # Jump to arena mode
-python agent_cli.py --benchmark      # Jump to benchmarks
-python agent_cli.py --head-to-head   # Compare two agents
-python agent_cli.py --agents         # Show strategy guide
+uv run python agent_cli.py                  # Full interactive menu
+uv run python agent_cli.py --arena          # Jump to arena mode
+uv run python agent_cli.py --benchmark      # Jump to benchmarks
+uv run python agent_cli.py --head-to-head   # Compare two agents
+uv run python agent_cli.py --agents         # Show strategy guide
 ```
 
 **Interactive Experience:**
@@ -276,7 +276,8 @@ go build -o agent-tui .
 ./agent-tui
 ```
 
-The TUI automatically starts the reasoning server on launch. Requires Go 1.18+.
+The TUI starts the reasoning server (`server.py`) on launch, so install the server extra first
+(`uv sync --extra server`). Requires Go 1.18+.
 
 #### Chat View
 
@@ -436,12 +437,13 @@ for chunk in agent.stream("Write a blog post about machine learning"):
 Run a proxy server that impersonates Ollama. This allows **any** Ollama-compatible app (LangChain, Web UIs) to gain reasoning capabilities without code changes.
 
 ```bash
-# If installed via pip:
+# If installed via pip (pip install "agent-reasoning[server]"):
 agent-reasoning-server --port 8080
 
 # Or from source (binds 127.0.0.1:8080; the API is unauthenticated, so set
 # AGENT_REASONING_HOST=0.0.0.0 only if you really want to expose it):
-python server.py
+uv sync --extra server
+uv run python server.py
 ```
 
 Then configure your app:
@@ -532,10 +534,10 @@ Full eval across 13 strategies (4,200 evaluations, March 2026):
 
 ```bash
 # Interactive (select datasets and strategies):
-python agent_cli.py --accuracy
+uv run python agent_cli.py --accuracy
 
 # Or from the benchmark menu:
-python agent_cli.py --benchmark
+uv run python agent_cli.py --benchmark
 # → Select "Accuracy Benchmark"
 ```
 
@@ -708,7 +710,7 @@ Normalized heatmap where green = better performance. Latency and TTFT are invert
 
 ![Heatmap](benchmarks/charts/benchmark_heatmap.png)
 
-> Charts generated with `python agent_cli.py --benchmark`. Output saved to `benchmarks/charts/`.
+> Charts generated with `uv run python agent_cli.py --benchmark`. Output saved to `benchmarks/charts/`.
 
 ---
 

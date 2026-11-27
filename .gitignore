@@ -215,7 +215,14 @@ tui/agent-tui
 
 # Benchmark outputs and result files
 arena_report.md
+benchmark_output.txt
 simulation_demo.py
+
+# Chat sessions saved by the CLI and TUI
+data/sessions/
+
+# Editor / agent tool config
+.mcp.json
 
 # Dogfood / QA output
 dogfood-output/
