@@ -476,7 +476,7 @@ curl http://localhost:8080/api/tags
 | **ReAct** | Interleaves Reasoning and Tool Usage. | Fact-checking, Calculations | [Yao et al. (2022)](https://arxiv.org/abs/2210.03629) |
 | **Tree of Thoughts** | Explores multiple reasoning branches (BFS/DFS). | Complex Riddles, Strategy | [Yao et al. (2023)](https://arxiv.org/abs/2305.10601) |
 | **Decomposed** | Breaks complex queries into sub-tasks. | Planning, Long-form answers | [Khot et al. (2022)](https://arxiv.org/abs/2210.02406) |
-| **Recursive (RLM)** | Uses Python REPL to recursively process prompt variables. | Long-context processing | [Author et al. (2025)](https://arxiv.org/abs/2512.24601) |
+| **Recursive (RLM)** | Uses Python REPL to recursively process prompt variables. | Long-context processing | [Zhang et al. (2025)](https://arxiv.org/abs/2512.24601) |
 | **Refinement Loop** | Generator → Critic (0.0-1.0 score) → Refiner iterative loop. | Technical Writing, Quality Content | Inspired by [Madaan et al. (2023)](https://arxiv.org/abs/2303.17651) |
 | **Complex Refinement** | 5-stage pipeline: Accuracy → Clarity → Depth → Examples → Polish. | Long-form Articles, Documentation | Multi-stage refinement architecture |
 | **Adversarial Debate** | Pro/con debate rounds with judge evaluation. | Controversial Topics, Analysis | [Irving et al. (2018)](https://arxiv.org/abs/1805.00899) |
