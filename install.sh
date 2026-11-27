@@ -83,24 +83,15 @@ check_prereqs() {
 
 install_deps() {
     cd "$INSTALL_DIR"
-    if [ ! -d ".venv" ]; then
-        info "Creating virtual environment..."
-        $PYTHON -m venv .venv
-    else
-        info "Using existing virtual environment..."
-    fi
-    # shellcheck disable=SC1091
-    source .venv/bin/activate
-
     info "Installing dependencies..."
-    pip install --upgrade pip -q
-    pip install -e ".[dev]" -q 2>/dev/null || pip install -e . -q || {
-        if [ -f requirements.txt ]; then
-            pip install -r requirements.txt -q
-        else
-            fail "Could not install dependencies"
-        fi
-    }
+    if command_exists uv; then
+        uv sync --extra server -q || fail "uv sync failed"
+    else
+        warn "uv not found (https://docs.astral.sh/uv/); falling back to venv + pip"
+        [ -d ".venv" ] || $PYTHON -m venv .venv
+        .venv/bin/pip install --upgrade pip -q
+        .venv/bin/pip install -e ".[server]" -q || fail "Could not install dependencies"
+    fi
     success "Dependencies installed"
 }
 
@@ -120,7 +111,8 @@ print_done() {
     echo ""
     echo -e "  ${BOLD}Location:${NC}  $INSTALL_DIR"
     echo -e "  ${BOLD}Activate:${NC}  source $INSTALL_DIR/.venv/bin/activate"
-    echo -e "  ${BOLD}Commands:${NC}  agent-reasoning, agent-reasoning-server"
+    echo -e "  ${BOLD}CLI:${NC}       python agent_cli.py"
+    echo -e "  ${BOLD}Server:${NC}    agent-reasoning-server"
     echo ""
 }
 
