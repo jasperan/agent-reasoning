@@ -34,6 +34,17 @@ func NewManager(projectDir string) *Manager {
 	}
 }
 
+// pythonFor returns the interpreter used to run server.py: the project's
+// virtualenv (created by `uv sync --extra server`) when present, so the server
+// finds its dependencies without an activated venv; otherwise `python` on PATH.
+func pythonFor(projectDir string) string {
+	venvPython := filepath.Join(projectDir, ".venv", "bin", "python")
+	if info, err := os.Stat(venvPython); err == nil && !info.IsDir() {
+		return venvPython
+	}
+	return "python"
+}
+
 // IsPortInUse checks if the server port is already in use
 func (m *Manager) IsPortInUse() bool {
 	conn, err := net.DialTimeout("tcp", fmt.Sprintf("%s:%d", ServerHost, ServerPort), time.Second)
@@ -73,7 +84,7 @@ func (m *Manager) Start() error {
 	}
 
 	// Start the server
-	m.cmd = exec.Command("python", serverPath)
+	m.cmd = exec.Command(pythonFor(m.projectDir), serverPath)
 	m.cmd.Dir = m.projectDir
 
 	// Redirect stderr to see any startup errors
