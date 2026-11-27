@@ -15,7 +15,7 @@ def _bounded_pow(base, exponent):
     if isinstance(base, int) and isinstance(exponent, int) and exponent > 0:
         if base.bit_length() * exponent > _MAX_POW_RESULT_BITS:
             raise ValueError("exponent too large")
-    return base ** exponent
+    return base**exponent
 
 
 def _eval_math_node(node: ast.AST, names: dict):
@@ -61,9 +61,7 @@ def _eval_math_node(node: ast.AST, names: dict):
             raise ValueError("only whitelisted functions may be called")
         if node.keywords:
             raise ValueError("keyword arguments are not supported")
-        return names[node.func.id](
-            *[_eval_math_node(arg, names) for arg in node.args]
-        )
+        return names[node.func.id](*[_eval_math_node(arg, names) for arg in node.args])
 
     raise ValueError(f"unsupported expression element: {type(node).__name__}")
 

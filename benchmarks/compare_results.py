@@ -11,6 +11,7 @@ import sys
 
 try:
     from tabulate import tabulate
+
     TABULATE_AVAILABLE = True
 except ImportError:
     TABULATE_AVAILABLE = False
@@ -19,7 +20,7 @@ except ImportError:
 def load_results(filepath):
     """Load results from JSON file, handling both old and new formats."""
     try:
-        with open(filepath, 'r') as f:
+        with open(filepath, "r") as f:
             data = json.load(f)
 
         # Handle new format with metadata wrapper
@@ -47,7 +48,9 @@ def calc_metrics(data):
     valid_ttft = [d["ttft_ms"] for d in data if not d.get("error") and d.get("ttft_ms")]
     valid_tps = [d["tps"] for d in data if not d.get("error") and d.get("tps")]
     valid_cost = [d["cost_estimate"] for d in data if not d.get("error") and d.get("cost_estimate")]
-    valid_tokens = [d["output_tokens"] for d in data if not d.get("error") and d.get("output_tokens")]
+    valid_tokens = [
+        d["output_tokens"] for d in data if not d.get("error") and d.get("output_tokens")
+    ]
 
     return {
         "avg_latency": sum(valid_latency) / len(valid_latency) if valid_latency else 0,
@@ -111,10 +114,10 @@ def compare_results(ollama_file, oci_file, show_all=False):
     # Process Ollama Models
     for model, entries in ollama_models.items():
         metrics = calc_metrics(entries)
-        lat = f"{metrics['avg_latency']:.0f}ms" if metrics['avg_latency'] else "N/A"
-        ttft = f"{metrics['avg_ttft']:.0f}ms" if metrics['avg_ttft'] else "N/A"
-        tps = f"{metrics['avg_tps']:.1f}" if metrics['avg_tps'] else "N/A"
-        tokens = f"{metrics['avg_tokens']:.0f}" if metrics['avg_tokens'] else "N/A"
+        lat = f"{metrics['avg_latency']:.0f}ms" if metrics["avg_latency"] else "N/A"
+        ttft = f"{metrics['avg_ttft']:.0f}ms" if metrics["avg_ttft"] else "N/A"
+        tps = f"{metrics['avg_tps']:.1f}" if metrics["avg_tps"] else "N/A"
+        tokens = f"{metrics['avg_tokens']:.0f}" if metrics["avg_tokens"] else "N/A"
         success = f"{metrics['success_count']}/{metrics['total_count']}"
         table.append(["Ollama", model, "local", lat, ttft, tokens, tps, "GPU", success])
 
@@ -125,20 +128,20 @@ def compare_results(ollama_file, oci_file, show_all=False):
         # Get provider from first entry
         provider = entries[0].get("provider", "oci") if entries else "oci"
 
-        lat = f"{metrics['avg_latency']:.0f}ms" if metrics['avg_latency'] else "N/A"
-        ttft = f"{metrics['avg_ttft']:.0f}ms" if metrics['avg_ttft'] else "N/A"
-        tokens = f"{metrics['avg_tokens']:.0f}" if metrics['avg_tokens'] else "N/A"
+        lat = f"{metrics['avg_latency']:.0f}ms" if metrics["avg_latency"] else "N/A"
+        ttft = f"{metrics['avg_ttft']:.0f}ms" if metrics["avg_ttft"] else "N/A"
+        tokens = f"{metrics['avg_tokens']:.0f}" if metrics["avg_tokens"] else "N/A"
 
         # Calculate TPS from tokens and latency if not directly available
-        if metrics['avg_tps']:
+        if metrics["avg_tps"]:
             tps = f"{metrics['avg_tps']:.1f}"
-        elif metrics['avg_tokens'] and metrics['avg_latency']:
-            tps_calc = metrics['avg_tokens'] / (metrics['avg_latency'] / 1000)
+        elif metrics["avg_tokens"] and metrics["avg_latency"]:
+            tps_calc = metrics["avg_tokens"] / (metrics["avg_latency"] / 1000)
             tps = f"{tps_calc:.1f}"
         else:
             tps = "N/A"
 
-        cost = f"${metrics['avg_cost']:.5f}" if metrics['avg_cost'] else "N/A"
+        cost = f"${metrics['avg_cost']:.5f}" if metrics["avg_cost"] else "N/A"
         success = f"{metrics['success_count']}/{metrics['total_count']}"
 
         table.append(["OCI", model, provider, lat, ttft, tokens, tps, cost, success])
@@ -147,8 +150,8 @@ def compare_results(ollama_file, oci_file, show_all=False):
     def sort_key(row):
         lat_str = row[3]
         if lat_str == "N/A":
-            return float('inf')
-        return float(lat_str.replace('ms', ''))
+            return float("inf")
+        return float(lat_str.replace("ms", ""))
 
     table.sort(key=sort_key)
 
@@ -174,8 +177,10 @@ def compare_results(ollama_file, oci_file, show_all=False):
     print()
 
     # Print insights
-    all_models = {**{f"Ollama:{k}": v for k, v in ollama_models.items()},
-                  **{f"OCI:{k}": v for k, v in oci_models.items()}}
+    all_models = {
+        **{f"Ollama:{k}": v for k, v in ollama_models.items()},
+        **{f"OCI:{k}": v for k, v in oci_models.items()},
+    }
 
     if all_models:
         print("-" * 110)
@@ -183,34 +188,46 @@ def compare_results(ollama_file, oci_file, show_all=False):
 
         # Find fastest by latency
         fastest = min(
-            ((m, calc_metrics(e)['avg_latency']) for m, e in all_models.items()
-             if calc_metrics(e)['avg_latency'] > 0),
+            (
+                (m, calc_metrics(e)["avg_latency"])
+                for m, e in all_models.items()
+                if calc_metrics(e)["avg_latency"] > 0
+            ),
             key=lambda x: x[1],
-            default=None
+            default=None,
         )
 
         # Find best TTFT
         best_ttft = min(
-            ((m, calc_metrics(e)['avg_ttft']) for m, e in all_models.items()
-             if calc_metrics(e)['avg_ttft'] > 0),
+            (
+                (m, calc_metrics(e)["avg_ttft"])
+                for m, e in all_models.items()
+                if calc_metrics(e)["avg_ttft"] > 0
+            ),
             key=lambda x: x[1],
-            default=None
+            default=None,
         )
 
         # Find highest throughput
         highest_tps = max(
-            ((m, calc_metrics(e)['avg_tps']) for m, e in all_models.items()
-             if calc_metrics(e)['avg_tps'] > 0),
+            (
+                (m, calc_metrics(e)["avg_tps"])
+                for m, e in all_models.items()
+                if calc_metrics(e)["avg_tps"] > 0
+            ),
             key=lambda x: x[1],
-            default=None
+            default=None,
         )
 
         # Find most tokens generated
         most_tokens = max(
-            ((m, calc_metrics(e)['avg_tokens']) for m, e in all_models.items()
-             if calc_metrics(e)['avg_tokens'] > 0),
+            (
+                (m, calc_metrics(e)["avg_tokens"])
+                for m, e in all_models.items()
+                if calc_metrics(e)["avg_tokens"] > 0
+            ),
             key=lambda x: x[1],
-            default=None
+            default=None,
         )
 
         if fastest:
@@ -224,7 +241,7 @@ def compare_results(ollama_file, oci_file, show_all=False):
 
         # Cost comparison
         total_oci_cost = sum(
-            calc_metrics(e)['avg_cost'] * calc_metrics(e)['total_count']
+            calc_metrics(e)["avg_cost"] * calc_metrics(e)["total_count"]
             for e in oci_models.values()
         )
         if total_oci_cost > 0:
@@ -241,14 +258,15 @@ def main():
 Examples:
   python compare_results.py
   python compare_results.py --ollama-results my_ollama.json --oci-results my_oci.json
-        """
+        """,
     )
-    parser.add_argument("--ollama-results", type=str, default="ollama_results.json",
-                       help="Ollama results JSON file")
-    parser.add_argument("--oci-results", type=str, default="oci_results.json",
-                       help="OCI results JSON file")
-    parser.add_argument("--all", action="store_true",
-                       help="Show all metrics including failed runs")
+    parser.add_argument(
+        "--ollama-results", type=str, default="ollama_results.json", help="Ollama results JSON file"
+    )
+    parser.add_argument(
+        "--oci-results", type=str, default="oci_results.json", help="OCI results JSON file"
+    )
+    parser.add_argument("--all", action="store_true", help="Show all metrics including failed runs")
 
     args = parser.parse_args()
 
